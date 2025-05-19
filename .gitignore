@@ -1,0 +1,7 @@
+/build/
+/*.sln
+/*.vcxproj
+*.user
+*.exe
+*.out
+*.log

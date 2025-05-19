@@ -1,0 +1,22 @@
+{
+  "listeners": [
+    {
+      "address": "0.0.0.0",
+      "port": 8443,
+      "https": true,
+      "cert": "server.crt",
+      "key": "server.key"
+    }
+  ],
+  "db_clients": [
+    {
+      "name": "default",
+      "rdbms": "postgresql",
+      "host": "localhost",
+      "port": 5432,
+      "dbname": "testdb",
+      "user": "postgres",
+      "passwd": "password"
+    }
+  ]
+}

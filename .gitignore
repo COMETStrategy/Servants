@@ -1,7 +1,25 @@
+# Ignore build directories
 /build/
-/*.sln
-/*.vcxproj
-*.user
+/CMakeFiles/
+cmake-build-*/
+/CMakeCache.txt
+Makefile
+cmake_install.cmake
+
+.idea/*
+!.idea/misc.xml
+!.idea/modules.xml
+!.idea/workspace.xml
+!.idea/vcs.xml
+
+
+# Ignore other generated files
+*.o
+*.obj
+*.so
+*.dll
 *.exe
 *.out
+*.a
+*.lib
 *.log

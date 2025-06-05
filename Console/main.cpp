@@ -1,4 +1,4 @@
-#include "WebServices/WebServices.h"
+#include "Services/WebServices.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -8,7 +8,7 @@
 
 int main()
     {
-        WebServices server;
+        comet::WebServices server;
         server.run();
 
         // Running in main

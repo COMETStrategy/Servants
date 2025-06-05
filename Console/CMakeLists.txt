@@ -29,5 +29,9 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFI
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFIG>)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFIG>)
 
-add_executable(servant-console main.cpp WebServices/WebServices.cpp)
+file(GLOB SERVICES_SRC Services/*.cpp)
+
+add_executable(servant-console main.cpp ${SERVICES_SRC})
+target_include_directories(servant-console PRIVATE Services)
+
 target_link_libraries(servant-console PRIVATE drogon)

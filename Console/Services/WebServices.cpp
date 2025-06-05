@@ -6,6 +6,7 @@
 #include <iostream>
 
 using namespace drogon;
+using namespace comet;
 
 WebServices::WebServices()
 {

@@ -8,18 +8,24 @@
 #endif //WEBSERVICES_H
 
 #include <string>
-
+#include <thread>
+#include <memory>
 
 class WebServices
   {
   public:
     WebServices();
-
     ~WebServices();
 
     void initialize();
-
     void shutdown();
-
+    
     void handleRequest(const std::string& request);
+    
+    void run();
+    void join();
+    bool isRunning() const;
+  private:
+    std::unique_ptr<std::thread> serverThread_;
+    std::atomic<bool> running_{true};
   };

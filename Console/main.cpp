@@ -1,4 +1,10 @@
+
 #include <iostream>
+#include <filesystem>
+#include <thread>
+#include <chrono>
+
+#include "WebServices/WebServices.h"
 
 #include <drogon/drogon.h>
 using namespace drogon;
@@ -11,77 +17,61 @@ using namespace drogon;
 #include <sys/socket.h>
 #endif
 
-#include <drogon/drogon.h>
-using namespace drogon;
-
 int main()
 {
-
+    WebServices server;
     std::filesystem::path sourceDir = std::filesystem::path(__FILE__).parent_path();
 
-    //app().setLogPath(sourceDir.string());
-    //app().setLogLevel(trantor::Logger::kWarn);
-
-    // `registerHandler()` adds a handler to the desired path. The handler is
-    // responsible for generating a HTTP response upon an HTTP request being
-    // sent to Drogon
-
-
-    // Set log file path
+    // Example: set log file path and level
     // app().setLogPath(sourceDir.string())
     //      .setLogLevel(trantor::Logger::kInfo);
 
-
-    
-    app().registerHandler(
+    // Root handler
+    drogon::app().registerHandler(
         "/",
         [](const HttpRequestPtr &request,
-           std::function<void(const HttpResponsePtr &)> &&callback) {
-            LOG_INFO << "connected:"
-                     << (request->connected() ? "true" : "false");
+           std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+            LOG_INFO << "connected:" << (request->connected() ? "true" : "false");
             auto resp = HttpResponse::newHttpResponse();
             resp->setBody("Hello from COMET Servants!");
-            
             LOG_INFO << "Hello from COMET Servants!";
             callback(resp);
         },
         {Get});
 
-    // `registerHandler()` also supports parsing and passing the path as
-    // parameters to the handler. Parameters are specified using {}. The text
-    // inside the {} does not correspond to the index of parameter passed to the
-    // handler (nor it has any meaning). Instead, it is only to make it easier
-    // for users to recognize the function of each parameter.
-    app().registerHandler(
+    // Handler with path parameter
+    drogon::app().registerHandler(
         "/user/{user-name}",
         [](const HttpRequestPtr &,
            std::function<void(const HttpResponsePtr &)> &&callback,
-           const std::string &name) {
+           const std::string &name)
+        {
             auto resp = HttpResponse::newHttpResponse();
             resp->setBody("Hello COMET USER, " + name + "!");
             callback(resp);
         },
         {Get});
 
-    // You can also specify that the parameter is in the query section of the
-    // URL!
-    app().registerHandler(
+    // Handler with query parameter
+    drogon::app().registerHandler(
         "/hello?user={user-name}",
         [](const HttpRequestPtr &,
            std::function<void(const HttpResponsePtr &)> &&callback,
-           const std::string &name) {
+           const std::string &name)
+        {
             auto resp = HttpResponse::newHttpResponse();
             resp->setBody("Hello COMET Parameter User, " + name + "!");
             callback(resp);
         },
         {Get});
 
-    // Or, if you want to, instead of asking drogon to parse it for you. You can
-    // parse the request yourselves.
-    app().registerHandler(
+    // Handler parsing query manually
+    drogon::app().registerHandler(
         "/hello_user",
         [](const HttpRequestPtr &req,
-           std::function<void(const HttpResponsePtr &)> &&callback) {
+           std::function<void(const HttpResponsePtr &)> &&callback)
+        {
             auto resp = HttpResponse::newHttpResponse();
             auto name = req->getOptionalParameter<std::string>("user");
             if (!name)
@@ -92,27 +82,43 @@ int main()
         },
         {Get});
 
-    app()
-        .setBeforeListenSockOptCallback([](int fd) {
-            LOG_INFO << "setBeforeListenSockOptCallback:" << fd;
-#ifdef _WIN32
-#elif __linux__
-            int enable = 1;
-            if (setsockopt(
-                    fd, IPPROTO_TCP, TCP_FASTOPEN, &enable, sizeof(enable)) ==
-                -1)
-            {
-                LOG_INFO << "setsockopt TCP_FASTOPEN failed";
-            }
-#else
-#endif
-        })
-        .setAfterAcceptSockOptCallback([](int) {});
+    // /quit handler to shut down the server
+    drogon::app().registerHandler(
+        "/quit",
+        [](const HttpRequestPtr &,
+           std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setBody("Server is shutting down...");
+            callback(resp);
+            std::thread([] {
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+                std::exit(0);
+            }).detach();
+        },
+        {Get});
 
-    // Ask Drogon to listen on 127.0.0.1 port 8848. Drogon supports listening
-    // on multiple IP addresses by adding multiple listeners. For example, if
-    // you want the server also listen on 127.0.0.1 port 5555. Just add another
-    // line of addListener("127.0.0.1", 5555)
+    // Optional: set socket options before listening
+    drogon::app().setBeforeListenSockOptCallback([](int fd)
+    {
+#ifdef _WIN32
+        // Windows-specific options
+#elif __linux__
+        int enable = 1;
+        if (setsockopt(
+                fd, IPPROTO_TCP, TCP_FASTOPEN, &enable, sizeof(enable)) == -1)
+        {
+            LOG_INFO << "setsockopt TCP_FASTOPEN failed";
+        }
+#else
+        // Other platforms
+#endif
+    })
+    .setAfterAcceptSockOptCallback([](int)
+    {
+        // Optional: code after accept
+    });
+
     LOG_INFO << "Server running on 127.0.0.1:8848";
-    app().addListener("127.0.0.1", 8848).run();
+    drogon::app().addListener("127.0.0.1", 8848).run();
 }

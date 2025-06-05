@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.31)
-project(servants)
+project(servant-console)
 
 set(CMAKE_CXX_STANDARD 23)
 
@@ -29,5 +29,5 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFI
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFIG>)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFIG>)
 
-add_executable(servants main.cpp)
-target_link_libraries(servants PRIVATE drogon)
+add_executable(servant-console main.cpp WebServices/WebServices.cpp)
+target_link_libraries(servant-console PRIVATE drogon)

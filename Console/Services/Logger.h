@@ -12,8 +12,8 @@ namespace comet
     enum LoggerLevel
       {
         ALL,
-        INFO,
         DEBUG,
+        INFO,
         WARNING,
         CRITICAL,
         NONE

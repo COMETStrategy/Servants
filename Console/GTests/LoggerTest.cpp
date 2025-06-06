@@ -14,7 +14,7 @@ TEST(LoggerTest, LogLevelToString) {
 }
 
 TEST(LoggerTest, FormatTime) {
-        std::time_t testTime = 1736200000; // Example timestamp
+        std::time_t testTime = 1736200000; // Timestamp 2025-01-06 21:46:40
         std::string formattedTime = formatTime(testTime);
         EXPECT_EQ(formattedTime, "2025-01-06 21:46:40");
 }

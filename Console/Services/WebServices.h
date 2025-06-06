@@ -4,6 +4,8 @@
 
 #ifndef WEBSERVICES_H
 #define WEBSERVICES_H
+#include "drogon/HttpRequest.h"
+#include "drogon/utils/FunctionTraits.h"
 
 #endif //WEBSERVICES_H
 
@@ -30,6 +32,9 @@ namespace comet
         void run();
         void join();
         bool isRunning() const;
+
+        static static void uploadJob(const drogon::HttpRequestPtr &request, const Json::Value &json);
+
       private:
         std::unique_ptr<std::thread> m_serverThread;
         std::atomic<bool> m_running{true};

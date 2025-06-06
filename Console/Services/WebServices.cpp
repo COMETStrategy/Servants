@@ -1,11 +1,14 @@
-#include "WebServices.h"
-#include "Logger.h"
+
 #include <drogon/drogon.h>
 #include <trantor/utils/Logger.h>
 #include <thread>
 #include <chrono>
 #include <ctime>
 #include <sstream>
+
+#include "WebServices.h"
+#include "Logger.h"
+#include "Job.h"
 
 using namespace std;
 using namespace drogon;
@@ -14,7 +17,7 @@ using namespace comet;
 WebServices::WebServices()
   {
     comet::Logger::setLoggerLevel(LoggerLevel::ALL);
-    comet::Logger::log("WebServices::WebServices()");
+    comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
     m_port = 7777;;
     initialize();
   }
@@ -30,12 +33,12 @@ WebServices::~WebServices()
     shutdown();
     if (m_serverThread && m_serverThread->joinable()) m_serverThread->join();
 
-    comet::Logger::log("WebServices::~WebServices()");
+    comet::Logger::log("WebServices::~WebServices()", LoggerLevel::DEBUG);
   }
 
 void WebServices::initialize()
   {
-    comet::Logger::log("WebServices::initialize()");
+    comet::Logger::log("WebServices::initialize()", LoggerLevel::DEBUG);
 
     // Register handlers
     app().registerHandler(
@@ -43,52 +46,56 @@ void WebServices::initialize()
       [this](const HttpRequestPtr &request,
              std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          comet::Logger::log(string("connected:") + (request->connected() ? "true" : "false"));
-          auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("Hello from COMET Servants!"));
-          Logger::log("Hello from COMET Servants!");
+           auto resp = HttpResponse::newHttpResponse();
+          resp->setBody(setHTMLBody("COMET Servant are alive! (Get /)"));
+          Logger::log("COMET Servants get / is alive!");
           callback(resp);
         },
       {Get});
-
     app().registerHandler(
-      "/user/{user-name}",
-      [this](const HttpRequestPtr &,
-             std::function<void(const HttpResponsePtr &)> &&callback,
-             const std::string &name)
-        {
-          auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("Hello COMET USER, " + name + "!"));
-          callback(resp);
-        },
-      {Get});
-
-    app().registerHandler(
-      "/hello?user={user-name}",
-      [this](const HttpRequestPtr &,
-             std::function<void(const HttpResponsePtr &)> &&callback,
-             const std::string &name)
-        {
-          auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("Hello COMET Parameter User, " + name + "!"));
-          callback(resp);
-        },
-      {Get});
-
-    app().registerHandler(
-      "/hello_user",
-      [this](const HttpRequestPtr &req,
+      "/",
+      [this](const HttpRequestPtr &request,
              std::function<void(const HttpResponsePtr &)> &&callback)
         {
           auto resp = HttpResponse::newHttpResponse();
-          auto name = req->getOptionalParameter<std::string>("user");
-          if (!name)
-            resp->setBody(setHTMLBody("Please tell COMET your name"));
-          else
-            resp->setBody(setHTMLBody("Hello, " + name.value() + ", from COMET!"));
+          resp->setBody(R"({
+                            "company": "COMET Strategy - Australia",
+                            "HubName": "COMET Strategy - Australia (C++ Servants):LOCAL",
+                            "HubAddress": "http://localhost:7777/",
+                            "CloudDataConnection": "",
+                            "ErrorMessage": ""
+                          })");
+          Logger::log("COMET Servants post alive!");
           callback(resp);
         },
-      {Get});
+      {Post});
+
+    app().registerHandler(
+  "/upload/job/",
+  [this](const HttpRequestPtr &request,
+         std::function<void(const HttpResponsePtr &)> &&callback) {
+    // Parse the JSON payload
+    auto json = request->getJsonObject();
+    if (!json) {
+      // Respond with an error if the JSON is invalid
+      auto resp = HttpResponse::newHttpResponse();
+      resp->setStatusCode(k400BadRequest);
+      resp->setBody(R"({"error":"Invalid JSON payload"})");
+      callback(resp);
+      return;
+    }
+
+    // Process the JSON data
+    uploadJob(request, *json);
+
+    // Respond with a success message
+    auto resp = HttpResponse::newHttpResponse();
+    resp->setStatusCode(k200OK);
+    resp->setBody(R"({"status":"Data received successfully"})");
+    callback(resp);
+  },
+  {Post});
+
 
     app().registerHandler(
       "/quit",
@@ -102,7 +109,7 @@ void WebServices::initialize()
 
           // Stop the server from listening for new connections
           app().quit();
-          Logger::log("WebServices::quit() - Shutting down server...", LoggerLevel::CRITICAL);
+          Logger::log("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUG);
 
           // std::thread([]
           //   {
@@ -135,7 +142,7 @@ void WebServices::initialize()
 
 void WebServices::shutdown()
   {
-    comet::Logger::log("WebServices::shutdown()", LoggerLevel::CRITICAL);
+    comet::Logger::log("WebServices::shutdown()", LoggerLevel::DEBUG);
   }
 
 void WebServices::handleRequest(const std::string &request)
@@ -145,7 +152,18 @@ void WebServices::handleRequest(const std::string &request)
 
 std::string WebServices::setHTMLBody(const std::string &body) const
   {
-    return getHTMLHeader() + body + getHTMLFooter();
+    return R"(
+          <!DOCTYPE html>
+          <html>
+          )" + getHTMLHeader() + R"(
+          <body>
+          <div style="margin: 1cm;">
+          )" + body + R"(
+          </div>
+          </body>
+          )" + getHTMLFooter() + R"(
+          </html>
+          )";
   }
 
 std::string WebServices::getHTMLHeader() const
@@ -194,7 +212,7 @@ void WebServices::run()
   {
     m_serverThread = std::make_unique<std::thread>([this]
       {
-        Logger::log("Server running on 127.0.0.1:" + m_port, LoggerLevel::CRITICAL);
+        Logger::log(std::string("Server running on 127.0.0.1:") + to_string(m_port));
         app().addListener("127.0.0.1", m_port).run();
       });
   }
@@ -209,3 +227,13 @@ bool WebServices::isRunning() const
   {
     return m_running;
   }
+
+void WebServices::uploadJob(const HttpRequestPtr &request, const Json::Value &json) {
+    // Extract headers
+    auto emailHeader = request->getHeader("X-Email");
+    auto codeHeader = request->getHeader("X-Code");
+
+    Job job (emailHeader, codeHeader, json);
+
+ 
+}

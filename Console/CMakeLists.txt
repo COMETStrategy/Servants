@@ -38,23 +38,17 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFI
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFIG>)
 
 # Source files
-file(GLOB SERVICES_SRC Services/*.cpp)
+file(GLOB SERVICES_SRC Services/*.cpp  Services/*.h)
 
 # Main executable
-add_executable(servant-console main.cpp ${SERVICES_SRC}
-        Services/Job.cpp
-        Services/Job.h
-        Services/Base64.h)
+add_executable(servant-console main.cpp ${SERVICES_SRC})
 target_include_directories(servant-console PRIVATE Services)
-target_link_libraries(servant-console PRIVATE drogon)
+target_link_libraries(servant-console PRIVATE drogon sqlite3)
 
 # Unit tests
 enable_testing()
 file(GLOB SERVICES_SRC Services/*.cpp) # Include all .cpp files in the Services folder
-add_executable(servant-console-tests GTests/LoggerTest.cpp ${SERVICES_SRC}
-        Services/Job.cpp
-        Services/Job.h
-        Services/Base64.h)
-target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon)
+add_executable(servant-console-tests GTests/LoggerTest.cpp ${SERVICES_SRC} )
+target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon sqlite3)
 target_include_directories(servant-console-tests PRIVATE Services)
 add_test(NAME servant-console-tests COMMAND servant-console-tests)

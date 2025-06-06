@@ -7,6 +7,8 @@
 #include <sstream>
 
 #include "WebServices.h"
+
+#include "Database.h"
 #include "Logger.h"
 #include "Job.h"
 
@@ -19,13 +21,18 @@ WebServices::WebServices()
     comet::Logger::setLoggerLevel(LoggerLevel::ALL);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
     m_port = 7777;;
-    initialize();
+    initializeHandlers();
+
+    std::string DatabaseFileName = "~/comet-servants.db";
+    Database db(DatabaseFileName);
+
+    db.executeQuery("SELECT * FROM version;");
   }
 
 WebServices::WebServices(unsigned short port)
   {
     m_port = port;
-    initialize();
+    initializeHandlers();
   }
 
 WebServices::~WebServices()
@@ -36,7 +43,7 @@ WebServices::~WebServices()
     comet::Logger::log("WebServices::~WebServices()", LoggerLevel::DEBUG);
   }
 
-void WebServices::initialize()
+void WebServices::initializeHandlers()
   {
     comet::Logger::log("WebServices::initialize()", LoggerLevel::DEBUG);
 
@@ -234,6 +241,8 @@ void WebServices::uploadJob(const HttpRequestPtr &request, const Json::Value &js
     auto codeHeader = request->getHeader("X-Code");
 
     Job job (emailHeader, codeHeader, json);
+
+
 
  
 }

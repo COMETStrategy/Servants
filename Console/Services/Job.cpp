@@ -5,6 +5,7 @@
 #include "Job.h"
 #include "Logger.h"
 #include "Encoding.h"
+#include "Database.h"
 
 #include <string>
 #include <stdexcept>

@@ -21,7 +21,7 @@ namespace comet
         WebServices(unsigned short port);
         ~WebServices();
 
-        void initialize();
+        void initializeHandlers();
         void shutdown();
     
         void handleRequest(const std::string& request);

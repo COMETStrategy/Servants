@@ -29,8 +29,9 @@ namespace comet
       }
 
     std::string formatTime(std::time_t time) {
+        std::tm* utcTime = std::gmtime(&time); // Use UTC
         char buffer[20];
-        std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", std::localtime(&time));
+        std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", utcTime);
         return std::string(buffer);
     }
 
@@ -52,8 +53,18 @@ namespace comet
         m_fileName = fileName;
       }
 
+    const std::string Logger::getFileName()
+      {
+        return m_fileName;
+      }
+
     void comet::Logger::setLoggerLevel(const LoggerLevel &level)
       {
         m_logLevel = level;
+      }
+
+    LoggerLevel Logger::getLoggerLevel(const LoggerLevel &level)
+      {
+        return m_logLevel;
       }
   }

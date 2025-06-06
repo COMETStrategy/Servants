@@ -4,6 +4,7 @@
 
 #ifndef LOGGER_H
 #define LOGGER_H
+#include <ctime>
 #include <string>
 
 namespace comet
@@ -18,6 +19,9 @@ namespace comet
         NONE
       };
 
+    std::string LogLevelToString(LoggerLevel level);
+    std::string formatTime(std::time_t time);
+
     class Logger
       {
       private:
@@ -29,8 +33,10 @@ namespace comet
         static void log(const std::string &message, LoggerLevel logLevel = LoggerLevel::INFO);
 
         static void setFileName(const std::string &fileName);
+        static const std::string getFileName();
 
         static void setLoggerLevel(const LoggerLevel &level);
+        static LoggerLevel getLoggerLevel(const LoggerLevel &level);
       };
   } // cs
 

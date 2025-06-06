@@ -8,27 +8,29 @@
 
 namespace comet
   {
+    enum LoggerLevel
+      {
+        ALL,
+        INFO,
+        DEBUG,
+        WARNING,
+        CRITICAL,
+        NONE
+      };
 
-    enum LoggerLevel 
-    {
-       NONE,
-       INFO,
-       WARNING,
-       ERROR,
-       DEBUG
-    };
-    
     class Logger
       {
       private:
-        static std::string  m_fileName;
-        static LoggerLevel  m_logLevel;
+        static std::string m_fileName;
+        static LoggerLevel m_logLevel;
 
       public:
         // Use >> operator overload to write to the log file
-        static void log(const std::string& message, LoggerLevel logLevel);
-        static void setFileName(const std::string& fileName);
-        static void setLoggerLevel(const LoggerLevel& level);
+        static void log(const std::string &message, LoggerLevel logLevel = LoggerLevel::INFO);
+
+        static void setFileName(const std::string &fileName);
+
+        static void setLoggerLevel(const LoggerLevel &level);
       };
   } // cs
 

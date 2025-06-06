@@ -16,6 +16,7 @@ namespace comet
       {
       public:
         WebServices();
+        WebServices(unsigned short port);
         ~WebServices();
 
         void initialize();
@@ -27,7 +28,8 @@ namespace comet
         void join();
         bool isRunning() const;
       private:
-        std::unique_ptr<std::thread> serverThread_;
-        std::atomic<bool> running_{true};
+        std::unique_ptr<std::thread> m_serverThread;
+        std::atomic<bool> m_running{true};
+        unsigned short m_port;
       };
   }

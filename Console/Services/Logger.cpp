@@ -40,9 +40,9 @@ namespace comet
           if (logLevel >= Logger::m_logLevel) {
             std::string timeStamp = formatTime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
             if (logLevel < LoggerLevel::WARNING)
-              std::cout << "COMET " << timeStamp << " [" << LogLevelToString(logLevel) << "] " << message << std::endl;
+              std::cout << "COMET LOGGER" << timeStamp << " " << "[" << LogLevelToString(logLevel) << "] " << message << std::endl << std::flush;
             else              
-              std::cerr << "COMET " << timeStamp << " [" << LogLevelToString(logLevel) << "] " << message << std::endl;
+              std::cerr << "COMET LOGGER" << timeStamp << " " << "[" << LogLevelToString(logLevel) << "] " << message << std::endl << std::flush;
           }
         }
       }

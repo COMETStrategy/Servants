@@ -2,9 +2,13 @@
 // Created by Brett King on 7/6/2025.
 //
 #include <filesystem>
+#include <vector>
+#include <string>
 
 #include "Logger.h"
 #include "Database.h"
+
+#include <map>
 
 namespace comet {
 
@@ -54,15 +58,34 @@ namespace comet {
         } else {
           
           char *errMsg = nullptr;
-          std::string query = "UPDATE version SET lastUpdatedDate = DATETIME('now');";
-          if (sqlite3_exec(m_db, query.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
+          sqlite3_stmt *stmt = nullptr;
+          std::string selectQuery = "SELECT createdDate, lastUpdatedDate FROM version LIMIT 1;";
+          auto results = getQueryResults("SELECT createdDate, lastUpdatedDate FROM version;");
+          
+          if (sqlite3_prepare_v2(m_db, selectQuery.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+            if (sqlite3_step(stmt) == SQLITE_ROW) {
+              std::string createdDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
+              std::string lastUpdatedDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
+              comet::Logger::log("Existing Database creation: " + createdDate + ", last updated at: " + lastUpdatedDate, LoggerLevel::DEBUG);
+            } else {
+              comet::Logger::log("No records found in version table.", LoggerLevel::WARNING);
+            }
+            sqlite3_finalize(stmt);
+          } else {
+            comet::Logger::log("Failed to retrieve current values: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
+            sqlite3_finalize(stmt);
+            throw std::runtime_error("Failed to retrieve current values");
+          }
+
+          std::string updateQuery = "UPDATE version SET lastUpdatedDate = DATETIME('now');";
+          if (sqlite3_exec(m_db, updateQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
             comet::Logger::log("Failed to update record into version table: " + std::string(errMsg), LoggerLevel::CRITICAL);
             sqlite3_free(errMsg);
             throw std::runtime_error("Failed to update record into version table");
           } else {
-            comet::Logger::log("Record updated into version table successfully.", LoggerLevel::INFO);
+            comet::Logger::log("Record updated into version table successfully.", LoggerLevel::DEBUG);
           }
-       
+          
           comet::Logger::log("Database file '" + expandedPath + "' opened.", LoggerLevel::INFO);
           m_dbPath = expandedPath;
         }
@@ -84,6 +107,36 @@ namespace comet {
           sqlite3_free(errMsg);
           throw std::runtime_error(error);
         }
+    }
+
+
+
+    std::vector<std::map<std::string, std::string>> Database::getQueryResults(const std::string &query) {
+        sqlite3_stmt *stmt = nullptr;
+        std::vector<std::map<std::string, std::string>> results;
+        // Debug log the query being executed
+        comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
+
+        if (sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
+          while (sqlite3_step(stmt) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            int columnCount = sqlite3_column_count(stmt);
+            for (int i = 0; i < columnCount; ++i) {
+              const char *columnName = sqlite3_column_name(stmt, i);
+              const char *columnText = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+              row[columnName ? columnName : ""] = columnText ? columnText : "";
+            }
+            results.push_back(row);
+          }
+          sqlite3_finalize(stmt);
+        } else {
+          comet::Logger::log("Failed to execute query: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
+          sqlite3_finalize(stmt);
+          throw std::runtime_error("Failed to execute query");
+        }
+
+        comet::Logger::log("Number of rows retrieved: " + std::to_string(results.size()), LoggerLevel::DEBUG);
+        return results;
     }
     
 } // comet

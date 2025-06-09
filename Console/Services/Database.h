@@ -4,6 +4,7 @@
 
 #ifndef DATABASE_H
 #define DATABASE_H
+#include <map>
 #include <string>
 #include <stdexcept>
 #include <sqlite3.h>
@@ -21,6 +22,8 @@ namespace comet
 
         // Run an SQL query
         void executeQuery(const std::string &query);
+
+        std::vector<std::map<std::string, std::string>> getQueryResults(const std::string &query);
 
       private:
         sqlite3 *m_db = nullptr; // SQLite database handle

@@ -18,7 +18,7 @@ using namespace comet;
 
 WebServices::WebServices()
   {
-    comet::Logger::setLoggerLevel(LoggerLevel::ALL);
+    comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
     m_port = 7777;;
     initializeHandlers();
@@ -26,7 +26,15 @@ WebServices::WebServices()
     std::string DatabaseFileName = "~/comet-servants.db";
     Database db(DatabaseFileName);
 
-    db.executeQuery("SELECT * FROM version;");
+    auto results = db.getQueryResults("SELECT * FROM version;");
+    // Log the created Date and the last updated date
+    if (!results.empty()) {
+      for (const auto &row : results) {
+        comet::Logger::log("Database Version: Created Date: " + row.at("createdDate") + ", Last Updated Date: " + row.at("lastUpdatedDate"));
+      }
+    } else {
+      comet::Logger::log("No records found in version table.", LoggerLevel::WARNING);
+    }
   }
 
 WebServices::WebServices(unsigned short port)
@@ -54,8 +62,8 @@ void WebServices::initializeHandlers()
              std::function<void(const HttpResponsePtr &)> &&callback)
         {
            auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("COMET Servant are alive! (Get /)"));
-          Logger::log("COMET Servants get / is alive!");
+          resp->setBody(setHTMLBody("COMET Servants alive!)"));
+          Logger::log("COMET Servants alive!");
           callback(resp);
         },
       {Get});

@@ -14,7 +14,7 @@ int main()
     comet::WebServices server;
     
     server.run();
-    comet::Logger::log("Server is running. Press Ctrl+C to stop.");
+    comet::Logger::log("Server is running. Press Ctrl+C to stop.", comet::DEBUG);
 
     server.join();
     comet::Logger::log( std::string("Completed ") );

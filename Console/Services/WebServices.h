@@ -17,7 +17,7 @@ namespace comet
     class WebServices
       {
       public:
-        WebServices();
+        WebServices(const std::string& dbFilename = "~/comet-servants.db");
         WebServices(unsigned short port);
         ~WebServices();
 

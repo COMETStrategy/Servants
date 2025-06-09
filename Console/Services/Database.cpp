@@ -28,7 +28,7 @@ namespace comet {
         }
 
         if (!std::filesystem::exists(expandedPath)) {
-          comet::Logger::log("Database file does not exist. Creating a new database.", LoggerLevel::INFO);
+          comet::Logger::log("Database file " + expandedPath + " does not exist. Creating a new database.", LoggerLevel::INFO);
           if (sqlite3_open(expandedPath.c_str(), &m_db) == SQLITE_OK) {
             // Create a table called version with the single field created and set this to the current time
             std::string createTableQuery = "CREATE TABLE IF NOT EXISTS version (createdDate TEXT, lastUpdatedDate TEXT);";

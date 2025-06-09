@@ -16,14 +16,14 @@ using namespace std;
 using namespace drogon;
 using namespace comet;
 
-WebServices::WebServices()
+WebServices::WebServices(const std::string& dbFilename )
   {
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
     m_port = 7777;;
     initializeHandlers();
 
-    std::string DatabaseFileName = "~/comet-servants.db";
+    std::string DatabaseFileName = (!dbFilename.empty())? dbFilename: "~/comet-servants.db";
     Database db(DatabaseFileName);
 
     auto results = db.getQueryResults("SELECT * FROM version;");

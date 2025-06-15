@@ -12,6 +12,8 @@
 #include <string>
 #include <thread>
 #include <memory>
+#include <openssl/sha.h>
+
 namespace comet
   {
     class WebServices
@@ -39,5 +41,16 @@ namespace comet
         std::unique_ptr<std::thread> m_serverThread;
         std::atomic<bool> m_running{true};
         unsigned short m_port;
+
+        const std::string ciphering = "aes-256-cbc"; // Cipher method
+        const std::string secret_key = "your_secret_key"; // Replace with your secret key
+        const std::string secret_iv = "your_secret_iv";   // Replace with your secret IV
+
+        std::string hashIV(const std::string &salt) const;
+        std::string simpleEncrypt(const std::string &simpleString, const std::string &salt) const;
+        std::string simpleDecrypt(const std::string &simpleString, const std::string &salt) const;
+        std::string utf8Encode(const std::string &input);
+        std::string base64Decode(const std::string &encoded)
+
       };
   }

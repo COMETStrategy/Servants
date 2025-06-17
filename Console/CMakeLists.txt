@@ -40,17 +40,26 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/$<CONFI
 # Source files
 file(GLOB SERVICES_SRC Services/*.cpp  Services/*.h)
 
+
+# Find and link libcurl
+find_package(CURL REQUIRED)
+
+
 # Main executable
 add_executable(servant-console main.cpp ${SERVICES_SRC}
-        Services/utilities.h)
+        Services/utilities.h
+        Services/Authentication.cpp
+        Services/Authentication.h)
 target_include_directories(servant-console PRIVATE Services)
-target_link_libraries(servant-console PRIVATE drogon sqlite3)
+target_link_libraries(servant-console PRIVATE drogon sqlite3 CURL::libcurl)
 
 # Unit tests
 enable_testing()
 file(GLOB SERVICES_SRC Services/*.cpp) # Include all .cpp files in the Services folder
 add_executable(servant-console-tests GTests/LoggerTest.cpp ${SERVICES_SRC}
-        Services/utilities.h)
-target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon sqlite3)
+        Services/utilities.h
+        Services/Authentication.cpp
+        Services/Authentication.h)
+target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon sqlite3 CURL::libcurl)
 target_include_directories(servant-console-tests PRIVATE Services)
 add_test(NAME servant-console-tests COMMAND servant-console-tests)

@@ -1,5 +1,6 @@
 #include "Services/WebServices.h"
 #include "Services/Logger.h"
+#include "Services/Authentication.h"
 
 #include <iostream>
 #include <thread>
@@ -9,15 +10,18 @@
 #include <iomanip>
 #include <sstream>
 
+#include "Authentication.h"
+
 int main()
   {
 
     try {
+     
       comet::WebServices server("~/comet-servants.db");
     
       server.run();
       comet::Logger::log("Server is running. Press Ctrl+C to stop.", comet::DEBUG);
-
+  
       server.join();
     }
     catch (const std::exception& e) {

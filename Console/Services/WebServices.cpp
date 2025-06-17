@@ -10,6 +10,7 @@
 
 #include "WebServices.h"
 
+#include "Authentication.h"
 #include "Database.h"
 #include "Logger.h"
 #include "Job.h"
@@ -60,7 +61,9 @@ void WebServices::initializeHandlers()
              std::function<void(const HttpResponsePtr &)> &&callback)
         {
           auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("COMET Servants alive!"));
+          std::string responseBody = "Welcome to COMET Servants!";
+          responseBody += Authentication::HtmlAuthenticationForm();
+          resp->setBody(setHTMLBody(responseBody));
           Logger::log("COMET Servants alive!");
           callback(resp);
         },
@@ -220,8 +223,11 @@ void WebServices::run()
   {
     m_serverThread = std::make_unique<std::thread>([this]
       {
-        Logger::log(std::string("Server running on 127.0.0.1:") + to_string(m_port));
-        app().addListener("127.0.0.1", m_port).run();
+        Logger::log(std::string("Server running on 127.0.0.1:") + to_string(m_port)
+          + " or Private local IP: " + comet::Authentication::getPrivateIPAddress() + ":" + to_string(m_port)
+          , comet::INFO);
+
+       app().addListener("0.0.0.0", m_port).run();
       });
   }
 

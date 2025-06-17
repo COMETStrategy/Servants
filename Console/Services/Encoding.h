@@ -72,6 +72,7 @@ namespace comet
             std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
             return converter.to_bytes(std::wstring(input.begin(), input.end()));
         }
+
     };
   };
 #endif //BASE64_H

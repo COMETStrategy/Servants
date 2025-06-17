@@ -10,110 +10,172 @@
 
 #include <map>
 
-namespace comet {
+#include "utilities.h"
+#include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
-    Database::Database(const std::string &dbPath) {
-        std::string expandedPath = dbPath;
-        if (dbPath[0] == '~') {
-          const char *home = std::getenv("HOME");
-          if (home) {
-            expandedPath = std::string(home) + dbPath.substr(1);
-          }
+#define CREATE_TABLE_VERSION_QUERY "CREATE TABLE IF NOT EXISTS version (createdDate TEXT, lastUpdatedDate TEXT);"
+
+#define CREATE_TABLE_JOBS_QUERY R"(
+CREATE TABLE IF NOT EXISTS jobs (
+LastUpdate DATETIME NOT NULL,
+GroupName VARCHAR(1000) NOT NULL,
+CaseNumber TEXT NOT NULL,
+Status TINYINT NOT NULL,
+CaseName VARCHAR(1000) NOT NULL,
+Id DOUBLE NOT NULL,
+Servant VARCHAR(100),
+IterationsComplete INT,
+Ranking DOUBLE,
+Life DOUBLE,
+RunTimeMin DOUBLE,
+RunProgress VARCHAR(2000) NOT NULL,
+CreatorName VARCHAR(100) NOT NULL,
+CreatorMachine VARCHAR(100) NOT NULL,
+CreatorXEmail VARCHAR(100) NOT NULL,
+CreatorXCode VARCHAR(100) NOT NULL,
+peopleId INT NOT NULL,
+projectId INT NOT NULL,
+InputFileName VARCHAR(100) NOT NULL,
+EngineVersion TEXT NOT NULL,
+EngineDirectory VARCHAR(1000) NOT NULL,
+PhaseFileLocation TEXT,
+WorkingDirectory VARCHAR(1000) NOT NULL,
+CaseBody TEXT NOT NULL,
+Id_temp INTEGER PRIMARY KEY AUTOINCREMENT,
+UNIQUE (GroupName, CaseNumber, projectId)
+);
+)"
+
+#define CREATE_INDEXES_JOBS_QUERY R"(
+CREATE INDEX IF NOT EXISTS idx_Id ON jobs (Id);
+CREATE INDEX IF NOT EXISTS idx_GroupNameOnly ON jobs (GroupName);
+CREATE INDEX IF NOT EXISTS idx_Node ON jobs (Servant);
+CREATE INDEX IF NOT EXISTS idx_projectId ON jobs (projectId);
+CREATE INDEX IF NOT EXISTS idx_peopleId ON jobs (peopleId);
+CREATE INDEX IF NOT EXISTS idx_UserCase ON jobs (CaseNumber);
+)"
+
+namespace comet
+  {
+    Database::Database(const std::string &dbPath)
+      {
+        auto fullPath = getFullFilenameAndDirectory(dbPath);
+        auto databaseExists = openDatabase(fullPath);
+
+
+        if (!databaseExists) {
+          databaseExists = createNewDatabase(fullPath);
         }
-
-        auto parentPath = std::filesystem::path(expandedPath).parent_path();
-        if (!parentPath.empty() && !std::filesystem::exists(parentPath)) {
-          comet::Logger::log("Database directory does not exist. Creating directory: " + parentPath.string(), LoggerLevel::INFO);
-          std::filesystem::create_directories(parentPath);
-        }
-
-        if (!std::filesystem::exists(expandedPath)) {
-          comet::Logger::log("Database file " + expandedPath + " does not exist. Creating a new database.", LoggerLevel::INFO);
-          if (sqlite3_open(expandedPath.c_str(), &m_db) == SQLITE_OK) {
-            // Create a table called version with the single field created and set this to the current time
-            std::string createTableQuery = "CREATE TABLE IF NOT EXISTS version (createdDate TEXT, lastUpdatedDate TEXT);";
-            char *errMsg = nullptr;
-            if (sqlite3_exec(m_db, createTableQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-              comet::Logger::log("Failed to create version table: " + std::string(errMsg), LoggerLevel::CRITICAL);
-              sqlite3_free(errMsg);
-              throw std::runtime_error("Failed to create version table");
-            } else {
-              comet::Logger::log("Version table created successfully.", LoggerLevel::INFO);
-              // Insert current date and time into the version table
-              std::string insertQuery = "INSERT INTO version (createdDate, lastUpdatedDate) VALUES (DATETIME('now'), DATETIME('now'));";
-              if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-                comet::Logger::log("Failed to insert record into version table: " + std::string(errMsg), LoggerLevel::CRITICAL);
-                sqlite3_free(errMsg);
-                throw std::runtime_error("Failed to insert record into version table");
-              } else {
-                comet::Logger::log("Record inserted into version table successfully.", LoggerLevel::INFO);
-              }
-            }
-          }
-        }
-
-        if (sqlite3_open(expandedPath.c_str(), &m_db) != SQLITE_OK) {
-          comet::Logger::log("Failed to open database: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
-          throw std::runtime_error("Failed to open database");
-        } else {
-          
-          char *errMsg = nullptr;
-          sqlite3_stmt *stmt = nullptr;
-          std::string selectQuery = "SELECT createdDate, lastUpdatedDate FROM version LIMIT 1;";
-          auto results = getQueryResults("SELECT createdDate, lastUpdatedDate FROM version;");
-          
-          if (sqlite3_prepare_v2(m_db, selectQuery.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-            if (sqlite3_step(stmt) == SQLITE_ROW) {
-              std::string createdDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 0));
-              std::string lastUpdatedDate = reinterpret_cast<const char *>(sqlite3_column_text(stmt, 1));
-              comet::Logger::log("Existing Database creation: " + createdDate + ", last updated at: " + lastUpdatedDate, LoggerLevel::DEBUG);
-            } else {
-              comet::Logger::log("No records found in version table.", LoggerLevel::WARNING);
-            }
-            sqlite3_finalize(stmt);
-          } else {
-            comet::Logger::log("Failed to retrieve current values: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
-            sqlite3_finalize(stmt);
-            throw std::runtime_error("Failed to retrieve current values");
-          }
-
-          std::string updateQuery = "UPDATE version SET lastUpdatedDate = DATETIME('now');";
-          if (sqlite3_exec(m_db, updateQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-            comet::Logger::log("Failed to update record into version table: " + std::string(errMsg), LoggerLevel::CRITICAL);
-            sqlite3_free(errMsg);
-            throw std::runtime_error("Failed to update record into version table");
-          } else {
-            comet::Logger::log("Record updated into version table successfully.", LoggerLevel::DEBUG);
-          }
-          
-          comet::Logger::log("Database file '" + expandedPath + "' opened.", LoggerLevel::INFO);
-          m_dbPath = expandedPath;
-        }
-    }
+      }
 
 
-    
-    Database::~Database() {
+    Database::~Database()
+      {
         if (m_db) {
           sqlite3_close(m_db);
         }
-    }
+      }
 
-    void Database::executeQuery(const std::string &query) {
+    void Database::createTableIfNotExists(std::string tableName, std::string insertQuery)
+      {
+        char *errMsg;
+        // Insert jobs table
+        if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
+          comet::Logger::log("Failed to create table " + tableName + ": " + std::string(errMsg),
+                             LoggerLevel::CRITICAL);
+          sqlite3_free(errMsg);
+          throw std::runtime_error("Failed to create " + tableName + " table");
+        } else {
+          comet::Logger::log("Table " + tableName + " created successfully.", LoggerLevel::INFO);
+        }
+      }
+
+    void Database::insertRecord(std::string insertQuery)
+      {
+        char *errMsg;
+        if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
+          comet::Logger::log("Failed to insert record into version table: " + std::string(errMsg),
+                             LoggerLevel::CRITICAL);
+          sqlite3_free(errMsg);
+          throw std::runtime_error("Failed to insert record into version table");
+        } else {
+          comet::Logger::log("Record inserted into version table successfully.", LoggerLevel::INFO);
+        }
+      }
+
+    bool Database::createNewDatabase(const std::string &path)
+      {
+        comet::Logger::log("Database file " + path + " does not exist. Creating a new database.",
+                           LoggerLevel::INFO);
+
+        createTableIfNotExists("Version",CREATE_TABLE_VERSION_QUERY);
+        insertRecord("INSERT INTO version (createdDate, lastUpdatedDate) VALUES (DATETIME('now'), DATETIME('now'));");
+
+        createTableIfNotExists("Jobs",CREATE_TABLE_JOBS_QUERY);
+        createTableIfNotExists("Jobs Indexes",CREATE_INDEXES_JOBS_QUERY);
+
+        comet::Logger::log("Version and Jobs tables created successfully.", LoggerLevel::INFO);
+        return true;
+      }
+
+    bool Database::updateQuery(const std::string &description, const std::string &queryText) const
+      {
+        char *errMsg;
+        if (sqlite3_exec(m_db, queryText.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
+          comet::Logger::log("Failed to update record into version table: " + std::string(errMsg),
+                             LoggerLevel::CRITICAL);
+          sqlite3_free(errMsg);
+          throw std::runtime_error("Failed to update record into version table: " + std::string(errMsg));
+        } else {
+          comet::Logger::log("Record updated into version table successfully.", LoggerLevel::DEBUG);
+        }
+        return false;
+      }
+
+    bool Database::openDatabase(const std::string &databaseFullPath)
+      {
+        bool databaseExists = std::filesystem::exists(databaseFullPath);
+
+        if (sqlite3_open(databaseFullPath.c_str(), &m_db) != SQLITE_OK) {
+          comet::Logger::log("Failed to open database: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
+          return false;
+        }
+        comet::Logger::log("Database file '" + databaseFullPath + "' opened successfully.", LoggerLevel::DEBUG);
+
+
+        // Existing database
+        if (!databaseExists) {
+          return createNewDatabase(databaseFullPath);
+        }
+
+        // Database exists so update the last access time
+        sqlite3_stmt *stmt = nullptr;
+        // Update the lastUpdatedDate in the version table        
+        auto bSuccess = updateQuery("Update Version", "UPDATE version SET lastUpdatedDate = DATETIME('now');");
+
+        comet::Logger::log("Database file '" + databaseFullPath + "' opened.", LoggerLevel::DEBUG);
+        m_dbPath = databaseFullPath;
+        return bSuccess;
+      }
+
+    bool Database::executeQuery(const std::string &query) const
+      {
         char *errMsg = nullptr;
         if (sqlite3_exec(m_db, query.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
           std::string error = "SQL error: " + std::string(errMsg);
           comet::Logger::log(error, LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           throw std::runtime_error(error);
+          return false;
         }
-    }
+        return true;
+      }
 
 
-
-    std::vector<std::map<std::string, std::string>> Database::getQueryResults(const std::string &query) {
+    std::vector<std::map<std::string, std::string> > Database::getQueryResults(const std::string &query)
+      {
         sqlite3_stmt *stmt = nullptr;
-        std::vector<std::map<std::string, std::string>> results;
+        std::vector<std::map<std::string, std::string> > results;
         // Debug log the query being executed
         comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
 
@@ -137,6 +199,21 @@ namespace comet {
 
         comet::Logger::log("Number of rows retrieved: " + std::to_string(results.size()), LoggerLevel::DEBUG);
         return results;
-    }
-    
-} // comet
+      }
+
+    bool Database::isConnected()
+      {
+        if (m_db) {
+          // Set pCur and pCurUsed to nullptr
+          int current = 0, highwater = 0;
+          int result = sqlite3_db_status(m_db, SQLITE_DBSTATUS_LOOKASIDE_USED, &current, &highwater, 0);
+          comet::Logger::log("sqlite3_db_status result: " + std::to_string(result), LoggerLevel::DEBUG);
+          if (result == SQLITE_OK || result == SQLITE_BUSY || result == SQLITE_DBSTATUS_LOOKASIDE_USED) {
+            comet::Logger::log("Database is connected.", LoggerLevel::DEBUG);
+            return true;
+          }
+        }
+        comet::Logger::log("Database is not connected.", LoggerLevel::WARNING);
+        return false;
+      }
+  } // comet

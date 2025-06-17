@@ -14,6 +14,16 @@ namespace comet
     class Database
       {
       public:
+        void createTableIfNotExists(std::string tableName, std::string insertQuery);
+
+        void insertRecord(std::string insertQuery);
+
+        bool createNewDatabase(const std::string & path);
+
+        bool updateQuery(const std::string &description, const std::string &queryText) const;
+
+        bool openDatabase(const std::string & databaseFullPath);
+
         // Constructor: Opens the database
         explicit Database(const std::string &dbPath);
 
@@ -21,9 +31,11 @@ namespace comet
         ~Database();
 
         // Run an SQL query
-        void executeQuery(const std::string &query);
+        bool executeQuery(const std::string &query) const;
 
         std::vector<std::map<std::string, std::string>> getQueryResults(const std::string &query);
+
+        bool isConnected();
 
       private:
         sqlite3 *m_db = nullptr; // SQLite database handle

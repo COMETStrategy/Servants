@@ -40,10 +40,10 @@ Job::Job(const std::string &emailHeader, const std::string &codeHeader, const Js
         creatorMachine = json["attributes"]["CreatorMachine"].asString();
 
         // Decode Base64 and apply UTF-8 encoding
-        engineVersion = comet::Encoding::utf8_encode(json["attributes"]["EngineVersion"].asString());
-        engineDirectory64 = comet::Encoding::utf8_encode(comet::Encoding::decode(json["attributes"]["EngineDirectory64"].asString()));
-        basePhaseDirectory64 = comet::Encoding::utf8_encode(comet::Encoding::decode(json["attributes"]["BasePhaseDirectory64"].asString()));
-        workingDirectory64 = comet::Encoding::utf8_encode(comet::Encoding::decode(json["attributes"]["WorkingDirectory64"].asString()));
+        engineVersion = json["attributes"]["EngineVersion"].asString();
+        engineDirectory64 = comet::Encoding::decode(json["attributes"]["EngineDirectory64"].asString());
+        basePhaseDirectory64 = comet::Encoding::decode(json["attributes"]["BasePhaseDirectory64"].asString());
+        workingDirectory64 = comet::Encoding::decode(json["attributes"]["WorkingDirectory64"].asString());
         caseBody64 = json["attributes"]["CaseBody64"].asString();
     } catch (const std::invalid_argument &e) {
         comet::Logger::log(e.what()); // Log the error message

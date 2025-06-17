@@ -13,20 +13,19 @@
 #include "Database.h"
 #include "Logger.h"
 #include "Job.h"
+#include "Encoding.h"
 
 using namespace std;
 using namespace drogon;
 using namespace comet;
 
 WebServices::WebServices(const std::string &dbFilename)
+  : db(dbFilename)
   {
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
     m_port = 7777;;
     initializeHandlers();
-
-    std::string DatabaseFileName = (!dbFilename.empty()) ? dbFilename : "~/comet-servants.db";
-    Database db(DatabaseFileName);
 
     auto results = db.getQueryResults("SELECT * FROM version;");
     // Log the created Date and the last updated date
@@ -41,11 +40,6 @@ WebServices::WebServices(const std::string &dbFilename)
     }
   }
 
-WebServices::WebServices(unsigned short port)
-  {
-    m_port = port;
-    initializeHandlers();
-  }
 
 WebServices::~WebServices()
   {
@@ -66,37 +60,28 @@ void WebServices::initializeHandlers()
              std::function<void(const HttpResponsePtr &)> &&callback)
         {
           auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("COMET Servants alive!)"));
+          resp->setBody(setHTMLBody("COMET Servants alive!"));
           Logger::log("COMET Servants alive!");
           callback(resp);
         },
       {Get});
-    
-    app().registerHandler(
-      "/",
-      [this](const HttpRequestPtr &request,
-             std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-          auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(R"({
-                            "company": "COMET Strategy - Australia",
-                            "HubName": "COMET Strategy - Australia (C++ Servants):LOCAL",
-                            "HubAddress": "http://localhost:7777/",
-                            "CloudDataConnection": "",
-                            "ErrorMessage": ""
-                          })");
-          Logger::log("COMET Servants post alive!");
-          callback(resp);
-        },
-      {Post});
 
-    /*
     app().registerHandler(
       "/upload/job/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
           comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::INFO);
 
+          // Database connection
+          comet::Logger::log("Connecting to database...", LoggerLevel::INFO);
+          if (!db.isConnected()) {
+            comet::Logger::log("Database connection failed", LoggerLevel::CRITICAL);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k406NotAcceptable);
+            resp->setBody(R"({"ErrorMessage":"Error mySQL database connection"})");
+            callback(resp);
+            return;
+          }
           // Parse the JSON payload
           auto json = request->getJsonObject();
           if (!json) {
@@ -107,6 +92,7 @@ void WebServices::initializeHandlers()
             callback(resp);
             return;
           }
+          //uploadJob(request, &json);
           comet::Logger::log("Received JSON payload: " + json->toStyledString(), LoggerLevel::DEBUG);
 
           // Extract attributes
@@ -115,7 +101,11 @@ void WebServices::initializeHandlers()
           std::string groupTitleEncrypted = simpleEncrypt(attributes["Title"].asString(), salt);
           std::string caseNumber = attributes["CaseNumber"].asString();
           std::string caseNameEncrypted = simpleEncrypt(attributes["CaseName"].asString(), salt);
-          std::string content = utf8Encode(base64Decode(json->get("content64", "").asString()).substr(1, 200));
+          std::string content64 = json->get("content64", "").asString();
+          if (content64.size() > 2) content64 = content64.substr(1, 200);
+          std::string content = (content64.empty())
+                                  ? ""
+                                  : utf8Encode(base64Decode(json->get("content64", "").asString()).substr(1, 200));
           std::string inputFileName = json->get("InputFileName", "").asString();
           std::string timeStamp = json->get("TimeStamp", "").asString();
           timeStamp.erase(std::remove(timeStamp.begin(), timeStamp.end(), ' '), timeStamp.end());
@@ -129,41 +119,49 @@ void WebServices::initializeHandlers()
 
           comet::Logger::log("Extracted attributes successfully", LoggerLevel::INFO);
 
-          // Database connection
-          comet::Logger::log("Connecting to database...", LoggerLevel::INFO);
-          Database db(databaseFilePath); // Use member variable for database file path
-          if (!db.isConnected()) {
-            comet::Logger::log("Database connection failed", LoggerLevel::ERROR);
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k406NotAcceptable);
-            resp->setBody(R"({"ErrorMessage":"Error mySQL database connection"})");
-            callback(resp);
-            return;
-          }
 
           // Escape strings for database query
-          engineDirectory = db.escapeString(engineDirectory);
-          basePhaseDirectory = db.escapeString(basePhaseDirectory);
-          workingDirectory = db.escapeString(workingDirectory);
+          engineDirectory = comet::Encoding::encode(engineDirectory);
+          basePhaseDirectory = comet::Encoding::encode(basePhaseDirectory);
+          workingDirectory = comet::Encoding::encode(workingDirectory);
+
+          // Additional information
+          std::string creatorName = "Brett King"; // Replace with actual creator name
+          auto creatorXEmail = request->getHeader("X-Email");
+          auto creatorXCode = request->getHeader("X-Code");
+          auto peopleRefValue = 456; // Replace with actual people reference value
+          auto projectRefValue = 123; // Replace with actual project reference value
+
+          std::unordered_map<std::string, int> JobStatusDescriptionNumber = {
+            {"Initialised", 0},
+            {"Received", 1},
+            {"Allocated", 2},
+            {"Running", 3},
+            {"Failed", 4},
+            {"Completed", 5}
+          };
+
+          auto status = JobStatusDescriptionNumber["Received"]; // Default status
+
 
           // Prepare query
-          std::string query = "REPLACE INTO zHubJobs (GroupName, CaseNumber, projectId, LastUpdate, "
+          std::string query = std::string("") + "REPLACE INTO jobs (GroupName, CaseNumber, projectId, LastUpdate, "
                               "CaseName, ID, CreatorName, CreatorXEmail, CreatorXCode, CreatorMachine, peopleId, "
                               "InputFileName, EngineVersion, EngineDirectory, PhaseFileLocation, WorkingDirectory, "
                               "Status, RunProgress, Servant, Ranking, Life, IterationsComplete, RunTimeMin, CaseBody) "
                               "VALUES ('" + groupTitleEncrypted + "', " + caseNumber + ", " + std::to_string(
-                                projectRefValue) + ", NOW(), "
+                                projectRefValue) + ", datetime('now'), "
                               "'" + caseNameEncrypted + "', '" + jobId + "', '" + creatorName + "', '" + creatorXEmail +
                               "', '" + creatorXCode + "', '" + creatorMachine + "', " + std::to_string(peopleRefValue) +
                               ", "
                               "'" + inputFileName + "', '" + engineVersion + "', '" + engineDirectory + "', '" +
                               basePhaseDirectory + "', '" + workingDirectory + "', "
-                              + std::to_string(jobStatusDescriptionNumber["Received"]) +
+                              + std::to_string(status) +
                               ", '', NULL, NULL, NULL, NULL, NULL, '" + caseBody + "');";
 
           comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
           if (!db.executeQuery(query)) {
-            comet::Logger::log("Failed to execute database query", LoggerLevel::ERROR);
+            comet::Logger::log("Failed to execute database query", LoggerLevel::CRITICAL);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k406NotAcceptable);
             resp->setBody(R"({"ErrorMessage":"Failed to execute database query"})");
@@ -181,8 +179,7 @@ void WebServices::initializeHandlers()
           callback(resp);
         },
       {Post});
-      
-    /**/
+
 
     app().registerHandler(
       "/quit",
@@ -197,12 +194,6 @@ void WebServices::initializeHandlers()
           // Stop the server from listening for new connections
           app().quit();
           Logger::log("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUG);
-
-          // std::thread([]
-          //   {
-          //     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-          //     std::exit(0);
-          //   }).detach();
         },
       {Get});
 
@@ -315,6 +306,17 @@ bool WebServices::isRunning() const
     return m_running;
   }
 
+std::string WebServices::generateTimestamp()
+  {
+    // Generate timestamp in the format YYYYMMDDHHMMSS
+    auto now = std::chrono::system_clock::now();
+    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+    std::tm *localTime = std::localtime(&now_c);
+    std::ostringstream oss;
+    oss << std::put_time(localTime, "%Y%m%d%H%M%S");
+    return oss.str();
+  }
+
 void WebServices::uploadJob(const HttpRequestPtr &request, const Json::Value &json)
   {
     // Extract headers
@@ -323,7 +325,8 @@ void WebServices::uploadJob(const HttpRequestPtr &request, const Json::Value &js
 
     Job job(emailHeader, codeHeader, json);
   }
-/*
+
+
 std::string WebServices::hashIV(const std::string &salt) const
   {
     unsigned char hash[SHA256_DIGEST_LENGTH];
@@ -433,7 +436,3 @@ std::string WebServices::base64Decode(const std::string &encoded)
     }
     return output;
   }
-  /**/
-
-
-}

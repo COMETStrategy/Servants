@@ -10,14 +10,23 @@ namespace comet
     {
         class Authentication {
 
+            private:
+                std::string email;
+                std::string code;
+                std::string machineId;
+                bool isAuthenticated;
+
             public:
-                static bool registerServant(std::string email, std::string code, std::string machineUrl);
-                static std::string HtmlAuthenticationForm();
+                Authentication();
+
+                bool validate(std::string email, std::string code, std::string machineUrl);
+                std::string HtmlAuthenticationForm();
 
                 static std::string getPrivateIPAddress();
 
                 static std::string getPublicIPAddressFromWeb();
 
+                std::string getMachineId();
         };
     
     }

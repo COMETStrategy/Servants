@@ -4,6 +4,7 @@
 
 #ifndef WEBSERVICES_H
 #define WEBSERVICES_H
+#include "Authentication.h"
 #include "drogon/HttpRequest.h"
 #include "drogon/utils/FunctionTraits.h"
 
@@ -44,6 +45,7 @@ namespace comet
         std::atomic<bool> m_running{true};
         unsigned short m_port;
         Database db;
+        Authentication auth;
 
         const std::string ciphering = "aes-256-cbc"; // Cipher method
         const std::string secret_key = "your_secret_key"; // Replace with your secret key

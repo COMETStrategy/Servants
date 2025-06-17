@@ -13,7 +13,9 @@
 #include "utilities.h"
 #include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
-#define CREATE_TABLE_VERSION_QUERY "CREATE TABLE IF NOT EXISTS version (createdDate TEXT, lastUpdatedDate TEXT);"
+#define CREATE_TABLE_VERSION_QUERY R"(CREATE TABLE IF NOT EXISTS version
+(createdDate TEXT, lastUpdatedDate TEXT, email TEXT, code TEXT, machineId TEXT);
+)"
 
 #define CREATE_TABLE_JOBS_QUERY R"(
 CREATE TABLE IF NOT EXISTS jobs (
@@ -90,16 +92,17 @@ namespace comet
         }
       }
 
-    void Database::insertRecord(std::string insertQuery)
+    bool Database::insertRecord(std::string insertQuery)
       {
         char *errMsg;
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
           comet::Logger::log("Failed to insert record into version table: " + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
-          throw std::runtime_error("Failed to insert record into version table");
+          return false; // Return false to indicate failure
         } else {
           comet::Logger::log("Record inserted into version table successfully.", LoggerLevel::INFO);
+          return true;
         }
       }
 
@@ -109,8 +112,8 @@ namespace comet
                            LoggerLevel::INFO);
 
         createTableIfNotExists("Version",CREATE_TABLE_VERSION_QUERY);
-        insertRecord("UPDATE version SET lastUpdatedDate = DATETIME('now');");
-
+        insertRecord("INSERT INTO version (CreatedDate, lastUpdatedDate) VALUES (DATETIME('now'), DATETIME('now'));");
+        
         createTableIfNotExists("Jobs",CREATE_TABLE_JOBS_QUERY);
         createTableIfNotExists("Jobs Indexes",CREATE_INDEXES_JOBS_QUERY);
 

@@ -31,10 +31,16 @@ WebServices::WebServices(const std::string &dbFilename)
     auto results = db.getQueryResults("SELECT * FROM version;");
     // Log the created Date and the last updated date
     if (!results.empty()) {
+      auto email = results[0].at("email");
+      auto code = results[0].at("code");
+      auto machineId = results[0].at("machineId");
       for (const auto &row: results) {
         comet::Logger::log(
           "Database Version: Created Date: " + row.at("createdDate") + ", Last Updated Date: " + row.at(
             "lastUpdatedDate"));
+      }
+      if (!auth.validate(email, code, machineId)) {
+        comet::Logger::log("Invalid verification code for machine.", LoggerLevel::WARNING);
       }
     } else {
       comet::Logger::log("No records found in version table.", LoggerLevel::WARNING);
@@ -62,12 +68,59 @@ void WebServices::initializeHandlers()
         {
           auto resp = HttpResponse::newHttpResponse();
           std::string responseBody = "Welcome to COMET Servants!";
-          responseBody += Authentication::HtmlAuthenticationForm();
+          responseBody += auth.HtmlAuthenticationForm();
           resp->setBody(setHTMLBody(responseBody));
           Logger::log("COMET Servants alive!");
           callback(resp);
         },
       {Get});
+
+    app().registerHandler(
+      "/authenticate",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          comet::Logger::log("Handling POST request to /authenticate", LoggerLevel::DEBUG);
+
+          // Parse the JSON payload
+          // Extract form parameters
+          auto email = request->getParameter("email");
+          auto code = request->getParameter("code");
+          auto machineId = request->getParameter("machineId");
+
+          if (!db.insertRecord(
+            "UPDATE version SET email = '" + email +
+            "', code = '" + code +
+            "', machineId = '" + machineId +
+            "', lastUpdatedDate = DATETIME('now');")) {
+            // Log the error and return a 500 response
+            comet::Logger::log("Failed to update version table with authentication information: ",
+                               LoggerLevel::CRITICAL);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->addHeader("Location", "/");
+            resp->setBody(R"({"error":"Failed to update version table with authentication information"})");
+            callback(resp);
+            return;
+          }
+
+          // Perform authentication (replace with your logic)
+          if (auth.validate(email, code, machineId)) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k302Found);
+            resp->addHeader("Location", "/");
+            comet::Logger::log("Authentication successful for email: " + email + ". Redirecting to /",
+                               LoggerLevel::INFO);
+            callback(resp);
+          } else {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k302Found);
+            resp->addHeader("Location", "/");
+            comet::Logger::log("Authentication failed for email: " + email + ". Redirecting to /"
+              , LoggerLevel::WARNING);
+            callback(resp);
+          }
+        },
+      {Post});
 
     app().registerHandler(
       "/upload/job/",
@@ -109,7 +162,6 @@ void WebServices::initializeHandlers()
             callback(resp);
             return;
           }
-
         },
       {Post});
 
@@ -224,10 +276,10 @@ void WebServices::run()
     m_serverThread = std::make_unique<std::thread>([this]
       {
         Logger::log(std::string("Server running on 127.0.0.1:") + to_string(m_port)
-          + " or Private local IP: " + comet::Authentication::getPrivateIPAddress() + ":" + to_string(m_port)
-          , comet::INFO);
+                    + " or Private local IP: " + comet::Authentication::getPrivateIPAddress() + ":" + to_string(m_port)
+                    , comet::INFO);
 
-       app().addListener("0.0.0.0", m_port).run();
+        app().addListener("0.0.0.0", m_port).run();
       });
   }
 

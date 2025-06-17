@@ -68,9 +68,21 @@ namespace comet
         }
 
         // Convert a string to UTF-8
-        static inline std::string utf8_encode(const std::string &input) {
-            std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-            return converter.to_bytes(std::wstring(input.begin(), input.end()));
+        static inline std::string utf8_encode(const std::wstring &input) {
+            std::string output;
+            for (wchar_t wc : input) {
+              if (wc <= 0x7F) {
+                output.push_back(static_cast<char>(wc));
+              } else if (wc <= 0x7FF) {
+                output.push_back(static_cast<char>(0xC0 | ((wc >> 6) & 0x1F)));
+                output.push_back(static_cast<char>(0x80 | (wc & 0x3F)));
+              } else {
+                output.push_back(static_cast<char>(0xE0 | ((wc >> 12) & 0x0F)));
+                output.push_back(static_cast<char>(0x80 | ((wc >> 6) & 0x3F)));
+                output.push_back(static_cast<char>(0x80 | (wc & 0x3F)));
+              }
+            }
+            return output;
         }
 
     };

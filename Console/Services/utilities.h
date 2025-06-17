@@ -12,14 +12,6 @@
 
 namespace comet
   {
-    // Function to hash the IV using SHA-256
-    /* inline std::string hashIV(const std::string &salt)
-      {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256(reinterpret_cast<const unsigned char *>(salt.c_str()), salt.size(), hash);
-        return std::string(reinterpret_cast<char *>(hash), SHA256_DIGEST_LENGTH);
-      }
-      /**/
 
     // Function to get the full filename and directory, creating directories if necessary
 
@@ -56,6 +48,11 @@ namespace comet
     
         return std::filesystem::path(fullPath);
 
+      }
+
+    inline std::string generateTimestamp()
+      {
+        return std::to_string(std::time(nullptr));
       }
   }
 

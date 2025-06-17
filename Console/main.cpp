@@ -28,7 +28,7 @@ int main()
       comet::Logger::log("An unknown error occurred.", comet::CRITICAL);
       return 1; // Return a non-zero value to indicate failure
     }
-    comet::Logger::log( std::string("Completed ") );
+    comet::Logger::log( std::string("☑️Completed 👋") );
     
     return 0;
   }

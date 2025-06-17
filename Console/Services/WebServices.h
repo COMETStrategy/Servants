@@ -37,17 +37,17 @@ namespace comet
 
         std::string generateTimestamp();
 
-        static void uploadJob(const drogon::HttpRequestPtr &request, const Json::Value &json);
+        bool uploadJob(const drogon::HttpRequestPtr &request);
 
       private:
         std::unique_ptr<std::thread> m_serverThread;
         std::atomic<bool> m_running{true};
         unsigned short m_port;
+        Database db;
 
         const std::string ciphering = "aes-256-cbc"; // Cipher method
         const std::string secret_key = "your_secret_key"; // Replace with your secret key
         const std::string secret_iv = "your_secret_iv";   // Replace with your secret IV
-        Database db;
         std::string hashIV(const std::string &salt) const;
         std::string simpleEncrypt(const std::string &simpleString, const std::string &salt) const;
         std::string simpleDecrypt(const std::string &simpleString, const std::string &salt) const;

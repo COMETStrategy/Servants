@@ -70,10 +70,9 @@ void WebServices::initializeHandlers()
       "/upload/job/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::INFO);
+          comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::DEBUG);
 
           // Database connection
-          comet::Logger::log("Connecting to database...", LoggerLevel::INFO);
           if (!db.isConnected()) {
             comet::Logger::log("Database connection failed", LoggerLevel::CRITICAL);
             auto resp = HttpResponse::newHttpResponse();
@@ -92,91 +91,22 @@ void WebServices::initializeHandlers()
             callback(resp);
             return;
           }
-          //uploadJob(request, &json);
-          comet::Logger::log("Received JSON payload: " + json->toStyledString(), LoggerLevel::DEBUG);
-
-          // Extract attributes
-          auto attributes = json->get("attributes", Json::Value());
-          std::string salt = attributes["Title"].asString();
-          std::string groupTitleEncrypted = simpleEncrypt(attributes["Title"].asString(), salt);
-          std::string caseNumber = attributes["CaseNumber"].asString();
-          std::string caseNameEncrypted = simpleEncrypt(attributes["CaseName"].asString(), salt);
-          std::string content64 = json->get("content64", "").asString();
-          if (content64.size() > 2) content64 = content64.substr(1, 200);
-          std::string content = (content64.empty())
-                                  ? ""
-                                  : utf8Encode(base64Decode(json->get("content64", "").asString()).substr(1, 200));
-          std::string inputFileName = json->get("InputFileName", "").asString();
-          std::string timeStamp = json->get("TimeStamp", "").asString();
-          timeStamp.erase(std::remove(timeStamp.begin(), timeStamp.end(), ' '), timeStamp.end());
-          std::string engineVersion = utf8Encode(attributes["EngineVersion"].asString());
-          std::string engineDirectory = utf8Encode(base64Decode(attributes["EngineDirectory64"].asString()));
-          std::string basePhaseDirectory = utf8Encode(base64Decode(attributes["BasePhaseDirectory64"].asString()));
-          std::string workingDirectory = utf8Encode(base64Decode(attributes["WorkingDirectory64"].asString()));
-          std::string creatorMachine = attributes["CreatorMachine"].asString();
-          std::string caseBody = simpleEncrypt(base64Decode(attributes["CaseBody64"].asString()), salt);
-          std::string jobId = generateTimestamp(); // Member function to generate timestamp
-
-          comet::Logger::log("Extracted attributes successfully", LoggerLevel::INFO);
-
-
-          // Escape strings for database query
-          engineDirectory = comet::Encoding::encode(engineDirectory);
-          basePhaseDirectory = comet::Encoding::encode(basePhaseDirectory);
-          workingDirectory = comet::Encoding::encode(workingDirectory);
-
-          // Additional information
-          std::string creatorName = "Brett King"; // Replace with actual creator name
-          auto creatorXEmail = request->getHeader("X-Email");
-          auto creatorXCode = request->getHeader("X-Code");
-          auto peopleRefValue = 456; // Replace with actual people reference value
-          auto projectRefValue = 123; // Replace with actual project reference value
-
-          std::unordered_map<std::string, int> JobStatusDescriptionNumber = {
-            {"Initialised", 0},
-            {"Received", 1},
-            {"Allocated", 2},
-            {"Running", 3},
-            {"Failed", 4},
-            {"Completed", 5}
-          };
-
-          auto status = JobStatusDescriptionNumber["Received"]; // Default status
-
-
-          // Prepare query
-          std::string query = std::string("") + "REPLACE INTO jobs (GroupName, CaseNumber, projectId, LastUpdate, "
-                              "CaseName, ID, CreatorName, CreatorXEmail, CreatorXCode, CreatorMachine, peopleId, "
-                              "InputFileName, EngineVersion, EngineDirectory, PhaseFileLocation, WorkingDirectory, "
-                              "Status, RunProgress, Servant, Ranking, Life, IterationsComplete, RunTimeMin, CaseBody) "
-                              "VALUES ('" + groupTitleEncrypted + "', " + caseNumber + ", " + std::to_string(
-                                projectRefValue) + ", datetime('now'), "
-                              "'" + caseNameEncrypted + "', '" + jobId + "', '" + creatorName + "', '" + creatorXEmail +
-                              "', '" + creatorXCode + "', '" + creatorMachine + "', " + std::to_string(peopleRefValue) +
-                              ", "
-                              "'" + inputFileName + "', '" + engineVersion + "', '" + engineDirectory + "', '" +
-                              basePhaseDirectory + "', '" + workingDirectory + "', "
-                              + std::to_string(status) +
-                              ", '', NULL, NULL, NULL, NULL, NULL, '" + caseBody + "');";
-
-          comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
-          if (!db.executeQuery(query)) {
-            comet::Logger::log("Failed to execute database query", LoggerLevel::CRITICAL);
+          if (uploadJob(request)) {
+            // Successfully uploaded job
             auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k406NotAcceptable);
-            resp->setBody(R"({"ErrorMessage":"Failed to execute database query"})");
+            resp->setStatusCode(k201Created);
+            resp->setBody(R"({"status":"Job uploaded successfully"})");
+            comet::Logger::log("Response sent: Job uploaded successfully", LoggerLevel::DEBUG);
+            callback(resp);
+          } else {
+            comet::Logger::log("Failed to upload job", LoggerLevel::WARNING);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"error":"Failed to upload job"})");
             callback(resp);
             return;
           }
 
-          comet::Logger::log("Database query executed successfully", LoggerLevel::INFO);
-
-          // Respond with success
-          auto resp = HttpResponse::newHttpResponse();
-          resp->setStatusCode(k201Created);
-          resp->setBody(R"({"status":"Job uploaded successfully"})");
-          comet::Logger::log("Response sent: Job uploaded successfully", LoggerLevel::INFO);
-          callback(resp);
         },
       {Post});
 
@@ -317,13 +247,23 @@ std::string WebServices::generateTimestamp()
     return oss.str();
   }
 
-void WebServices::uploadJob(const HttpRequestPtr &request, const Json::Value &json)
+bool WebServices::uploadJob(const drogon::HttpRequestPtr &request)
   {
-    // Extract headers
-    auto emailHeader = request->getHeader("X-Email");
-    auto codeHeader = request->getHeader("X-Code");
+    Job *job = new Job(request);
+    job->setJobStatus("Queued");
+    auto query = job->getReplaceQueryString();
 
-    Job job(emailHeader, codeHeader, json);
+    comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
+    auto result = db.executeQuery(query);
+    if (!result) {
+      comet::Logger::log("Failed to execute database query: " + query, LoggerLevel::CRITICAL);
+      return false; // Or handle the error appropriately
+    }
+
+    comet::Logger::log("✅ " + job->description());
+    delete job; // Clean up the job object
+
+    return true;
   }
 
 

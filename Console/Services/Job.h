@@ -7,12 +7,25 @@
 #include <string>
 #include <json/json.h>
 
+#include "drogon/HttpRequest.h"
+
 enum JobStatus
   {
     Queued,
-    Processing,
+    Allocated,
+    Running,
+    Failed,
     Completed,
-    Failed
+    Unknown = -1
+  };
+
+// Array with JobStatus descriptions
+static const char *JobStatusDescriptions[] = {
+    "Queued",
+    "Allocated",
+    "Running",
+    "Failed",
+    "Completed"
   };
 
 class Job
@@ -30,19 +43,28 @@ class Job
     std::string caseName;
     std::string creatorMachine;
     std::string engineVersion;
-    std::string engineDirectory64;
-    std::string basePhaseDirectory64;
-    std::string workingDirectory64;
-    std::string caseBody64;
+    std::string engineDirectory;
+    std::string basePhaseDirectory;
+    std::string workingDirectory;
+    std::string caseBody;
+    std::string creatorName; // Replace with actual creator name
+    std::string creatorXEmail;
+    std::string creatorXCode;
+    int peopleRefValue;
+    int projectRefValue;
+
 
     JobStatus status;
 
     // Constructor
     public:
-      Job(const std::string &emailHeader, const std::string &codeHeader, const Json::Value &json);
+      Job(const drogon::HttpRequestPtr &request);
       JobStatus jobStatus() const;
       bool validJobStatus() const;
       std::string jobStatusDescription() const;
-      
+      JobStatus setJobStatus(const char *statusDescription);
+      std::string getReplaceQueryString() const;
+
+    std::string description();
   };
 #endif //JOB_H

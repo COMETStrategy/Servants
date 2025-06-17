@@ -109,7 +109,7 @@ namespace comet
                            LoggerLevel::INFO);
 
         createTableIfNotExists("Version",CREATE_TABLE_VERSION_QUERY);
-        insertRecord("INSERT INTO version (createdDate, lastUpdatedDate) VALUES (DATETIME('now'), DATETIME('now'));");
+        insertRecord("UPDATE version SET lastUpdatedDate = DATETIME('now');");
 
         createTableIfNotExists("Jobs",CREATE_TABLE_JOBS_QUERY);
         createTableIfNotExists("Jobs Indexes",CREATE_INDEXES_JOBS_QUERY);
@@ -129,7 +129,7 @@ namespace comet
         } else {
           comet::Logger::log("Record updated into version table successfully.", LoggerLevel::DEBUG);
         }
-        return false;
+        return true;
       }
 
     bool Database::openDatabase(const std::string &databaseFullPath)
@@ -155,7 +155,7 @@ namespace comet
 
         comet::Logger::log("Database file '" + databaseFullPath + "' opened.", LoggerLevel::DEBUG);
         m_dbPath = databaseFullPath;
-        return bSuccess;
+        return databaseExists;
       }
 
     bool Database::executeQuery(const std::string &query) const

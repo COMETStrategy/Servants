@@ -5,12 +5,30 @@
 #include <string>
 #include <cstring>
 #include <sys/types.h>
-#include <ifaddrs.h>
 #include <arpa/inet.h>
-
-#include <string>
 #include <curl/curl.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <openssl/sha.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <iphlpapi.h>
+#include <rpc.h>
+#pragma comment(lib, "iphlpapi.lib")
+#pragma comment(lib, "rpcrt4.lib")
+#elif __APPLE__
+#include <ifaddrs.h>
+#include <net/if_dl.h>
+#include <uuid/uuid.h>
+#elif __linux__
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <unistd.h>
+#include <uuid/uuid.h>
+#include <net/if_types.h>
+#endif
 #include "Authentication.h"
 
 #include <netdb.h>
@@ -19,80 +37,102 @@
 
 namespace comet
   {
-#include <iostream>
-#include <string>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <net/if_dl.h>
-#include <unistd.h>
-#include <uuid/uuid.h>
-#include <openssl/sha.h>
 
-    std::string getMacAddress()
-      {
-#ifdef __APPLE__
-        struct ifaddrs *ifaddr, *ifa;
-        unsigned char mac[6];
-        std::string macAddress = "";
 
-        if (getifaddrs(&ifaddr) == -1) {
-          perror("getifaddrs");
-          return macAddress;
+std::string getMacAddress() {
+#ifdef _WIN32
+    IP_ADAPTER_INFO AdapterInfo[16];
+    DWORD dwBufLen = sizeof(AdapterInfo);
+    DWORD dwStatus = GetAdaptersInfo(AdapterInfo, &dwBufLen);
+    if (dwStatus != ERROR_SUCCESS) {
+        return "";
+    }
+
+    PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
+    std::ostringstream macStream;
+    macStream << std::hex;
+
+    while (pAdapterInfo) {
+        for (UINT i = 0; i < pAdapterInfo->AddressLength; i++) {
+            macStream << (i == 0 ? "" : ":") << std::setw(2) << std::setfill('0') << (int)pAdapterInfo->Address[i];
         }
+        break;
+    }
 
-        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-          if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_LINK) continue;
+    return macStream.str();
+#elif __APPLE__
+    struct ifaddrs *ifaddr, *ifa;
+    unsigned char mac[6];
+    std::string macAddress = "";
 
-          struct sockaddr_dl *sdl = (struct sockaddr_dl *) ifa->ifa_addr;
-#ifndef IFT_ETHER
-#define IFT_ETHER 0x6 // Ethernet constant
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        return macAddress;
+    }
+
+    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_LINK) continue;
+
+        struct sockaddr_dl *sdl = (struct sockaddr_dl *)ifa->ifa_addr;
+      #ifndef IFT_ETHER
+#define IFT_ETHER 0x6
 #endif
-          if (sdl->sdl_type == IFT_ETHER) {
-            // Ensure this constant is defined
+        if (sdl->sdl_type == IFT_ETHER) {
             memcpy(mac, LLADDR(sdl), 6);
             char macStr[18];
             snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
             macAddress = std::string(macStr);
             break;
-          }
         }
+    }
 
-        freeifaddrs(ifaddr);
-        return macAddress;
+    freeifaddrs(ifaddr);
+    return macAddress;
 #elif __linux__
-        int sock = socket(AF_INET, SOCK_DGRAM, 0);
-        if (sock < 0) return "";
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) return "";
 
-        struct ifreq ifr;
-        const char* iface = "eth0"; // Default for Linux; adjust as needed
-        strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-        ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    struct ifreq ifr;
+    const char* iface = "eth0";
+    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+    ifr.ifr_name[IFNAMSIZ - 1] = 0;
 
-        if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
-          unsigned char* mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
-          char macStr[18];
-          snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-                   mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-          close(sock);
-          return std::string(macStr);
-        }
-
+    if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
+        unsigned char* mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
+        char macStr[18];
+        snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         close(sock);
-        return "";
-#else
-        return "Unsupported platform";
-#endif
-      }
+        return std::string(macStr);
+    }
 
-    std::string getUuid()
-      {
+    close(sock);
+    return "";
+#else
+    return "Unsupported platform";
+#endif
+}
+
+    std::string getUuid() {
+#ifdef _WIN32
+        UUID uuid;
+        UuidCreate(&uuid);
+        RPC_CSTR uuidStr;
+        UuidToStringA(&uuid, &uuidStr);
+        std::string result((char*)uuidStr);
+        RpcStringFreeA(&uuidStr);
+        return result;
+#elif __APPLE__ || __linux__
         uuid_t uuid;
         uuid_generate(uuid);
         char uuidStr[37];
         uuid_unparse_lower(uuid, uuidStr);
         return std::string(uuidStr);
-      }
+#else
+        return "Unsupported platform";
+#endif
+    }
 
     std::string generateMachineId(const std::string &mac, const std::string &uuid)
       {

@@ -13,9 +13,16 @@
 #include "utilities.h"
 #include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
-#define CREATE_TABLE_VERSION_QUERY R"(CREATE TABLE IF NOT EXISTS version
-(createdDate TEXT, lastUpdatedDate TEXT, email TEXT, code TEXT, machineId TEXT);
-)"
+#define CREATE_TABLE_SETTINGS_QUERY R"(CREATE TABLE IF NOT EXISTS settings
+                                      (createdDate TEXT
+                                      , lastUpdatedDate TEXT
+                                      , email TEXT
+                                      , code TEXT
+                                      , machineId TEXT
+                                      , totalCores INTEGER
+                                      , unusedCores INTEGER
+                                      , managerIpAddress TEXT);
+                                      )"
 
 #define CREATE_TABLE_JOBS_QUERY R"(
 CREATE TABLE IF NOT EXISTS jobs (
@@ -96,12 +103,12 @@ namespace comet
       {
         char *errMsg;
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          comet::Logger::log("Failed to insert record into version table: " + std::string(errMsg),
+          comet::Logger::log("Failed to insert record into Settings table: " + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           return false; // Return false to indicate failure
         } else {
-          comet::Logger::log("Record inserted into version table successfully.", LoggerLevel::INFO);
+          comet::Logger::log("Record inserted into Settings table successfully.", LoggerLevel::INFO);
           return true;
         }
       }
@@ -111,13 +118,13 @@ namespace comet
         comet::Logger::log("Database file " + path + " does not exist. Creating a new database.",
                            LoggerLevel::INFO);
 
-        createTableIfNotExists("Version",CREATE_TABLE_VERSION_QUERY);
-        insertRecord("INSERT INTO version (CreatedDate, lastUpdatedDate) VALUES (DATETIME('now'), DATETIME('now'));");
+        createTableIfNotExists("Settings",CREATE_TABLE_SETTINGS_QUERY);
+        insertRecord("INSERT INTO settings (CreatedDate, lastUpdatedDate, machineid, totalCores, unusedCores, manageripAddress) VALUES (DATETIME('now'), DATETIME('now'), 'machinenumber', 0, 0, '');");
         
         createTableIfNotExists("Jobs",CREATE_TABLE_JOBS_QUERY);
         createTableIfNotExists("Jobs Indexes",CREATE_INDEXES_JOBS_QUERY);
 
-        comet::Logger::log("Version and Jobs tables created successfully.", LoggerLevel::INFO);
+        comet::Logger::log("Settings and Jobs tables created successfully.", LoggerLevel::INFO);
         return true;
       }
 
@@ -125,12 +132,12 @@ namespace comet
       {
         char *errMsg;
         if (sqlite3_exec(m_db, queryText.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          comet::Logger::log("Failed to update record into version table: " + std::string(errMsg),
+          comet::Logger::log("Failed to update record into Settings table: " + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
-          throw std::runtime_error("Failed to update record into version table: " + std::string(errMsg));
+          throw std::runtime_error("Failed to update record into Settings table: " + std::string(errMsg));
         } else {
-          comet::Logger::log("Record updated into version table successfully.", LoggerLevel::DEBUG);
+          comet::Logger::log("Record updated into Settings table successfully.", LoggerLevel::DEBUG);
         }
         return true;
       }
@@ -153,8 +160,8 @@ namespace comet
 
         // Database exists so update the last access time
         sqlite3_stmt *stmt = nullptr;
-        // Update the lastUpdatedDate in the version table        
-        auto bSuccess = updateQuery("Update Version", "UPDATE version SET lastUpdatedDate = DATETIME('now');");
+        // Update the lastUpdatedDate in the Settings table        
+        auto bSuccess = updateQuery("Update Settings", "UPDATE Settings SET lastUpdatedDate = DATETIME('now');");
 
         comet::Logger::log("Database file '" + databaseFullPath + "' opened.", LoggerLevel::DEBUG);
         m_dbPath = databaseFullPath;

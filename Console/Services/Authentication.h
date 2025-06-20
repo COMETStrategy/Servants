@@ -15,11 +15,23 @@ namespace comet
                 std::string code;
                 std::string machineId;
                 bool isAuthenticated;
+                int totalCores = 0;
+
+            public:
+                void set_total_cores(int total_cores);
+
+                void set_unused_cores(int unused_cores);
+
+                void set_manager_ip_address(const std::string &manager_ip_address);
+
+            private:
+                int unusedCores = 0;
+                std::string managerIpAddress = "";
 
             public:
                 Authentication();
 
-                bool validate(std::string email, std::string code, std::string machineUrl);
+                bool valid(std::string email, std::string code, std::string machineUrl);
                 std::string HtmlAuthenticationForm();
 
                 bool CheckVerificationInformation();

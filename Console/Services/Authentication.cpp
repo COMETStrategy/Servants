@@ -34,6 +34,7 @@
 #include "Authentication.h"
 
 #include <netdb.h>
+#include <thread>
 
 #include "Curl.hpp"
 #include "Logger.h"
@@ -158,7 +159,7 @@ namespace comet
       {
         std::string requestUrl = "https://license.cometstrategy.com/cloudService/getApiInformation.php";
         std::list<std::string> cHeaders;
-           
+
         // Retrieve settings
         std::string userEmail = email;
         std::string emailedVerificationCode = code;
@@ -176,9 +177,11 @@ namespace comet
 
         if (response.isError()) {
           if (response.type == Curl::ResponseType::Error) {
-            Logger::log(std::string("Licence Error: ") + std::to_string(response.status) + " - " + response.body, LoggerLevel::CRITICAL);
+            Logger::log(std::string("Licence Error: ") + std::to_string(response.status) + " - " + response.body,
+                        LoggerLevel::CRITICAL);
           } else if (response.type == Curl::ResponseType::CurlError) {
-            Logger::log(std::string("Licence Curl Error: ") + response.curlError + " at " + requestUrl, LoggerLevel::CRITICAL);
+            Logger::log(std::string("Licence Curl Error: ") + response.curlError + " at " + requestUrl,
+                        LoggerLevel::CRITICAL);
           } else {
             Logger::log(std::string("Licence Undefined Error at ") + requestUrl, LoggerLevel::CRITICAL);
           }
@@ -293,6 +296,21 @@ namespace comet
       }
 
 
+    void Authentication::set_total_cores(int total_cores)
+      {
+        totalCores = total_cores;
+      }
+
+    void Authentication::set_unused_cores(int unused_cores)
+      {
+        unusedCores = unused_cores;
+      }
+
+    void Authentication::set_manager_ip_address(const std::string &manager_ip_address)
+      {
+        managerIpAddress = manager_ip_address;
+      }
+
     Authentication::Authentication()
       {
         machineId = getMachineId();
@@ -305,12 +323,17 @@ namespace comet
         isAuthenticated = false;
       }
 
-    bool Authentication::validate(std::string newemail, std::string newcode, std::string newmachineId)
+    bool Authentication::valid(std::string newemail, std::string newcode, std::string newmachineId)
       {
         isAuthenticated = false;
         email = newemail; // Store email
         code = newcode; // Store code
-        machineId = newmachineId; // Store machine URL
+        machineId = getMachineId(); // Store machine URL
+        /* , int newTotalCores ,
+                               int newUnusedCores, std::string newManagerIpAddress
+        totalCores = newTotalCores;
+        unusedCores = newUnusedCores;
+        managerIpAddress = newManagerIpAddress/**/;
         if (code.size() < 5 || email.size() < 10 || machineId.size() < 10) {
           Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
           return false;
@@ -328,15 +351,14 @@ namespace comet
       {
         std::string ip = getPublicIPAddressFromWeb();
 
-        std::string html = "<p></p>";
-        "<h1>Authentication</h1>"
-            "<p>Enter your email, code, and machine ID to authenticate.</p>"
-            "<p>Your public IP address is: <strong>" + ip + "</strong></p>";
-        if (validate(email, code, machineId)) {
-          html += "<h2 class=\"success\">Authentication Valid</h2>";
+        std::string html = "<p></p>  <h1>Authentication Settings</h1>";
+        auto isValid = valid(email, code, machineId);
+        if (isValid) {
+          html += "<p>✅ Valid authentication settings</p>";
         } else {
-          html += "<h2 class=\"error\">Authentication Invalid</h2>";
+          html += "<p>❌ Invalid authentication settings, update the email and code below.</p>";
         }
+
 
         html += "<form method=\"post\" action=\"/authenticate\">"
             "<table>"
@@ -357,11 +379,43 @@ namespace comet
             "<td><input type=\"text\" id=\"machineId\" name=\"machineId\" value=\"" + machineId +
             "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
             "</tr>" "<tr>"
-            "<td><input type=\"submit\" value=\"Update\" class=\"ui primary button\"></td>"
+            "<td><input type=\"submit\" value=\"Update Authentication Settings\" class=\"ui primary button\"></td>"
             "<td></td>"
             "</tr>"
             "</table>"
             "</form>";
+
+        if (isValid) {
+          totalCores = std::thread::hardware_concurrency();
+          // Example value, replace with actual logic to get total cores
+          unusedCores = std::max(0, unusedCores); // Example value, replace with actual logic to get reserved cores
+
+          html += "<p></p> <h1>Machine Settings</h1>"
+              "<form method=\"post\" action=\"/configuration\">"
+              "<table>"
+              "<tr>"
+              "<td><label for=\"totalCores\">Total Cores:</label></td>"
+              "<td><input type=\"text\" id=\"totalCores\" name=\"totalCores\" value=\"" + std::to_string(totalCores) +
+              "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
+              "</tr>"
+              "<tr>"
+              "<td><label for=\"reservedCores\">Reserved Cores:</label></td>"
+              "<td><input type=\"number\" id=\"reservedCores\" name=\"reservedCores\" value=\"" +
+              std::to_string(unusedCores) + "\"></td>"
+              "</tr>"
+              "<tr>"
+              "<td><label for=\"servantManager\">Servant Manager Name/IP Address: <br>"
+              "(Leave empty of this is the manager)</label></td>"
+              "<td><input type=\"text\" id=\"servantManager\" name=\"servantManager\" value=\"" + managerIpAddress +
+              "\"  style=\"border: none; background-color: #f0f0f0;\"></td>"
+              "</tr>"
+              "<tr>"
+              "<td><input type=\"submit\" value=\"Update Machine Settings\" class=\"ui primary button\"></td>"
+              "<td></td>"
+              "</tr>"
+              "</table>"
+              "</form>";
+        }
 
         return html;
       }

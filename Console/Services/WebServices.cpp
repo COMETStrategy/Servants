@@ -28,22 +28,25 @@ WebServices::WebServices(const std::string &dbFilename)
     m_port = 7777;;
     initializeHandlers();
 
-    auto results = db.getQueryResults("SELECT * FROM version;");
+    auto results = db.getQueryResults("SELECT * FROM Settings;");
     // Log the created Date and the last updated date
     if (!results.empty()) {
       auto email = results[0].at("email");
       auto code = results[0].at("code");
       auto machineId = results[0].at("machineId");
+      auth.set_total_cores(stoi(results[0].at("totalCores")));
+      auth.set_unused_cores(stoi(results[0].at("unusedCores")));
+      auth.set_manager_ip_address(results[0].at("managerIpAddress"));
       for (const auto &row: results) {
         comet::Logger::log(
-          "Database Version: Created Date: " + row.at("createdDate") + ", Last Updated Date: " + row.at(
+          "Database Settings: Created Date: " + row.at("createdDate") + ", Last Updated Date: " + row.at(
             "lastUpdatedDate"));
       }
-      if (!auth.validate(email, code, machineId)) {
+      if (!auth.valid(email, code, machineId)) {
         comet::Logger::log("Invalid verification code for machine.", LoggerLevel::WARNING);
       }
     } else {
-      comet::Logger::log("No records found in version table.", LoggerLevel::WARNING);
+      comet::Logger::log("No records found in Settings table.", LoggerLevel::WARNING);
     }
   }
 
@@ -87,24 +90,31 @@ void WebServices::initializeHandlers()
           auto code = request->getParameter("code");
           auto machineId = request->getParameter("machineId");
 
+          // Update Validation
+          if (!auth.valid(email, code, machineId)) {
+            comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
+          }
+
           if (!db.insertRecord(
-            "UPDATE version SET email = '" + email +
+            "UPDATE Settings SET email = '" + email +
             "', code = '" + code +
             "', machineId = '" + machineId +
             "', lastUpdatedDate = DATETIME('now');")) {
             // Log the error and return a 500 response
-            comet::Logger::log("Failed to update version table with authentication information: ",
+            comet::Logger::log("Failed to update Settings table with authentication information: ",
                                LoggerLevel::CRITICAL);
+
+
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k500InternalServerError);
             resp->addHeader("Location", "/");
-            resp->setBody(R"({"error":"Failed to update version table with authentication information"})");
+            resp->setBody(R"({"error":"Failed to update Settings table with authentication information"})");
             callback(resp);
             return;
           }
 
           // Perform authentication (replace with your logic)
-          if (auth.validate(email, code, machineId)) {
+          if (auth.valid(email, code, machineId)) {
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k302Found);
             resp->addHeader("Location", "/");
@@ -116,11 +126,54 @@ void WebServices::initializeHandlers()
             resp->setStatusCode(k302Found);
             resp->addHeader("Location", "/");
             comet::Logger::log("Authentication failed for email: " + email + ". Redirecting to /"
-              , LoggerLevel::WARNING);
+                               , LoggerLevel::WARNING);
             callback(resp);
           }
         },
       {Post});
+
+    app().registerHandler(
+      "/configuration",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          comet::Logger::log("Handling POST request to /configuration", LoggerLevel::DEBUG);
+
+          // Extract form parameters
+          auto totalCores = request->getParameter("totalCores");
+          auto unusedCores = request->getParameter("unusedCores");
+          auto managerIpAddress = request->getParameter("managerIpAddress");
+
+          auth.set_total_cores(std::stoi(totalCores));
+          auth.set_unused_cores(std::stoi(unusedCores));
+          auth.set_manager_ip_address(managerIpAddress);
+          
+          if (!db.insertRecord(
+            "UPDATE Settings SET totalCores = '" + totalCores +
+            "', unusedCores = '" + unusedCores +
+            "', manageripAddress = '" + managerIpAddress + "' ;")) {
+            // Log the error and return a 500 response
+            comet::Logger::log("Failed to update Settings table with configuration information: ",
+                               LoggerLevel::CRITICAL);
+
+
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->addHeader("Location", "/");
+            resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
+            callback(resp);
+            return;
+          }
+
+
+          // Successful update
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/");
+          comet::Logger::log("Configuration successful. Redirecting to /", LoggerLevel::INFO);
+          callback(resp);
+        },
+      {Post});
+
 
     app().registerHandler(
       "/upload/job/",

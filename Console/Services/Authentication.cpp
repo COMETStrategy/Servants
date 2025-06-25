@@ -15,28 +15,27 @@
 #include "Curl.hpp"
 
 #ifdef _WIN32
-#include <windows.h>
-#include <iphlpapi.h>
-#include <rpc.h>
-#pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "rpcrt4.lib")
+  #include <windows.h>
+  #include <iphlpapi.h>
+  #include <rpc.h>
+  #pragma comment(lib, "iphlpapi.lib")
+  #pragma comment(lib, "rpcrt4.lib")
 #elif __APPLE__
-#include <ifaddrs.h>
-#include <net/if_dl.h>
-#include <uuid/uuid.h>
+  #include <ifaddrs.h>
+  #include <net/if_dl.h>
+  #include <uuid/uuid.h>
 #elif __linux__
-#include <sys/ioctl.h>
-#include <net/if.h>
-#include <unistd.h>
-#include <uuid/uuid.h>
-#include <net/if_types.h>
+  #include <sys/ioctl.h>
+  #include <net/if.h>
+  #include <unistd.h>
+  #include <uuid/uuid.h>
+  #include <net/if_types.h>
 #endif
 #include "Authentication.h"
 
 #include <netdb.h>
 #include <thread>
 
-#include "Curl.hpp"
 #include "Logger.h"
 
 namespace comet
@@ -119,23 +118,23 @@ namespace comet
 
     std::string getUuid()
       {
-#ifdef _WIN32
-        UUID uuid;
-        UuidCreate(&uuid);
-        RPC_CSTR uuidStr;
-        UuidToStringA(&uuid, &uuidStr);
-        std::string result((char*)uuidStr);
-        RpcStringFreeA(&uuidStr);
-        return result;
-#elif __APPLE__ || __linux__
-        uuid_t uuid;
-        uuid_generate(uuid);
-        char uuidStr[37];
-        uuid_unparse_lower(uuid, uuidStr);
-        return std::string(uuidStr);
-#else
-        return "Unsupported platform";
-#endif
+        #ifdef _WIN32
+                UUID uuid;
+                UuidCreate(&uuid);
+                RPC_CSTR uuidStr;
+                UuidToStringA(&uuid, &uuidStr);
+                std::string result((char*)uuidStr);
+                RpcStringFreeA(&uuidStr);
+                return result;
+        #elif __APPLE__ || __linux__
+                uuid_t uuid;
+                uuid_generate(uuid);
+                char uuidStr[37];
+                uuid_unparse_lower(uuid, uuidStr);
+                return std::string(uuidStr);
+        #else
+                return "Unsupported platform";
+        #endif
       }
 
     std::string generateMachineId(const std::string &mac, const std::string &uuid)
@@ -290,9 +289,13 @@ namespace comet
           std::cerr << "Failed to generate UUID" << std::endl;
           return "";
         }
+        return mac;
+        /*
+        uuid = "1234";
 
         machineId = generateMachineId(mac, uuid);
         return machineId;
+        /**/
       }
 
 
@@ -373,12 +376,11 @@ namespace comet
             "<td><label for=\"ip\">IP Address:</label></td>"
             "<td><input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + ip +
             "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
-            "</tr>"
-            "<tr>"
+            "</tr>""<tr>"
             "<td><label for=\"machineId\">Machine ID:</label></td>"
-            "<td><input type=\"text\" id=\"machineId\" name=\"machineId\" value=\"" + machineId +
-            "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
-            "</tr>" "<tr>"
+            "<td><input type=\"hidden\" id=\"machineId\" name=\"machineId\" value=\"" + machineId + "\">"
+            "<p style=\"border: none; background-color: #f0f0f0;\">" + machineId + "</p></td>"
+            "</tr>"
             "<td><input type=\"submit\" value=\"Update Authentication Settings\" class=\"ui primary button\"></td>"
             "<td></td>"
             "</tr>"
@@ -399,8 +401,8 @@ namespace comet
               "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
               "</tr>"
               "<tr>"
-              "<td><label for=\"reservedCores\">Reserved Cores:</label></td>"
-              "<td><input type=\"number\" id=\"reservedCores\" name=\"reservedCores\" value=\"" +
+              "<td><label for=\"reservedCores\">Unused Cores:</label></td>"
+              "<td><input type=\"number\" id=\"reservedCores\" name=\"unusedCores\" value=\"" +
               std::to_string(unusedCores) + "\"></td>"
               "</tr>"
               "<tr>"

@@ -46,6 +46,7 @@ namespace comet
         unsigned short m_port;
         Database db;
         Authentication auth;
+        std::string configurationFilePath; // Default database path
 
         const std::string ciphering = "aes-256-cbc"; // Cipher method
         const std::string secret_key = "your_secret_key"; // Replace with your secret key

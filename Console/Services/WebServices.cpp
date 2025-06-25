@@ -15,6 +15,7 @@
 #include "Logger.h"
 #include "Job.h"
 #include "Encoding.h"
+#include "utilities.h"
 
 using namespace std;
 using namespace drogon;
@@ -23,6 +24,7 @@ using namespace comet;
 WebServices::WebServices(const std::string &dbFilename)
   : db(dbFilename)
   {
+    configurationFilePath = getFullFilenameAndDirectory(dbFilename);;
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
     m_port = 7777;;
@@ -141,6 +143,10 @@ void WebServices::initializeHandlers()
           // Extract form parameters
           auto totalCores = request->getParameter("totalCores");
           auto unusedCores = request->getParameter("unusedCores");
+          // if null set to 0
+          if (unusedCores.empty()) {
+            unusedCores = "0";
+          }
           auto managerIpAddress = request->getParameter("managerIpAddress");
 
           auth.set_total_cores(std::stoi(totalCores));
@@ -313,15 +319,15 @@ std::string WebServices::getHTMLFooter() const
     std::time_t now_c = std::chrono::system_clock::to_time_t(now);
     std::ostringstream oss;
     oss << std::put_time(std::localtime(&now_c), "%d %b %Y at %I:%M:%S %p");
-
+    // Log the current time and the configuration file path
+    comet::Logger::log("Current time: " + oss.str() + ", Configuration file path: " + configurationFilePath,
+                       LoggerLevel::INFO);
     return R"(
-    <footer style="margin-top: auto;">
-    
-    <h4>Run on )" + oss.str() + R"( </h4>
-    
-    </footer>
-
-           )";
+            <footer style="margin-top: auto; display: flex; justify-content: space-between;">
+              <h4>Run on )" + oss.str() + R"(</h4>
+              <h4>Config File: )" + configurationFilePath + R"(</h4>
+            </footer>
+            )";
   }
 
 void WebServices::run()

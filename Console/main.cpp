@@ -1,16 +1,5 @@
 #include "Services/WebServices.h"
 #include "Services/Logger.h"
-#include "Services/Authentication.h"
-
-#include <iostream>
-#include <thread>
-#include <chrono>
-
-#include <ctime>
-#include <iomanip>
-#include <sstream>
-
-#include "Authentication.h"
 
 int main()
   {

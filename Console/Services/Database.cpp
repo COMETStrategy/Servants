@@ -13,6 +13,30 @@
 #include "utilities.h"
 #include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
+#define CREATE_TABLE_SERVANTS_QUERY R"(CREATE TABLE IF NOT EXISTS `servants` (
+                                      `servantAddress` varchar(100) NOT NULL,
+                                      `RegistrationTime` datetime NOT NULL,
+                                      `ServantDescription` varchar(250) NOT NULL,
+                                      `ServantVersion` varchar(30) NOT NULL,
+                                      `projectId` int NOT NULL,
+                                      `contactId` int NOT NULL,
+                                      `RegistrationProgress` int NOT NULL,
+                                      `speedIndex` float NOT NULL DEFAULT '1',
+                                      `HttpListeningPort` int NOT NULL,
+                                      `HttpsListeningPort` int NOT NULL,
+                                      `ServantProcessorsCount` int NOT NULL,
+                                      `ServantReservedProcessors` int NOT NULL,
+                                      `ServantCommaSeparatedFindPaths` varchar(1000) NOT NULL,
+                                      `ServantCommaSeparatedReplacePaths` varchar(5000) NOT NULL,
+                                      PRIMARY KEY (`servantAddress`, `projectId`)
+                                      );)"
+
+#define CREATE_INDEXES_SERVANTS_QUERY R"(
+                                        CREATE INDEX IF NOT EXISTS idx_servant_alias ON servants (`servantAddress`);
+                                        CREATE INDEX IF NOT EXISTS idx_projectId ON servants (`projectId`);
+                                        CREATE INDEX IF NOT EXISTS idx_speedIndex ON servants (`speedIndex`);
+                                        )"
+
 #define CREATE_TABLE_SETTINGS_QUERY R"(CREATE TABLE IF NOT EXISTS settings
                                       (createdDate TEXT
                                       , lastUpdatedDate TEXT
@@ -75,6 +99,7 @@ namespace comet
         if (!databaseExists) {
           databaseExists = createNewDatabase(fullPath);
         }
+
       }
 
 
@@ -120,6 +145,9 @@ namespace comet
 
         createTableIfNotExists("Settings",CREATE_TABLE_SETTINGS_QUERY);
         insertRecord("INSERT INTO settings (CreatedDate, lastUpdatedDate, machineid, totalCores, unusedCores, manageripAddress) VALUES (DATETIME('now'), DATETIME('now'), 'machinenumber', 0, 0, '');");
+
+        createTableIfNotExists("Settings",CREATE_TABLE_SERVANTS_QUERY);
+        createTableIfNotExists("Settings indexes", CREATE_INDEXES_SERVANTS_QUERY);
         
         createTableIfNotExists("Jobs",CREATE_TABLE_JOBS_QUERY);
         createTableIfNotExists("Jobs Indexes",CREATE_INDEXES_JOBS_QUERY);
@@ -139,6 +167,7 @@ namespace comet
         } else {
           comet::Logger::log("Record updated into Settings table successfully.", LoggerLevel::DEBUG);
         }
+        
         return true;
       }
 

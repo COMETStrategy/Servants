@@ -30,62 +30,53 @@ namespace comet
       }
 
 
-    void Servant::set_totalCores(int total_cores)
+    void Servant::setTotalCores(int total_cores)
       {
         totalCores = total_cores;
       }
 
-    void Servant::set_unusedCores(int unused_cores)
+    void Servant::setUnusedCores(int unused_cores)
       {
         unusedCores = unused_cores;
       }
 
-    void Servant::set_activeCores(int active_cores)
+    void Servant::setActiveCores(int active_cores)
       {
         activeCores = active_cores;
       }
 
-    void Servant::set_port(const int aPort)
+    void Servant::setPort(const int aPort)
       {
         port = aPort;
       }
 
-    void Servant::set_projectId(const int aProjectId)
+    void Servant::setProjectId(const int aProjectId)
       {
         projectId = aProjectId;
       }
+    
 
-    std::string Servant::get_code()
-      {
-        return code;
-      }
-
-    std::string Servant::get_email()
-      {
-        return email;
-      }
-
-    void Servant::set_email(const std::string &aEmail)
+    void Servant::setEmail(const std::string &aEmail)
       {
         email = aEmail;
       }
 
-    void Servant::set_code(const std::string &aCode)
+    void Servant::setCode(const std::string &aCode)
       {
         code = aCode;
       }
 
-    void Servant::set_ipAddress(const std::string &aIpAddress)
+    void Servant::setIpAddress(const std::string &aIpAddress)
       {
         ipAddress = aIpAddress;
       }
 
-    void Servant::set_managerIpAddress(const std::string &aManagerIpAddress)
+    void Servant::setManagerIpAddress(const std::string &aManagerIpAddress)
       {
         managerIpAddress = aManagerIpAddress;
       }
 
-    void Servant::set_version(const std::string &aVersion)
+    void Servant::setVersion(const std::string &aVersion)
       {
         version = aVersion;
       }
@@ -192,9 +183,9 @@ namespace comet
             "\"  style=\"border: none; background-color: #f0f0f0;\"></td>"
             "</tr>"
             "<tr>"
-            "<td><label for=\"servantManager\">Servant Manager Name/IP Address: <br>"
+            "<td><label for=\"managerIpAddress\">Servant Manager Name/IP Address: <br>"
             "(Leave empty of this is the manager)</label></td>"
-            "<td style=\"text-align: right;\"><input type=\"text\" id=\"servantManager\" name=\"servantManager\" value=\""
+            "<td style=\"text-align: right;\"><input type=\"text\" id=\"managerIpAddress\" name=\"managerIpAddress\" value=\""
             + managerIpAddress +
             "\"  style=\"border: none; background-color: #f0f0f0;\"></td>"
             "</tr>"
@@ -237,8 +228,7 @@ namespace comet
 
     bool Servant::routineStatusUpdates() const
       {
-        auto updateHostIPName = managerIpAddress;
-        if (updateHostIPName.empty()) { updateHostIPName = "localhost"; }
+
         // Post to the manager IP address
         auto url = "http://" + ipAddress + ":" + std::to_string(port) + "/servant/status";
         nlohmann::json jsonData;
@@ -255,15 +245,40 @@ namespace comet
         auto response = Curl::postJson(url, jsonData);
         if (response.isError()) {
           if (!response.body.empty())
-            Logger::log("Failed to update Servant status on manager, body: " + response.body, LoggerLevel::CRITICAL);
+            Logger::log("Failed to update Servant status (local), body: " + response.body, LoggerLevel::CRITICAL);
           else
-            Logger::log("Failed to update Servant status on manager, curl: " + response.curlError,
+            Logger::log("Failed to update Servant status (local), curl: " + response.curlError,
                         LoggerLevel::CRITICAL);
           return false;
         } else {
-          Logger::log("Servant status updated successfully on manager: " + updateHostIPName + " ✅",
+          Logger::log("Servant status updated successfully (local): " + ipAddress + " ✅",
+                      LoggerLevel::DEBUG);
+        }
+
+        // Update the manager servant
+        if (managerIpAddress.empty()) {
+          
+          Logger::log("Manager updated: " + ipAddress + " ✅",
                       LoggerLevel::INFO);
         }
+        else
+          {
+          auto url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/status";
+          
+          auto response = Curl::postJson(url, jsonData);
+          if (response.isError()) {
+            if (!response.body.empty())
+              Logger::log("Failed to update Servant status (manager), body: " + response.body, LoggerLevel::CRITICAL);
+            else
+              Logger::log("Failed to update Servant status (manager), curl: " + response.curlError,
+                          LoggerLevel::CRITICAL);
+            return false;
+          } else {
+            Logger::log("Updated Servant Manager updated: " + managerIpAddress + " ✅",
+                        LoggerLevel::INFO);
+          }
+        }
+        
         return true;
       }
 

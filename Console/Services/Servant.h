@@ -28,35 +28,37 @@ namespace comet
         Authentication *auth;
         
       public:
-        void set_totalCores(int total_cores);
-        void set_unusedCores(int unused_cores);
-        void set_activeCores(int active_cores);
-        void set_port(int aPort);
-        void set_projectId(int aProjectId);
-        void set_email(const std::string &aEmail);
-        void set_code(const std::string &aCode);
-        void set_ipAddress(const std::string &aIpAddress);
-        void set_managerIpAddress(const std::string &aManagerIpAddress);
-        void set_version(const std::string &aVersion);
-        std::string get_ipAddress() {return ipAddress;}
+        void setTotalCores(int total_cores);
+        void setUnusedCores(int unused_cores);
+        void setActiveCores(int active_cores);
+        void setPort(int aPort);
+        void setProjectId(int aProjectId);
+        void setEmail(const std::string &aEmail);
+        void setCode(const std::string &aCode);
+        void setIpAddress(const std::string &aIpAddress);
+        void setManagerIpAddress(const std::string &aManagerIpAddress);
+        void setVersion(const std::string &aVersion);
+        void setAuthentication(Authentication *authState);
+        
 
-        void updateServantSettings(Database & db);
-
-        std::string get_code();
-
-        std::string get_email();;
-        int get_port() const {return port;};
+        int getTotalCores() const{return totalCores;}
+        int getUnusedCores() const{return unusedCores;}
+        int getActiveCores() const { return activeCores; }
+        std::string getCode() {return code;};
+        std::string getEmail() {return email;};
+        std::string getIpAddress() {return ipAddress;}
+        int getPort() const {return port;};
+        std::string getManagerIpAddress() {return managerIpAddress;};;
+        
+        bool isManager() {return managerIpAddress.empty();}
 
         std::string HtmlAuthenticationSettingsForm(Authentication &auth);
         std::string HtmlServantSettingsForm();
 
         static bool createNewServentsTable(Database &db);
+        void updateServantSettings(Database & db);
 
-        [[nodiscard]] int getTotalCores() const{return totalCores;}
-        [[nodiscard]] int getUnusedCores() const{return unusedCores;}
-        [[nodiscard]] int getActiveCores() const { return activeCores; }
 
-        void setAuthentication(Authentication *authState);
 
       public:
         // UpdateStatus on managerIP

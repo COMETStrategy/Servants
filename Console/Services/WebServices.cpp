@@ -34,21 +34,21 @@ WebServices::WebServices(const std::string &dbFilename)
     comet::Logger::log("Configuration path: " + configurationFilePath, comet::LoggerLevel::INFO);
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
-    aServant.set_port(7777);
+    aServant.setPort(7777);
     initializeHandlers();
     run();
 
-    auto results = db.getQueryResults("SELECT * FROM servants where iPAddress = '" + aServant.get_ipAddress() + "';");
+    auto results = db.getQueryResults("SELECT * FROM servants where iPAddress = '" + aServant.getIpAddress() + "';");
     // Log the created Date and the last updated date
     if (!results.empty()) {
-      aServant.set_totalCores(stoi(results[0].at("totalCores")));
-      aServant.set_unusedCores(stoi(results[0].at("unusedCores")));
-      aServant.set_activeCores(stoi(results[0].at("activeCores")));
-      aServant.set_managerIpAddress(results[0].at("managerIpAddress"));
-      aServant.set_email(results[0].at("email"));
-      aServant.set_code(results[0].at("code"));
-      aServant.set_port(stoi(results[0].at("port")));;
-      aServant.set_ipAddress(results[0].at("ipAddress"));
+      aServant.setTotalCores(stoi(results[0].at("totalCores")));
+      aServant.setUnusedCores(stoi(results[0].at("unusedCores")));
+      aServant.setActiveCores(stoi(results[0].at("activeCores")));
+      aServant.setManagerIpAddress(results[0].at("managerIpAddress"));
+      aServant.setEmail(results[0].at("email"));
+      aServant.setCode(results[0].at("code"));
+      aServant.setPort(stoi(results[0].at("port")));;
+      aServant.setIpAddress(results[0].at("ipAddress"));
       for (const auto &row: results) {
         comet::Logger::log(
           "Database Servant: Registration Date: " + row.at("registrationTime") + ", Last Updated Date: " + row.at(
@@ -106,12 +106,12 @@ void WebServices::initializeHandlers()
 
           // Parse the JSON payload
           // Extract form parameters
-          aServant.set_email( request->getParameter("email"));
-          aServant.set_code( request->getParameter("code"));
-          aServant.set_ipAddress( request->getParameter("ipAddress"));
+          aServant.setEmail( request->getParameter("email"));
+          aServant.setCode( request->getParameter("code"));
+          aServant.setIpAddress( request->getParameter("ipAddress"));
 
           // Update Validation
-          const bool isAuthenticated = auth.valid(aServant.get_email(), aServant.get_code(), aServant.get_ipAddress());
+          const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
           if (!isAuthenticated) {
             comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
           }
@@ -123,7 +123,7 @@ void WebServices::initializeHandlers()
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
           comet::Logger::log(
-            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant.get_email() +
+            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant.getEmail() +
             ". Redirecting to /",
             LoggerLevel::INFO);
           callback(resp);
@@ -143,10 +143,10 @@ void WebServices::initializeHandlers()
           auto activeCores = request->getParameter("activeCores"); if (activeCores.empty()) activeCores = "0";
           auto managerIpAddress = request->getParameter("managerIpAddress");
 
-          aServant.set_totalCores(std::stoi(totalCores));
-          aServant.set_unusedCores(std::stoi(unusedCores));
-          aServant.set_activeCores(std::stoi(activeCores));
-          aServant.set_managerIpAddress(managerIpAddress);
+          aServant.setTotalCores(std::stoi(totalCores));
+          aServant.setUnusedCores(std::stoi(unusedCores));
+          aServant.setActiveCores(std::stoi(activeCores));
+          aServant.setManagerIpAddress(managerIpAddress);
 
           if (!db.insertRecord(
           "UPDATE servants SET totalCores = '" + totalCores + "' "
@@ -154,7 +154,7 @@ void WebServices::initializeHandlers()
             ", activeCores = '" + activeCores + + "' "
             ", managerIpAddress = '" + managerIpAddress + "' "
             ", lastUpdateTime = DATETIME('now') "
-            "WHERE ipAddress = '" + aServant.get_ipAddress() + "';")) {
+            "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
             // Log the error and return a 500 response
             comet::Logger::log("Failed to update Settings table with configuration information: ",
                                LoggerLevel::CRITICAL);
@@ -185,6 +185,11 @@ void WebServices::initializeHandlers()
       "/upload/job/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          if (!aServant.isManager()) {
+            
+            comet::Logger::log("This Servant does not accept jobs since it is not the managing Servant, sumbit to " + aServant.getManagerIpAddress(), LoggerLevel::DEBUG);
+            
+          }
           comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::DEBUG);
 
           // Database connection
@@ -250,16 +255,16 @@ void WebServices::initializeHandlers()
 
           // Extract and log the posted information
           try {
-            aServant.set_totalCores((*json)["totalCores"].asInt());
-            aServant.set_unusedCores((*json)["unusedCores"].asInt());
-            aServant.set_activeCores((*json)["activeCores"].asInt());
-            aServant.set_managerIpAddress((*json)["managerIpAddress"].asString());
-            aServant.set_ipAddress( (*json)["ipAddress"].asString());
-            aServant.set_version( (*json)["ServantVersion"].asString());
-            aServant.set_email ((*json)["email"].asString());
-            aServant.set_code( (*json)["code"].asString());
-            aServant.set_port ((*json)["port"].asInt());
-            aServant.set_projectId( (*json)["projectId"].asInt());
+            aServant.setTotalCores((*json)["totalCores"].asInt());
+            aServant.setUnusedCores((*json)["unusedCores"].asInt());
+            aServant.setActiveCores((*json)["activeCores"].asInt());
+            aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
+            aServant.setIpAddress( (*json)["ipAddress"].asString());
+            aServant.setVersion( (*json)["ServantVersion"].asString());
+            aServant.setEmail ((*json)["email"].asString());
+            aServant.setCode( (*json)["code"].asString());
+            aServant.setPort ((*json)["port"].asInt());
+            aServant.setProjectId( (*json)["projectId"].asInt());
             aServant.updateServantSettings(db);
 
             // Respond with success
@@ -384,12 +389,12 @@ void WebServices::run()
   {
     m_serverThread = std::make_unique<std::thread>([this]
       {
-        Logger::log(std::string("Server running on localhost:") + to_string(aServant.get_port())
-                    + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(aServant.get_port())
-                    + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(aServant.get_port())
+        Logger::log(std::string("Server running on localhost:") + to_string(aServant.getPort())
+                    + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(aServant.getPort())
+                    + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(aServant.getPort())
                     , comet::INFO);
 
-        app().addListener("0.0.0.0", aServant.get_port()).run();
+        app().addListener("0.0.0.0", aServant.getPort()).run();
       });
   }
 

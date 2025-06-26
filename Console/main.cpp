@@ -7,8 +7,7 @@ int main()
     try {
      
       comet::WebServices server("~/comet-servants.db");
-    
-      server.run();
+      
       comet::Logger::log("Server is running. Press Ctrl+C to stop.", comet::DEBUG);
   
       server.join();

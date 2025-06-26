@@ -32,17 +32,10 @@ namespace comet
   {
     Authentication::Authentication()
       {
-        machineId = getMachineId();
-        // Check Database for existing machine ID
-        if (machineId.empty()) {
-          Logger::log("Failed to generate machine ID", LoggerLevel::CRITICAL);
-          throw std::runtime_error("Failed to generate machine ID");
-        }
-
         isAuthenticated = false;
       }
 
-    bool Authentication::CheckVerificationInformation()
+    bool Authentication::CheckVerificationInformation(std::string email, std::string code)
       {
         std::string requestUrl = "https://license.cometstrategy.com/cloudService/getApiInformation.php";
         std::list<std::string> cHeaders;
@@ -95,73 +88,19 @@ namespace comet
       }
 
 
-    bool Authentication::valid(std::string newemail, std::string newcode, std::string newmachineId)
+    bool Authentication::valid(std::string email, std::string code, std::string aIpAddress)
       {
         isAuthenticated = false;
-        email = newemail; // Store email
-        code = newcode; // Store code
-        machineId = getMachineId(); // Store machine URL
-        /* , int newTotalCores ,
-                               int newUnusedCores, std::string newManagerIpAddress
-        totalCores = newTotalCores;
-        unusedCores = newUnusedCores;
-        managerIpAddress = newManagerIpAddress/**/
-        ;
-        if (code.size() < 5 || email.size() < 10 || machineId.size() < 10) {
-          Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
+        if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 8) {
+          Logger::log("Invalid authentication parameters.", LoggerLevel::CRITICAL);
           return false;
         }
-        auto valid = CheckVerificationInformation();
-        if (!valid) {
-          return false;
-        }
-        // Save in the database
+        if (!CheckVerificationInformation(email, code)) return false;
+        
         isAuthenticated = true;
         Logger::log("Valid authentication settings ✅", LoggerLevel::INFO);
         return true;
       }
 
-    std::string Authentication::HtmlAuthenticationForm()
-      {
-        std::string ip_public = getPublicIPAddressFromWeb();
-        std::string ip_private = getPrivateIPAddress();
-        std::string ip = ip_public + " (public), " +  ip_private + " (private/local)";
-        std::string html = "<p></p>  <h1>Authentication Settings</h1>";
-        auto isValid = valid(email, code, machineId);
-        if (isValid) {
-          html += "<p>✅ Valid authentication settings</p>";
-        } else {
-          html += "<p>❌ Invalid authentication settings, update the email and code below.</p>";
-        }
-
-
-        html += "<form method=\"post\" action=\"/authenticate\">"
-            "<table>"
-            "<tr>"
-            "<td><label for=\"email\">Email:</label></td>"
-            "<td><input type=\"text\" id=\"email\" name=\"email\" value=\"" + email + "\" size=\"50\"></td>"
-            "</tr>"
-            "<tr>"
-            "<td><label for=\"code\">Code:</label></td>"
-            "<td><input type=\"text\" id=\"code\" name=\"code\" value=\"" + code + "\" size=\"50\"></td>"
-            "</tr>"
-            "<tr>"
-            "<td><label for=\"ip\">IP Address:</label></td>"
-            "<td><input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + ip +
-            "\" readonly style=\"border: none; background-color: #f0f0f0;\" size=\"50\"></td>"
-            "</tr>"
-            "<tr>"
-            "<td><label for=\"machineId\">Machine ID:</label></td>"
-            "<td><input type=\"hidden\" id=\"machineId\" name=\"machineId\" value=\"" + machineId + "\">"
-            "<p style=\"border: none; background-color: #f0f0f0;\">" + machineId + "</p></td>"
-            "</tr>"
-            "<td><input type=\"submit\" value=\"Update Authentication Settings\" class=\"ui primary button\"></td>"
-            "<td></td>"
-            "</tr>"
-            "</table>"
-            "</form>";
-
-
-        return html;
-      }
+    
   } // comet

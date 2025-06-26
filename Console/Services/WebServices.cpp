@@ -26,37 +26,47 @@ using namespace comet;
 WebServices::WebServices(const std::string &dbFilename)
   : db(dbFilename)
   {
-    configurationFilePath = getFullFilenameAndDirectory(dbFilename);;
+    configurationFilePath = getFullFilenameAndDirectory(dbFilename);
+
+    createNewDatabase();
 
     // Log it
     comet::Logger::log("Configuration path: " + configurationFilePath, comet::LoggerLevel::INFO);
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
-    m_port = 7777;
+    aServant.set_port(7777);
     initializeHandlers();
+    run();
 
-    auto results = db.getQueryResults("SELECT * FROM Settings;");
+    auto results = db.getQueryResults("SELECT * FROM servants where iPAddress = '" + aServant.get_ipAddress() + "';");
     // Log the created Date and the last updated date
     if (!results.empty()) {
-      auto email = results[0].at("email");
-      auto code = results[0].at("code");
-      auto machineId = results[0].at("machineId");
-      aServant.set_total_cores(stoi(results[0].at("totalCores")));
-      aServant.set_unused_cores(stoi(results[0].at("unusedCores")));
-      aServant.set_manager_ip_address(results[0].at("managerIpAddress"));
+      aServant.set_totalCores(stoi(results[0].at("totalCores")));
+      aServant.set_unusedCores(stoi(results[0].at("unusedCores")));
+      aServant.set_activeCores(stoi(results[0].at("activeCores")));
+      aServant.set_managerIpAddress(results[0].at("managerIpAddress"));
+      aServant.set_email(results[0].at("email"));
+      aServant.set_code(results[0].at("code"));
+      aServant.set_port(stoi(results[0].at("port")));;
+      aServant.set_ipAddress(results[0].at("ipAddress"));
       for (const auto &row: results) {
         comet::Logger::log(
-          "Database Settings: Created Date: " + row.at("createdDate") + ", Last Updated Date: " + row.at(
-            "lastUpdatedDate"));
+          "Database Servant: Registration Date: " + row.at("registrationTime") + ", Last Updated Date: " + row.at(
+            "lastUpdateTime"));
       }
-      if (!auth.valid(email, code, machineId)) {
+      
+      auto email = results[0].at("email");
+      auto code = results[0].at("code");
+      auto ipAddress = results[0].at("ipAddress");
+      if (!auth.valid(email, code, ipAddress)) {
         comet::Logger::log("Invalid verification code for machine.", LoggerLevel::WARNING);
       }
-      aServant.startRoutineStatusUpdates(auth);
+      
+      aServant.setAuthentication(&auth);
+      aServant.startRoutineStatusUpdates();
     } else {
-      comet::Logger::log("No records found in Settings table.", LoggerLevel::WARNING);
+      comet::Logger::log("No records found in Settings table, authentication required.", LoggerLevel::WARNING);
     }
-    aServant.setAuthentication(&auth);
   }
 
 
@@ -80,8 +90,8 @@ void WebServices::initializeHandlers()
         {
           auto resp = HttpResponse::newHttpResponse();
           std::string responseBody = "Welcome to COMET Servants!";
-          responseBody += auth.HtmlAuthenticationForm();
-          if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlAuthenticationForm();
+          responseBody += aServant.HtmlAuthenticationSettingsForm(auth);
+          if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
           resp->setBody(setHTMLBody(responseBody));
           Logger::log("COMET Servant Home: alive!");
           callback(resp);
@@ -96,32 +106,24 @@ void WebServices::initializeHandlers()
 
           // Parse the JSON payload
           // Extract form parameters
-          auto email = request->getParameter("email");
-          auto code = request->getParameter("code");
-          auto machineId = request->getParameter("machineId");
+          aServant.set_email( request->getParameter("email"));
+          aServant.set_code( request->getParameter("code"));
+          aServant.set_ipAddress( request->getParameter("ipAddress"));
 
           // Update Validation
-          const bool isAuthenticated = auth.valid(email, code, machineId);
+          const bool isAuthenticated = auth.valid(aServant.get_email(), aServant.get_code(), aServant.get_ipAddress());
           if (!isAuthenticated) {
             comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
           }
 
-          if (!db.insertRecord(
-            "UPDATE Settings SET email = '" + email +
-            "', code = '" + code +
-            "', machineId = '" + machineId +
-            "', lastUpdatedDate = DATETIME('now');")) {
-            // Log the error and return a 500 response
-            comet::Logger::log("Failed to update Settings table with authentication information: ",
-                               LoggerLevel::CRITICAL);
-          }
+          aServant.updateServantSettings(db);
 
           // Perform authentication (replace with your logic)
           auto resp = HttpResponse::newHttpResponse();
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
           comet::Logger::log(
-            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + email +
+            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant.get_email() +
             ". Redirecting to /",
             LoggerLevel::INFO);
           callback(resp);
@@ -137,20 +139,22 @@ void WebServices::initializeHandlers()
           // Extract form parameters
           auto totalCores = request->getParameter("totalCores");
           auto unusedCores = request->getParameter("unusedCores");
-          // if null set to 0
-          if (unusedCores.empty()) {
-            unusedCores = "0";
-          }
+          if (unusedCores.empty()) unusedCores = "0";
+          auto activeCores = request->getParameter("activeCores"); if (activeCores.empty()) activeCores = "0";
           auto managerIpAddress = request->getParameter("managerIpAddress");
 
-          aServant.set_total_cores(std::stoi(totalCores));
-          aServant.set_unused_cores(std::stoi(unusedCores));
-          aServant.set_manager_ip_address(managerIpAddress);
+          aServant.set_totalCores(std::stoi(totalCores));
+          aServant.set_unusedCores(std::stoi(unusedCores));
+          aServant.set_activeCores(std::stoi(activeCores));
+          aServant.set_managerIpAddress(managerIpAddress);
 
           if (!db.insertRecord(
-            "UPDATE Settings SET totalCores = '" + totalCores +
-            "', unusedCores = '" + unusedCores +
-            "', manageripAddress = '" + managerIpAddress + "' ;")) {
+          "UPDATE servants SET totalCores = '" + totalCores + "' "
+            ", unusedCores = '" + unusedCores + + "' "
+            ", activeCores = '" + activeCores + + "' "
+            ", managerIpAddress = '" + managerIpAddress + "' "
+            ", lastUpdateTime = DATETIME('now') "
+            "WHERE ipAddress = '" + aServant.get_ipAddress() + "';")) {
             // Log the error and return a 500 response
             comet::Logger::log("Failed to update Settings table with configuration information: ",
                                LoggerLevel::CRITICAL);
@@ -165,31 +169,7 @@ void WebServices::initializeHandlers()
           }
 
           // Insert into servants if this record does not exist, otherwise just update it
-          int projectId = 1;
-          auto ServantVersion = " V 2025.06.26";
-          auto nameIpAddress = getPrivateIPAddress();
-          if (!db.insertRecord(
-            "INSERT INTO Servants (nameIpAddress, projectId, registrationTime, lastUpdateTime, ServantVersion, email, code, ListeningPort, totalCores, unusedCores, activeCores) "
-            "VALUES ('" + nameIpAddress + "', '" + to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '" +
-            ServantVersion + "', '" + auth.getEmail() + "', '" + auth.getCode() + "', '" + to_string(m_port) + "', '" +
-            to_string(aServant.getTotalCores()) + "', '" + to_string(aServant.getUnusedCores()) + "', '" + to_string(
-              aServant.getActiveCores()) + "') ", false
-          )) {
-            // Just update the record but not the registration time
-            if (!db.updateQuery("Update the Servant table",
-                                "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + auth.getEmail() +
-                                "', code = '" + auth.getCode() + "', ListeningPort = '" + std::to_string(m_port) +
-                                "', totalCores = '" + std::to_string(aServant.getTotalCores()) +
-                                "', unusedCores = '" + std::to_string(aServant.getUnusedCores()) +
-                                "', activeCores = '" + std::to_string(aServant.getActiveCores()) +
-                                "', ServantVersion = '" + ServantVersion + "' "
-                                "WHERE nameIpAddress = '" + nameIpAddress + "' and projectId = '" + to_string(
-                                  projectId) + "';")) {
-              comet::Logger::log("Failed to insert or update Servants table with authentication information: ",
-                                 LoggerLevel::CRITICAL);
-            }
-          }
-
+          aServant.updateDatabase(db);
 
           // Successful update
           auto resp = HttpResponse::newHttpResponse();
@@ -263,41 +243,29 @@ void WebServices::initializeHandlers()
           if (!json) {
             auto resp = drogon::HttpResponse::newHttpResponse();
             resp->setStatusCode(drogon::k400BadRequest);
-            resp->setBody("Invalid JSON");
+            resp->setBody("Invalid JSON properties");
             callback(resp);
             return;
           }
 
           // Extract and log the posted information
           try {
-            int totalCores = (*json)["totalCores"].asInt();
-            int unusedCores = (*json)["unusedCores"].asInt();
-            int activeCores = (*json)["activeCores"].asInt();
-            std::string managerIpAddress = (*json)["managerIpAddress"].asString();
-            std::string nameIpAddress = (*json)["nameIpAddress"].asString();
-            std::string servantVersion = (*json)["ServantVersion"].asString();
-            std::string email = (*json)["email"].asString();
-            std::string code = (*json)["code"].asString();
-            int listeningPort = (*json)["ListeningPort"].asInt();
-            int projectId = (*json)["projectId"].asInt();
-
-            // Log the received data
-            Logger::log("Received status update from servant:", LoggerLevel::INFO);
-            Logger::log("Total Cores: " + std::to_string(totalCores), LoggerLevel::INFO);
-            Logger::log("Unused Cores: " + std::to_string(unusedCores), LoggerLevel::INFO);
-            Logger::log("Active Cores: " + std::to_string(activeCores), LoggerLevel::INFO);
-            Logger::log("Manager IP Address: " + managerIpAddress, LoggerLevel::INFO);
-            Logger::log("Name IP Address: " + nameIpAddress, LoggerLevel::INFO);
-            Logger::log("Servant Version: " + servantVersion, LoggerLevel::INFO);
-            Logger::log("Email: " + email, LoggerLevel::INFO);
-            Logger::log("Code: " + code, LoggerLevel::INFO);
-            Logger::log("Listening Port: " + std::to_string(listeningPort), LoggerLevel::INFO);
-            Logger::log("Project ID: " + std::to_string(projectId), LoggerLevel::INFO);
+            aServant.set_totalCores((*json)["totalCores"].asInt());
+            aServant.set_unusedCores((*json)["unusedCores"].asInt());
+            aServant.set_activeCores((*json)["activeCores"].asInt());
+            aServant.set_managerIpAddress((*json)["managerIpAddress"].asString());
+            aServant.set_ipAddress( (*json)["ipAddress"].asString());
+            aServant.set_version( (*json)["ServantVersion"].asString());
+            aServant.set_email ((*json)["email"].asString());
+            aServant.set_code( (*json)["code"].asString());
+            aServant.set_port ((*json)["port"].asInt());
+            aServant.set_projectId( (*json)["projectId"].asInt());
+            aServant.updateServantSettings(db);
 
             // Respond with success
-            //auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
-            //auto resp = drogon::HttpResponse::newHttpJsonResponse(postData);
-            //callback(resp);
+            auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
+            auto resp = drogon::HttpResponse::newHttpJsonResponse(postData.dump());
+            callback(resp);
           } catch (const std::exception &e) {
             auto resp = drogon::HttpResponse::newHttpResponse();
             resp->setStatusCode(drogon::k400BadRequest);
@@ -416,12 +384,12 @@ void WebServices::run()
   {
     m_serverThread = std::make_unique<std::thread>([this]
       {
-        Logger::log(std::string("Server running on localhost:") + to_string(m_port)
-                    + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(m_port)
-                    + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(m_port)
+        Logger::log(std::string("Server running on localhost:") + to_string(aServant.get_port())
+                    + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(aServant.get_port())
+                    + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(aServant.get_port())
                     , comet::INFO);
 
-        app().addListener("0.0.0.0", m_port).run();
+        app().addListener("0.0.0.0", aServant.get_port()).run();
       });
   }
 
@@ -463,6 +431,22 @@ bool WebServices::uploadJob(const drogon::HttpRequestPtr &request)
     comet::Logger::log("✅ " + job->description());
     delete job; // Clean up the job object
 
+    return true;
+  }
+
+bool WebServices::createNewDatabase()
+  {
+    
+    comet::Logger::log("Database file " + configurationFilePath + " Checking for all tables.",
+                       LoggerLevel::INFO);
+
+    aServant.createNewServentsTable(db);
+
+    
+    Job::createNewJobsTable(db);
+    
+
+    comet::Logger::log("Servants and Jobs tables created successfully.", LoggerLevel::INFO);
     return true;
   }
 

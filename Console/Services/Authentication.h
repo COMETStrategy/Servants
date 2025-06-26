@@ -11,9 +11,6 @@ namespace comet
         class Authentication {
 
             private:
-                std::string email;
-                std::string code;
-                std::string machineId;
                 bool isAuthenticated;
 
 
@@ -23,22 +20,13 @@ namespace comet
                 bool valid(std::string email, std::string code, std::string machineUrl);
                 std::string HtmlAuthenticationForm();
 
-                bool CheckVerificationInformation();
+                bool CheckVerificationInformation(std::string email, std::string code);
                 bool machineAuthenticationisValid() const
                     {
                         return isAuthenticated;
                     }
 
-            public:
-                [[nodiscard]] std::string getEmail() const
-                    {
-                        return email;
-                    }
 
-                [[nodiscard]] std::string getCode() const
-                    {
-                        return code;
-                    }
 
  
         };

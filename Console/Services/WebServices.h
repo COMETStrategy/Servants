@@ -39,11 +39,11 @@ namespace comet
         std::string generateTimestamp();
 
         bool uploadJob(const drogon::HttpRequestPtr &request);
+        bool createNewDatabase();
 
       private:
         std::unique_ptr<std::thread> m_serverThread;
         std::atomic<bool> m_running{true};
-        unsigned short m_port;
         Database db;
         Authentication auth;
         std::string configurationFilePath; // Default database path

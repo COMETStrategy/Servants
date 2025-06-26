@@ -91,7 +91,7 @@ namespace comet
         }
 
         Curl::Response Curl::postJson(const std::string &url, const nlohmann::json &data, std::list<std::string> headers) {
-                headers.emplace_back("Content-Type: text/json");
+                headers.emplace_back("Content-Type: application/json");
                 return post(url, data.dump(), headers);
         }
 

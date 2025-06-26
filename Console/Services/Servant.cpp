@@ -113,7 +113,25 @@ namespace comet
         std::string ip_public = getPublicIPAddressFromWeb();
         std::string ip_private = getPrivateIPAddress();
         std::string ip = ip_public + " (public), " + ip_private + " (private/local)";
-        std::string html = "<p></p>  <h1>Authentication Settings</h1>";
+        std::string html = "<p></p> "
+        
+        "<script>"
+        "function toggleForm(id) {"
+            "const form = document.getElementById(id);"
+            "const button = document.getElementById('toggle' + id +'Button');"
+            "if (form.style.display === 'none') {"
+            "  form.style.display = 'block';"
+            "  button.textContent = '- Hide \' + id + \';"
+            "} else {"
+            "  form.style.display = 'none';"
+            "  button.textContent = '+ Show \' + id + \'';"
+            "}"
+        "}"
+        "</script>"
+        
+        "<button style='display: none;' id='toggleAuthenticationButton' onclick='toggleForm(\"Authentication\")'>- Hide Authentication</button>"
+        "<div id='Authentication' style='display: block;'>"
+                           " <h1>Authentication Settings</h1>";
         ipAddress = ip_private;
         auto isValid = auth.valid(email, code, ipAddress);
         if (isValid) {
@@ -148,7 +166,8 @@ namespace comet
             "<td></td>"
             "</tr>"
             "</table>"
-            "</form>";
+            "</form>"
+            "</div>";
 
 
         return html;
@@ -161,40 +180,46 @@ namespace comet
         unusedCores = std::max(0, unusedCores); // Example value, replace with actual logic to get reserved cores
 
         std::string html = "";
-        html += "<p></p> <h1>Servant Settings</h1>"
-            "<form method=\"post\" action=\"/configuration\">"
+        html += "<p></p> "
+                "<button  style='display: none;' id='toggleSettingsButton' onclick='toggleForm(\'Settings\')'>- Hide Settings</button>"
+        
+        "<div id='Settings' style='display: block;'>"
+                "<h1>Servant Settings</h1>"
+                ""
+            "<form method='post' action='/configuration'>"
             "<table>"
             "<tr>"
-            "<td><label for=\"totalCores\">Total Cores:</label></td>"
-            "<td style=\"text-align: right;\"><input type=\"text\" id=\"totalCores\" name=\"totalCores\" value=\"" +
+            "<td><label for='totalCores'>Total Cores:</label></td>"
+            "<td style='text-align: right;'><input type='text' id='totalCores' name='totalCores' value='" +
             std::to_string(totalCores) +
-            "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
+            "' readonly style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
-            "<td><label for=\"reservedCores\">Unused Cores:</label></td>"
-            "<td style=\"text-align: right;\"><input type=\"number\" id=\"reservedCores\" name=\"unusedCores\" value=\""
+            "<td><label for='reservedCores'>Unused Cores:</label></td>"
+            "<td style='text-align: right;'><input type='number' id='reservedCores' name='unusedCores' value='"
             +
-            std::to_string(unusedCores) + "\"></td>"
+            std::to_string(unusedCores) + "'></td>"
             "</tr>"
             "<tr>"
-            "<td><label for=\"activeCores\">Active Cores:</label></td>"
-            "<td style=\"text-align: right;\"><input type=\"text\" id=\"activeCores\" name=\"activeCores\" value=\"" +
+            "<td><label for='activeCores'>Active Cores:</label></td>"
+            "<td style='text-align: right;'><input type='text' id='activeCores' name='activeCores' value='" +
             std::to_string(activeCores) +
-            "\"  style=\"border: none; background-color: #f0f0f0;\"></td>"
+            "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
-            "<td><label for=\"managerIpAddress\">Servant Manager Name/IP Address: <br>"
+            "<td><label for='managerIpAddress'>Servant Manager Name/IP Address: <br>"
             "(Leave empty of this is the manager)</label></td>"
-            "<td style=\"text-align: right;\"><input type=\"text\" id=\"managerIpAddress\" name=\"managerIpAddress\" value=\""
+            "<td style='text-align: right;'><input type='text' id='managerIpAddress' name='managerIpAddress' value='"
             + managerIpAddress +
-            "\"  style=\"border: none; background-color: #f0f0f0;\"></td>"
+            "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
-            "<td><input type=\"submit\" value=\"Update Machine Settings\" class=\"ui primary button\"></td>"
+            "<td><input type='submit' value='Update Machine Settings' class='ui primary button'></td>"
             "<td></td>"
             "</tr>"
             "</table>"
-            "</form>";
+            "</form>"
+            "</div>";
 
         return html;
       }
@@ -274,7 +299,7 @@ namespace comet
                           LoggerLevel::CRITICAL);
             return false;
           } else {
-            Logger::log("Updated Servant Manager updated: " + managerIpAddress + " ✅",
+            Logger::log("Updated Servant Manager at: " + managerIpAddress + " ✅",
                         LoggerLevel::INFO);
           }
         }

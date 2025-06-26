@@ -88,7 +88,7 @@ namespace comet
         auth = authState;
       }
 
-    void Servant::routineStatusUpdates(Authentication auth) const
+    bool Servant::routineStatusUpdates(const Authentication &auth) const
       {
         auto updateHostIPName = managerIpAddress;
         if (updateHostIPName.empty()) { updateHostIPName = "localhost"; }
@@ -108,9 +108,25 @@ namespace comet
         auto response = Curl::postJson(url, jsonData);
         if (response.isError()) {
           Logger::log("Failed to update Servant status on manager: " + response.curlError, LoggerLevel::CRITICAL);
+          return false;
         } else {
           Logger::log("Servant status updated successfully on manager: " + updateHostIPName, LoggerLevel::INFO);
         }
-        
+        return true;
+      }
+
+    void Servant::startRoutineStatusUpdates(const Authentication &auth)
+      {
+        std::thread([this, auth]()
+          {
+            while (true) {
+              auto bUpdated = routineStatusUpdates(auth);
+              if (bUpdated)
+                std::this_thread::sleep_for(std::chrono::hours(24)); // Update every 24 hours
+              else
+                //std::this_thread::sleep_for(std::chrono::minutes(5)); // Retry every 5 minutes on failure
+                std::this_thread::sleep_for(std::chrono::seconds(10)); // Retry every 5 minutes on failure
+            }
+          }).detach(); // Detach the thread to run independently
       }
   } // comet

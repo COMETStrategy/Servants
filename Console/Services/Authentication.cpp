@@ -123,8 +123,9 @@ namespace comet
 
     std::string Authentication::HtmlAuthenticationForm()
       {
-        std::string ip = getPublicIPAddressFromWeb();
-
+        std::string ip_public = getPublicIPAddressFromWeb();
+        std::string ip_private = getPrivateIPAddress();
+        std::string ip = ip_public + " (public), " +  ip_private + " (private/local)";
         std::string html = "<p></p>  <h1>Authentication Settings</h1>";
         auto isValid = valid(email, code, machineId);
         if (isValid) {

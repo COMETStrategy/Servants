@@ -7,6 +7,7 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
+#include <nlohmann/json.hpp>
 
 #include "WebServices.h"
 
@@ -51,6 +52,7 @@ WebServices::WebServices(const std::string &dbFilename)
       if (!auth.valid(email, code, machineId)) {
         comet::Logger::log("Invalid verification code for machine.", LoggerLevel::WARNING);
       }
+      aServant.startRoutineStatusUpdates(auth);
     } else {
       comet::Logger::log("No records found in Settings table.", LoggerLevel::WARNING);
     }
@@ -242,6 +244,70 @@ void WebServices::initializeHandlers()
         },
       {Post});
 
+    // Register the /servant/status handler
+    drogon::app().registerHandler(
+      "/servant/status",
+      [this](const drogon::HttpRequestPtr &req, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+        {
+          // Ensure the request is a POST request
+          if (req->method() != drogon::Post) {
+            auto resp = drogon::HttpResponse::newHttpResponse();
+            resp->setStatusCode(drogon::k405MethodNotAllowed);
+            resp->setBody("Method Not Allowed");
+            callback(resp);
+            return;
+          }
+
+          // Parse the JSON body
+          auto json = req->getJsonObject();
+          if (!json) {
+            auto resp = drogon::HttpResponse::newHttpResponse();
+            resp->setStatusCode(drogon::k400BadRequest);
+            resp->setBody("Invalid JSON");
+            callback(resp);
+            return;
+          }
+
+          // Extract and log the posted information
+          try {
+            int totalCores = (*json)["totalCores"].asInt();
+            int unusedCores = (*json)["unusedCores"].asInt();
+            int activeCores = (*json)["activeCores"].asInt();
+            std::string managerIpAddress = (*json)["managerIpAddress"].asString();
+            std::string nameIpAddress = (*json)["nameIpAddress"].asString();
+            std::string servantVersion = (*json)["ServantVersion"].asString();
+            std::string email = (*json)["email"].asString();
+            std::string code = (*json)["code"].asString();
+            int listeningPort = (*json)["ListeningPort"].asInt();
+            int projectId = (*json)["projectId"].asInt();
+
+            // Log the received data
+            Logger::log("Received status update from servant:", LoggerLevel::INFO);
+            Logger::log("Total Cores: " + std::to_string(totalCores), LoggerLevel::INFO);
+            Logger::log("Unused Cores: " + std::to_string(unusedCores), LoggerLevel::INFO);
+            Logger::log("Active Cores: " + std::to_string(activeCores), LoggerLevel::INFO);
+            Logger::log("Manager IP Address: " + managerIpAddress, LoggerLevel::INFO);
+            Logger::log("Name IP Address: " + nameIpAddress, LoggerLevel::INFO);
+            Logger::log("Servant Version: " + servantVersion, LoggerLevel::INFO);
+            Logger::log("Email: " + email, LoggerLevel::INFO);
+            Logger::log("Code: " + code, LoggerLevel::INFO);
+            Logger::log("Listening Port: " + std::to_string(listeningPort), LoggerLevel::INFO);
+            Logger::log("Project ID: " + std::to_string(projectId), LoggerLevel::INFO);
+
+            // Respond with success
+            //auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
+            //auto resp = drogon::HttpResponse::newHttpJsonResponse(postData);
+            //callback(resp);
+          } catch (const std::exception &e) {
+            auto resp = drogon::HttpResponse::newHttpResponse();
+            resp->setStatusCode(drogon::k400BadRequest);
+            resp->setBody("Error processing JSON: " + std::string(e.what()));
+            callback(resp);
+          }
+        },
+      {drogon::Post} // Only allow POST requests
+    );
+
 
     app().registerHandler(
       "/quit",
@@ -350,8 +416,9 @@ void WebServices::run()
   {
     m_serverThread = std::make_unique<std::thread>([this]
       {
-        Logger::log(std::string("Server running on 127.0.0.1:") + to_string(m_port)
-                    + " or Private local IP: " + getPrivateIPAddress() + ":" + to_string(m_port)
+        Logger::log(std::string("Server running on localhost:") + to_string(m_port)
+                    + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(m_port)
+                    + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(m_port)
                     , comet::INFO);
 
         app().addListener("0.0.0.0", m_port).run();

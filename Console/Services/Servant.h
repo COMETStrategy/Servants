@@ -36,9 +36,11 @@ namespace comet
 
         void setAuthentication(Authentication *authState);
 
-      private:
+      public:
         // UpdateStatus on managerIP
-        void routineStatusUpdates(Authentication auth) const;
+        bool routineStatusUpdates(const Authentication &auth) const;
+
+        void startRoutineStatusUpdates(const Authentication &auth);
       };
     
   };

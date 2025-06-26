@@ -1,18 +1,10 @@
 //
 // Created by Brett King on 17/6/2025.
 //
-#include <iostream>
 #include <string>
-#include <cstring>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <curl/curl.h>
-#include <sys/socket.h>
-#include <net/if.h>
-#include <unistd.h>
-#include <openssl/sha.h>
 #include <nlohmann/json.hpp>
 #include "Curl.hpp"
+#include "utilities.h"
 
 #ifdef _WIN32
   #include <windows.h>
@@ -22,8 +14,6 @@
   #pragma comment(lib, "rpcrt4.lib")
 #elif __APPLE__
   #include <ifaddrs.h>
-  #include <net/if_dl.h>
-  #include <uuid/uuid.h>
 #elif __linux__
   #include <sys/ioctl.h>
   #include <net/if.h>
@@ -40,121 +30,22 @@
 
 namespace comet
   {
-    std::string getMacAddress()
+
+
+
+    Authentication::Authentication()
       {
-#ifdef _WIN32
-    IP_ADAPTER_INFO AdapterInfo[16];
-    DWORD dwBufLen = sizeof(AdapterInfo);
-    DWORD dwStatus = GetAdaptersInfo(AdapterInfo, &dwBufLen);
-    if (dwStatus != ERROR_SUCCESS) {
-        return "";
-    }
-
-    PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
-    std::ostringstream macStream;
-    macStream << std::hex;
-
-    while (pAdapterInfo) {
-        for (UINT i = 0; i < pAdapterInfo->AddressLength; i++) {
-            macStream << (i == 0 ? "" : ":") << std::setw(2) << std::setfill('0') << (int)pAdapterInfo->Address[i];
-        }
-        break;
-    }
-
-    return macStream.str();
-#elif __APPLE__
-        struct ifaddrs *ifaddr, *ifa;
-        unsigned char mac[6];
-        std::string macAddress = "";
-
-        if (getifaddrs(&ifaddr) == -1) {
-          perror("getifaddrs");
-          return macAddress;
+        machineId = getMachineId();
+        // Check Database for existing machine ID
+        if (machineId.empty()) {
+          Logger::log("Failed to generate machine ID", LoggerLevel::CRITICAL);
+          throw std::runtime_error("Failed to generate machine ID");
         }
 
-        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-          if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_LINK) continue;
-
-          struct sockaddr_dl *sdl = (struct sockaddr_dl *) ifa->ifa_addr;
-#ifndef IFT_ETHER
-#define IFT_ETHER 0x6
-#endif
-          if (sdl->sdl_type == IFT_ETHER) {
-            memcpy(mac, LLADDR(sdl), 6);
-            char macStr[18];
-            snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-                     mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-            macAddress = std::string(macStr);
-            break;
-          }
-        }
-
-        freeifaddrs(ifaddr);
-        return macAddress;
-#elif __linux__
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) return "";
-
-    struct ifreq ifr;
-    const char* iface = "eth0";
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    ifr.ifr_name[IFNAMSIZ - 1] = 0;
-
-    if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
-        unsigned char* mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
-        char macStr[18];
-        snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-                 mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-        close(sock);
-        return std::string(macStr);
-    }
-
-    close(sock);
-    return "";
-#else
-    return "Unsupported platform";
-#endif
+        isAuthenticated = false;
       }
 
-    std::string getUuid()
-      {
-        #ifdef _WIN32
-                UUID uuid;
-                UuidCreate(&uuid);
-                RPC_CSTR uuidStr;
-                UuidToStringA(&uuid, &uuidStr);
-                std::string result((char*)uuidStr);
-                RpcStringFreeA(&uuidStr);
-                return result;
-        #elif __APPLE__ || __linux__
-                uuid_t uuid;
-                uuid_generate(uuid);
-                char uuidStr[37];
-                uuid_unparse_lower(uuid, uuidStr);
-                return std::string(uuidStr);
-        #else
-                return "Unsupported platform";
-        #endif
-      }
-
-    std::string generateMachineId(const std::string &mac, const std::string &uuid)
-      {
-        std::string input = mac + uuid;
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256_CTX sha256;
-        SHA256_Init(&sha256);
-        SHA256_Update(&sha256, input.c_str(), input.length());
-        SHA256_Final(hash, &sha256);
-        std::string output;
-        for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
-          char buf[3];
-          snprintf(buf, sizeof(buf), "%02x", hash[i]);
-          output += buf;
-        }
-        return output;
-      }
-
-    bool Authentication::CheckVerificationInformation()
+        bool Authentication::CheckVerificationInformation()
       {
         std::string requestUrl = "https://license.cometstrategy.com/cloudService/getApiInformation.php";
         std::list<std::string> cHeaders;
@@ -206,99 +97,7 @@ namespace comet
         return jsonResponse["isValid"].get<bool>();
       }
 
-
-    size_t WriteCallback(void *contents, size_t size, size_t nmemb, void *userp)
-      {
-        auto *str = static_cast<std::string *>(userp);
-        str->append(static_cast<char *>(contents), size * nmemb);
-        return size * nmemb;
-      }
-
-    std::string Authentication::getPrivateIPAddress()
-      {
-        struct ifaddrs *ifaddr, *ifa;
-        char host[NI_MAXHOST];
-        std::string privateIP = "Not found";
-
-        if (getifaddrs(&ifaddr) == -1) {
-          perror("getifaddrs");
-          return privateIP;
-        }
-
-        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-          if (ifa->ifa_addr == nullptr) continue;
-
-          if (ifa->ifa_addr->sa_family == AF_INET) {
-            // IPv4
-            if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0,
-                            NI_NUMERICHOST) == 0) {
-              std::string interfaceName = ifa->ifa_name;
-              if (interfaceName != "lo0") {
-                // Exclude loopback interface
-                privateIP = host;
-                break;
-              }
-            }
-          }
-        }
-
-        freeifaddrs(ifaddr);
-        return privateIP;
-      }
-
-    std::string Authentication::getPublicIPAddressFromWeb()
-      {
-        CURL *curl;
-        CURLcode res;
-        std::string publicIP = "";
-
-        curl_global_init(CURL_GLOBAL_DEFAULT); // Global initialization
-
-        curl = curl_easy_init();
-        if (!curl) {
-          std::cerr << "Failed to initialize CURL" << std::endl;
-          curl_global_cleanup();
-          return publicIP;
-        }
-
-        curl_easy_setopt(curl, CURLOPT_URL, "http://api.ipify.org");
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &publicIP);
-
-        res = curl_easy_perform(curl);
-        if (res != CURLE_OK) {
-          std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
-        }
-
-        curl_easy_cleanup(curl);
-        curl_global_cleanup(); // Global cleanup
-
-        return publicIP;
-      }
-
-    std::string Authentication::getMachineId()
-      {
-        std::string mac = getMacAddress();
-        if (mac.empty()) {
-          std::cerr << "Failed to retrieve MAC address" << std::endl;
-          return "";
-        }
-
-        std::string uuid = getUuid();
-        if (uuid.empty()) {
-          std::cerr << "Failed to generate UUID" << std::endl;
-          return "";
-        }
-        return mac;
-        /*
-        uuid = "1234";
-
-        machineId = generateMachineId(mac, uuid);
-        return machineId;
-        /**/
-      }
-
-
+    
     void Authentication::set_total_cores(int total_cores)
       {
         totalCores = total_cores;
@@ -312,18 +111,6 @@ namespace comet
     void Authentication::set_manager_ip_address(const std::string &manager_ip_address)
       {
         managerIpAddress = manager_ip_address;
-      }
-
-    Authentication::Authentication()
-      {
-        machineId = getMachineId();
-        // Check Database for existing machine ID
-        if (machineId.empty()) {
-          Logger::log("Failed to generate machine ID", LoggerLevel::CRITICAL);
-          throw std::runtime_error("Failed to generate machine ID");
-        }
-
-        isAuthenticated = false;
       }
 
     bool Authentication::valid(std::string newemail, std::string newcode, std::string newmachineId)

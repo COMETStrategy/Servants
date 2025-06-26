@@ -25,9 +25,12 @@ WebServices::WebServices(const std::string &dbFilename)
   : db(dbFilename)
   {
     configurationFilePath = getFullFilenameAndDirectory(dbFilename);;
+
+    // Log it
+    comet::Logger::log("Configuration path: " + configurationFilePath, comet::LoggerLevel::INFO);
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
     comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
-    m_port = 7777;;
+    m_port = 7777;
     initializeHandlers();
 
     auto results = db.getQueryResults("SELECT * FROM Settings;");
@@ -75,7 +78,7 @@ void WebServices::initializeHandlers()
           std::string responseBody = "Welcome to COMET Servants!";
           responseBody += auth.HtmlAuthenticationForm();
           resp->setBody(setHTMLBody(responseBody));
-          Logger::log("COMET Servants alive!");
+          Logger::log("COMET Servant Home: alive!");
           callback(resp);
         },
       {Get});
@@ -93,7 +96,8 @@ void WebServices::initializeHandlers()
           auto machineId = request->getParameter("machineId");
 
           // Update Validation
-          if (!auth.valid(email, code, machineId)) {
+          const bool isAuthenticated = auth.valid(email, code, machineId);
+          if (!isAuthenticated) {
             comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
           }
 
@@ -105,32 +109,39 @@ void WebServices::initializeHandlers()
             // Log the error and return a 500 response
             comet::Logger::log("Failed to update Settings table with authentication information: ",
                                LoggerLevel::CRITICAL);
-
-
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k500InternalServerError);
-            resp->addHeader("Location", "/");
-            resp->setBody(R"({"error":"Failed to update Settings table with authentication information"})");
-            callback(resp);
-            return;
           }
 
+          // Insert into servants if this record does not exist, otherwise just update it
+          int projectId = 1;
+          auto ServantVersion = "Version 2025.06.26";
+          auto nameIpAddress = getPrivateIPAddress();
+          if (!db.insertRecord(
+            "INSERT INTO Servants (nameIpAddress, projectId, registrationTime, lastUpdateTime, ServantVersion, email, code, ListeningPort, totalCores, unusedCores) "
+            "VALUES ('" + nameIpAddress + "', '" + to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '" +
+            ServantVersion + "', '" + auth.getEmail() + "', '" + auth.getCode() + "', '" + to_string(m_port) + "', '" +
+            to_string(auth.getTotalCores()) + "', '" + to_string(auth.getUnusedCores()) + "') ", false
+          )) {
+            // Just update the record but not the registration time
+            if (!db.updateQuery("Update the Servant table",
+                                "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + auth.getEmail() +
+                                "', code = '" + auth.getCode() + "', ListeningPort = '" + std::to_string(m_port) +
+                                "', totalCores = '" + std::to_string(auth.getTotalCores()) +
+                                "', unusedCores = '" + std::to_string(auth.getUnusedCores()) +
+                                "' WHERE nameIpAddress = '" + nameIpAddress + "' and projectId = '" + to_string(
+                                  projectId) + "';")) {
+              comet::Logger::log("Failed to insert or update Servants table with authentication information: ",
+                                 LoggerLevel::CRITICAL);
+            }
+          }
           // Perform authentication (replace with your logic)
-          if (auth.valid(email, code, machineId)) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k302Found);
-            resp->addHeader("Location", "/");
-            comet::Logger::log("Authentication successful for email: " + email + ". Redirecting to /",
-                               LoggerLevel::INFO);
-            callback(resp);
-          } else {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k302Found);
-            resp->addHeader("Location", "/");
-            comet::Logger::log("Authentication failed for email: " + email + ". Redirecting to /"
-                               , LoggerLevel::WARNING);
-            callback(resp);
-          }
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/");
+          comet::Logger::log(
+            std::string("Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + email +
+            ". Redirecting to /",
+            LoggerLevel::INFO);
+          callback(resp);
         },
       {Post});
 
@@ -152,7 +163,7 @@ void WebServices::initializeHandlers()
           auth.set_total_cores(std::stoi(totalCores));
           auth.set_unused_cores(std::stoi(unusedCores));
           auth.set_manager_ip_address(managerIpAddress);
-          
+
           if (!db.insertRecord(
             "UPDATE Settings SET totalCores = '" + totalCores +
             "', unusedCores = '" + unusedCores +
@@ -175,7 +186,7 @@ void WebServices::initializeHandlers()
           auto resp = HttpResponse::newHttpResponse();
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
-          comet::Logger::log("Configuration successful. Redirecting to /", LoggerLevel::INFO);
+          comet::Logger::log("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
           callback(resp);
         },
       {Post});
@@ -319,9 +330,7 @@ std::string WebServices::getHTMLFooter() const
     std::time_t now_c = std::chrono::system_clock::to_time_t(now);
     std::ostringstream oss;
     oss << std::put_time(std::localtime(&now_c), "%d %b %Y at %I:%M:%S %p");
-    // Log the current time and the configuration file path
-    comet::Logger::log("Current time: " + oss.str() + ", Configuration file path: " + configurationFilePath,
-                       LoggerLevel::INFO);
+
     return R"(
             <footer style="margin-top: auto; display: flex; justify-content: space-between;">
               <h4>Run on )" + oss.str() + R"(</h4>
@@ -335,7 +344,7 @@ void WebServices::run()
     m_serverThread = std::make_unique<std::thread>([this]
       {
         Logger::log(std::string("Server running on 127.0.0.1:") + to_string(m_port)
-                    + " or Private local IP: " + comet::Authentication::getPrivateIPAddress() + ":" + to_string(m_port)
+                    + " or Private local IP: " + getPrivateIPAddress() + ":" + to_string(m_port)
                     , comet::INFO);
 
         app().addListener("0.0.0.0", m_port).run();

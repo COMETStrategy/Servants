@@ -12,21 +12,24 @@ namespace comet
 
             private:
                 std::string email;
+
+
+
+            private:
                 std::string code;
                 std::string machineId;
                 bool isAuthenticated;
-                int totalCores = 0;
+                int totalCores;
+                int unusedCores = 0;
+                int activeCores = 0;
+                std::string managerIpAddress;
 
             public:
                 void set_total_cores(int total_cores);
-
                 void set_unused_cores(int unused_cores);
-
                 void set_manager_ip_address(const std::string &manager_ip_address);
 
             private:
-                int unusedCores = 0;
-                std::string managerIpAddress = "";
 
             public:
                 Authentication();
@@ -36,11 +39,27 @@ namespace comet
 
                 bool CheckVerificationInformation();
 
-                static std::string getPrivateIPAddress();
+            public:
+                [[nodiscard]] std::string getEmail() const
+                    {
+                        return email;
+                    }
 
-                static std::string getPublicIPAddressFromWeb();
+                [[nodiscard]] std::string getCode() const
+                    {
+                        return code;
+                    }
 
-                std::string getMachineId();
+                [[nodiscard]] int getTotalCores() const
+                    {
+                        return totalCores;
+                    }
+
+                [[nodiscard]] int getUnusedCores() const
+                    {
+                        return unusedCores;
+                    }
+
         };
     
     }

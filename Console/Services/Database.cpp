@@ -14,28 +14,19 @@
 #include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
 #define CREATE_TABLE_SERVANTS_QUERY R"(CREATE TABLE IF NOT EXISTS `servants` (
-                                      `servantAddress` varchar(100) NOT NULL,
-                                      `RegistrationTime` datetime NOT NULL,
-                                      `ServantDescription` varchar(250) NOT NULL,
-                                      `ServantVersion` varchar(30) NOT NULL,
-                                      `projectId` int NOT NULL,
-                                      `contactId` int NOT NULL,
-                                      `RegistrationProgress` int NOT NULL,
-                                      `speedIndex` float NOT NULL DEFAULT '1',
-                                      `HttpListeningPort` int NOT NULL,
-                                      `HttpsListeningPort` int NOT NULL,
-                                      `ServantProcessorsCount` int NOT NULL,
-                                      `ServantReservedProcessors` int NOT NULL,
-                                      `ServantCommaSeparatedFindPaths` varchar(1000) NOT NULL,
-                                      `ServantCommaSeparatedReplacePaths` varchar(5000) NOT NULL,
-                                      PRIMARY KEY (`servantAddress`, `projectId`)
+                                      `nameIpAddress` varchar(250) NOT NULL
+                                      , `projectId` int NOT NULL
+                                      , `registrationTime` datetime NOT NULL
+                                      , `lastUpdateTime` datetime NOT NULL
+                                      , `ServantVersion` varchar(30) NOT NULL
+                                      , `email` varchar(100) NOT NULL
+                                      , `code` varchar(100)NOT NULL
+                                      , `ListeningPort` int NOT NULL
+                                      , `totalCores` int NOT NULL
+                                      , `unusedCores` int NOT NULL
+                                      , PRIMARY KEY(`nameIpAddress`, `projectId`)
                                       );)"
 
-#define CREATE_INDEXES_SERVANTS_QUERY R"(
-                                        CREATE INDEX IF NOT EXISTS idx_servant_alias ON servants (`servantAddress`);
-                                        CREATE INDEX IF NOT EXISTS idx_projectId ON servants (`projectId`);
-                                        CREATE INDEX IF NOT EXISTS idx_speedIndex ON servants (`speedIndex`);
-                                        )"
 
 #define CREATE_TABLE_SETTINGS_QUERY R"(CREATE TABLE IF NOT EXISTS settings
                                       (createdDate TEXT
@@ -124,16 +115,16 @@ namespace comet
         }
       }
 
-    bool Database::insertRecord(std::string insertQuery)
+    bool Database::insertRecord(std::string insertQuery, bool logErrors)
       {
         char *errMsg;
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          comet::Logger::log("Failed to insert record into Settings table: " + std::string(errMsg),
+          if (logErrors) comet::Logger::log("Failed to insert record into Settings table: " + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           return false; // Return false to indicate failure
         } else {
-          comet::Logger::log("Record inserted into Settings table successfully.", LoggerLevel::INFO);
+          if (logErrors) comet::Logger::log("Record inserted into Settings table successfully.", LoggerLevel::DEBUG);
           return true;
         }
       }
@@ -147,7 +138,6 @@ namespace comet
         insertRecord("INSERT INTO settings (CreatedDate, lastUpdatedDate, machineid, totalCores, unusedCores, manageripAddress) VALUES (DATETIME('now'), DATETIME('now'), 'machinenumber', 0, 0, '');");
 
         createTableIfNotExists("Settings",CREATE_TABLE_SERVANTS_QUERY);
-        createTableIfNotExists("Settings indexes", CREATE_INDEXES_SERVANTS_QUERY);
         
         createTableIfNotExists("Jobs",CREATE_TABLE_JOBS_QUERY);
         createTableIfNotExists("Jobs Indexes",CREATE_INDEXES_JOBS_QUERY);

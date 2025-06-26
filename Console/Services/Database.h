@@ -16,7 +16,7 @@ namespace comet
       public:
         void createTableIfNotExists(std::string tableName, std::string insertQuery);
 
-        bool insertRecord(std::string insertQuery);
+        bool insertRecord(std::string insertQuery, bool logErrors = true);
 
         bool createNewDatabase(const std::string & path);
 

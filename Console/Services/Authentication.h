@@ -12,24 +12,10 @@ namespace comet
 
             private:
                 std::string email;
-
-
-
-            private:
                 std::string code;
                 std::string machineId;
                 bool isAuthenticated;
-                int totalCores;
-                int unusedCores = 0;
-                int activeCores = 0;
-                std::string managerIpAddress;
 
-            public:
-                void set_total_cores(int total_cores);
-                void set_unused_cores(int unused_cores);
-                void set_manager_ip_address(const std::string &manager_ip_address);
-
-            private:
 
             public:
                 Authentication();
@@ -38,6 +24,10 @@ namespace comet
                 std::string HtmlAuthenticationForm();
 
                 bool CheckVerificationInformation();
+                bool machineAuthenticationisValid() const
+                    {
+                        return isAuthenticated;
+                    }
 
             public:
                 [[nodiscard]] std::string getEmail() const
@@ -50,16 +40,7 @@ namespace comet
                         return code;
                     }
 
-                [[nodiscard]] int getTotalCores() const
-                    {
-                        return totalCores;
-                    }
-
-                [[nodiscard]] int getUnusedCores() const
-                    {
-                        return unusedCores;
-                    }
-
+ 
         };
     
     }

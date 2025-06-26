@@ -24,6 +24,7 @@
                                       , `ListeningPort` int NOT NULL
                                       , `totalCores` int NOT NULL
                                       , `unusedCores` int NOT NULL
+                                      , `activeCores` int NOT NULL
                                       , PRIMARY KEY(`nameIpAddress`, `projectId`)
                                       );)"
 

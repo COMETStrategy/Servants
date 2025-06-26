@@ -16,6 +16,7 @@
 #include "Job.h"
 #include "Encoding.h"
 #include "utilities.h"
+#include "Servant.h"
 
 using namespace std;
 using namespace drogon;
@@ -39,9 +40,9 @@ WebServices::WebServices(const std::string &dbFilename)
       auto email = results[0].at("email");
       auto code = results[0].at("code");
       auto machineId = results[0].at("machineId");
-      auth.set_total_cores(stoi(results[0].at("totalCores")));
-      auth.set_unused_cores(stoi(results[0].at("unusedCores")));
-      auth.set_manager_ip_address(results[0].at("managerIpAddress"));
+      aServant.set_total_cores(stoi(results[0].at("totalCores")));
+      aServant.set_unused_cores(stoi(results[0].at("unusedCores")));
+      aServant.set_manager_ip_address(results[0].at("managerIpAddress"));
       for (const auto &row: results) {
         comet::Logger::log(
           "Database Settings: Created Date: " + row.at("createdDate") + ", Last Updated Date: " + row.at(
@@ -53,6 +54,7 @@ WebServices::WebServices(const std::string &dbFilename)
     } else {
       comet::Logger::log("No records found in Settings table.", LoggerLevel::WARNING);
     }
+    aServant.setAuthentication(&auth);
   }
 
 
@@ -77,6 +79,7 @@ void WebServices::initializeHandlers()
           auto resp = HttpResponse::newHttpResponse();
           std::string responseBody = "Welcome to COMET Servants!";
           responseBody += auth.HtmlAuthenticationForm();
+          if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlAuthenticationForm();
           resp->setBody(setHTMLBody(responseBody));
           Logger::log("COMET Servant Home: alive!");
           callback(resp);
@@ -111,34 +114,12 @@ void WebServices::initializeHandlers()
                                LoggerLevel::CRITICAL);
           }
 
-          // Insert into servants if this record does not exist, otherwise just update it
-          int projectId = 1;
-          auto ServantVersion = "Version 2025.06.26";
-          auto nameIpAddress = getPrivateIPAddress();
-          if (!db.insertRecord(
-            "INSERT INTO Servants (nameIpAddress, projectId, registrationTime, lastUpdateTime, ServantVersion, email, code, ListeningPort, totalCores, unusedCores) "
-            "VALUES ('" + nameIpAddress + "', '" + to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '" +
-            ServantVersion + "', '" + auth.getEmail() + "', '" + auth.getCode() + "', '" + to_string(m_port) + "', '" +
-            to_string(auth.getTotalCores()) + "', '" + to_string(auth.getUnusedCores()) + "') ", false
-          )) {
-            // Just update the record but not the registration time
-            if (!db.updateQuery("Update the Servant table",
-                                "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + auth.getEmail() +
-                                "', code = '" + auth.getCode() + "', ListeningPort = '" + std::to_string(m_port) +
-                                "', totalCores = '" + std::to_string(auth.getTotalCores()) +
-                                "', unusedCores = '" + std::to_string(auth.getUnusedCores()) +
-                                "' WHERE nameIpAddress = '" + nameIpAddress + "' and projectId = '" + to_string(
-                                  projectId) + "';")) {
-              comet::Logger::log("Failed to insert or update Servants table with authentication information: ",
-                                 LoggerLevel::CRITICAL);
-            }
-          }
           // Perform authentication (replace with your logic)
           auto resp = HttpResponse::newHttpResponse();
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
           comet::Logger::log(
-            std::string("Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + email +
+            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + email +
             ". Redirecting to /",
             LoggerLevel::INFO);
           callback(resp);
@@ -160,9 +141,9 @@ void WebServices::initializeHandlers()
           }
           auto managerIpAddress = request->getParameter("managerIpAddress");
 
-          auth.set_total_cores(std::stoi(totalCores));
-          auth.set_unused_cores(std::stoi(unusedCores));
-          auth.set_manager_ip_address(managerIpAddress);
+          aServant.set_total_cores(std::stoi(totalCores));
+          aServant.set_unused_cores(std::stoi(unusedCores));
+          aServant.set_manager_ip_address(managerIpAddress);
 
           if (!db.insertRecord(
             "UPDATE Settings SET totalCores = '" + totalCores +
@@ -179,6 +160,32 @@ void WebServices::initializeHandlers()
             resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
             callback(resp);
             return;
+          }
+
+          // Insert into servants if this record does not exist, otherwise just update it
+          int projectId = 1;
+          auto ServantVersion = " V 2025.06.26";
+          auto nameIpAddress = getPrivateIPAddress();
+          if (!db.insertRecord(
+            "INSERT INTO Servants (nameIpAddress, projectId, registrationTime, lastUpdateTime, ServantVersion, email, code, ListeningPort, totalCores, unusedCores, activeCores) "
+            "VALUES ('" + nameIpAddress + "', '" + to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '" +
+            ServantVersion + "', '" + auth.getEmail() + "', '" + auth.getCode() + "', '" + to_string(m_port) + "', '" +
+            to_string(aServant.getTotalCores()) + "', '" + to_string(aServant.getUnusedCores()) + "', '" + to_string(
+              aServant.getActiveCores()) + "') ", false
+          )) {
+            // Just update the record but not the registration time
+            if (!db.updateQuery("Update the Servant table",
+                                "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + auth.getEmail() +
+                                "', code = '" + auth.getCode() + "', ListeningPort = '" + std::to_string(m_port) +
+                                "', totalCores = '" + std::to_string(aServant.getTotalCores()) +
+                                "', unusedCores = '" + std::to_string(aServant.getUnusedCores()) +
+                                "', activeCores = '" + std::to_string(aServant.getActiveCores()) +
+                                "', ServantVersion = '" + ServantVersion + "' "
+                                "WHERE nameIpAddress = '" + nameIpAddress + "' and projectId = '" + to_string(
+                                  projectId) + "';")) {
+              comet::Logger::log("Failed to insert or update Servants table with authentication information: ",
+                                 LoggerLevel::CRITICAL);
+            }
           }
 
 

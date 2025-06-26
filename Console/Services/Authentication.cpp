@@ -13,7 +13,7 @@
   #pragma comment(lib, "iphlpapi.lib")
   #pragma comment(lib, "rpcrt4.lib")
 #elif __APPLE__
-  #include <ifaddrs.h>
+#include <ifaddrs.h>
 #elif __linux__
   #include <sys/ioctl.h>
   #include <net/if.h>
@@ -30,9 +30,6 @@
 
 namespace comet
   {
-
-
-
     Authentication::Authentication()
       {
         machineId = getMachineId();
@@ -45,7 +42,7 @@ namespace comet
         isAuthenticated = false;
       }
 
-        bool Authentication::CheckVerificationInformation()
+    bool Authentication::CheckVerificationInformation()
       {
         std::string requestUrl = "https://license.cometstrategy.com/cloudService/getApiInformation.php";
         std::list<std::string> cHeaders;
@@ -97,21 +94,6 @@ namespace comet
         return jsonResponse["isValid"].get<bool>();
       }
 
-    
-    void Authentication::set_total_cores(int total_cores)
-      {
-        totalCores = total_cores;
-      }
-
-    void Authentication::set_unused_cores(int unused_cores)
-      {
-        unusedCores = unused_cores;
-      }
-
-    void Authentication::set_manager_ip_address(const std::string &manager_ip_address)
-      {
-        managerIpAddress = manager_ip_address;
-      }
 
     bool Authentication::valid(std::string newemail, std::string newcode, std::string newmachineId)
       {
@@ -123,7 +105,8 @@ namespace comet
                                int newUnusedCores, std::string newManagerIpAddress
         totalCores = newTotalCores;
         unusedCores = newUnusedCores;
-        managerIpAddress = newManagerIpAddress/**/;
+        managerIpAddress = newManagerIpAddress/**/
+        ;
         if (code.size() < 5 || email.size() < 10 || machineId.size() < 10) {
           Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
           return false;
@@ -134,6 +117,7 @@ namespace comet
         }
         // Save in the database
         isAuthenticated = true;
+        Logger::log("Valid authentication settings ✅", LoggerLevel::INFO);
         return true;
       }
 
@@ -154,16 +138,18 @@ namespace comet
             "<table>"
             "<tr>"
             "<td><label for=\"email\">Email:</label></td>"
-            "<td><input type=\"text\" id=\"email\" name=\"email\" value=\"" + email + "\"></td>"
+            "<td><input type=\"text\" id=\"email\" name=\"email\" value=\"" + email + "\" size=\"50\"></td>"
             "</tr>"
             "<tr>"
             "<td><label for=\"code\">Code:</label></td>"
-            "<td><input type=\"text\" id=\"code\" name=\"code\" value=\"" + code + "\"></td>" "</tr>"
+            "<td><input type=\"text\" id=\"code\" name=\"code\" value=\"" + code + "\" size=\"50\"></td>"
+            "</tr>"
             "<tr>"
             "<td><label for=\"ip\">IP Address:</label></td>"
             "<td><input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + ip +
-            "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
-            "</tr>""<tr>"
+            "\" readonly style=\"border: none; background-color: #f0f0f0;\" size=\"50\"></td>"
+            "</tr>"
+            "<tr>"
             "<td><label for=\"machineId\">Machine ID:</label></td>"
             "<td><input type=\"hidden\" id=\"machineId\" name=\"machineId\" value=\"" + machineId + "\">"
             "<p style=\"border: none; background-color: #f0f0f0;\">" + machineId + "</p></td>"
@@ -174,37 +160,6 @@ namespace comet
             "</table>"
             "</form>";
 
-        if (isValid) {
-          totalCores = std::thread::hardware_concurrency();
-          // Example value, replace with actual logic to get total cores
-          unusedCores = std::max(0, unusedCores); // Example value, replace with actual logic to get reserved cores
-
-          html += "<p></p> <h1>Machine Settings</h1>"
-              "<form method=\"post\" action=\"/configuration\">"
-              "<table>"
-              "<tr>"
-              "<td><label for=\"totalCores\">Total Cores:</label></td>"
-              "<td><input type=\"text\" id=\"totalCores\" name=\"totalCores\" value=\"" + std::to_string(totalCores) +
-              "\" readonly style=\"border: none; background-color: #f0f0f0;\"></td>"
-              "</tr>"
-              "<tr>"
-              "<td><label for=\"reservedCores\">Unused Cores:</label></td>"
-              "<td><input type=\"number\" id=\"reservedCores\" name=\"unusedCores\" value=\"" +
-              std::to_string(unusedCores) + "\"></td>"
-              "</tr>"
-              "<tr>"
-              "<td><label for=\"servantManager\">Servant Manager Name/IP Address: <br>"
-              "(Leave empty of this is the manager)</label></td>"
-              "<td><input type=\"text\" id=\"servantManager\" name=\"servantManager\" value=\"" + managerIpAddress +
-              "\"  style=\"border: none; background-color: #f0f0f0;\"></td>"
-              "</tr>"
-              "<tr>"
-              "<td><input type=\"submit\" value=\"Update Machine Settings\" class=\"ui primary button\"></td>"
-              "<td></td>"
-              "</tr>"
-              "</table>"
-              "</form>";
-        }
 
         return html;
       }

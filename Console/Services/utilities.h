@@ -268,12 +268,7 @@ namespace comet
           return "";
         }
         return mac;
-        /*
-        uuid = "1234";
 
-        machineId = generateMachineId(mac, uuid);
-        return machineId;
-        /**/
       }
 
     

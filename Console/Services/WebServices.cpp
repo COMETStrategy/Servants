@@ -18,6 +18,7 @@
 #include "Encoding.h"
 #include "utilities.h"
 #include "Servant.h"
+#include "../../../../../../opt/homebrew/Cellar/c-ares/1.34.4/include/ares.h"
 
 using namespace std;
 using namespace drogon;
@@ -85,9 +86,33 @@ void WebServices::initializeHandlers()
     // Register handlers
     app().registerHandler(
       "/",
-      [this](const HttpRequestPtr &request,
-             std::function<void(const HttpResponsePtr &)> &&callback)
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          if (request->method() == drogon::Post) {
+            comet::Logger::log("Handling POST request to /", LoggerLevel::INFO);
+            auto host = request->getHeader("Host");
+            std::string hubAddress = "http://" + host + "/";
+            //std::string hubAddress = "http://" + host + ":" + std::to_string(aServant.getPort()) + "/";
+
+            // Construct the JSON response
+            nlohmann::json jsonResponse = {
+              {"company", "COMET Strategy - Australia"},
+              {"HubName", "COMET Servant (" + aServant.getIpAddress() + "):LOCAL"},
+              {"HubAddress", hubAddress},
+              {"CloudDataConnection", "notused"},
+              {"ErrorMessage", ""}
+            };
+
+            // Create the response
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            resp->setContentTypeCode(CT_APPLICATION_JSON);
+            resp->setBody(jsonResponse.dump());
+            callback(resp);
+            return;
+          }
+
+          // Default behavior for GET requests
           auto resp = HttpResponse::newHttpResponse();
           std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
           if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
@@ -95,7 +120,7 @@ void WebServices::initializeHandlers()
           Logger::log("COMET Servant Home: alive!");
           callback(resp);
         },
-      {Get});
+      {Get, Post}); // Allow both GET and POST
 
     app().registerHandler(
       "/authenticate",
@@ -324,7 +349,59 @@ void WebServices::initializeHandlers()
         },
       {drogon::Post} // Only allow POST requests
     );
+    
+    app().registerHandler(
+        "/status/",
+        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+            if (request->method() != drogon::Post) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k405MethodNotAllowed);
+                resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
+                callback(resp);
+                return;
+            }
 
+            // Extract headers
+            auto email = request->getHeader("X-Email");
+            auto code = request->getHeader("X-Code");
+
+            if (email.empty() || code.empty()) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
+                callback(resp);
+                return;
+            }
+
+            // Parse JSON payload
+            auto json = request->getJsonObject();
+            if (!json || !json->isMember("CloudDataConnection")) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+            }
+
+            std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
+            comet::Logger::log("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
+
+            // Create success response
+            nlohmann::json responseJson = {
+                {"Status", "success"},
+                {"message", "Status updated successfully"},
+                {"errorMessage", ""}
+            };
+
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            resp->setContentTypeCode(CT_APPLICATION_JSON);
+            resp->setBody(responseJson.dump());
+            callback(resp);
+        },
+        {Post} // Only allow POST requests
+    );
 
     app().registerHandler(
       "/quit",

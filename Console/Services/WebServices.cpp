@@ -234,6 +234,16 @@ void WebServices::initializeHandlers()
       "/job_summary",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          if (!auth.machineAuthenticationisValid()) {
+            comet::Logger::log("Unauthorized access to /job_summary", LoggerLevel::WARNING);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k401Unauthorized);
+            resp->setStatusCode(k302Found);
+            resp->addHeader("Location", "/");
+            resp->setBody("Unauthorized");
+            callback(resp);
+            return;
+          }
           comet::Logger::log("Handling GET request to /job_summary", LoggerLevel::INFO);
 
           // Extract sort and filter parameters

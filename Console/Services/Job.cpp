@@ -206,7 +206,7 @@ namespace comet
                "<th>Creator Email</th>"
                "<th>Input File Name</th>"
                "</tr>";
-        int rowIndex = 0;
+        int rowIndex = 0; 
         for (const auto &row : results) {
           std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
           auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
@@ -236,7 +236,44 @@ namespace comet
     return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
   }
 
-JobStatus Job::jobStatus() const
+    std::string Job::getAllJobStatuses(Database &db)
+      {
+        std::string result;
+        std::string query = "Select * from jobs where 1 order by LastUpdate Limit 500;";
+        auto results = db.getQueryResults(query);
+        if (results.empty()) {
+          result = "No jobs found.";
+          return result;
+        }
+
+        result = "Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n";
+
+        for (const auto &row : results) {
+          auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
+          // Getthe following Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n
+          result += row.at("GroupName") + "\t" +
+                    row.at("CaseNumber") + "\t" +
+                    row.at("CaseName") + "\t" +
+                    row.at("IterationsComplete") + "\t" +
+                    row.at("Ranking") + "\t" +
+                    row.at("Life") + "\t" +
+                    row.at("ID") + "\t" +
+                    Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")"  + "\t" +
+                    row.at("Progress") + "\t" +
+                    row.at("RunTimeMin") + "\t" +
+                    row.at("LastUpdate") + "\t" +
+                    row.at("Servant") + "\t" +
+                    row.at("CreatorName") + "\t" +
+                    row.at("EngineVersion") + "\t" +
+                    row.at("WorkingDirectory") + "\n";
+
+        }
+
+        return result;
+        
+      }
+
+    JobStatus Job::jobStatus() const
   {
     return status;
   }

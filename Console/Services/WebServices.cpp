@@ -349,58 +349,88 @@ void WebServices::initializeHandlers()
         },
       {drogon::Post} // Only allow POST requests
     );
-    
+
     app().registerHandler(
-        "/status/",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+      "/status/",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-            if (request->method() != drogon::Post) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k405MethodNotAllowed);
-                resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
-                callback(resp);
-                return;
-            }
-
-            // Extract headers
-            auto email = request->getHeader("X-Email");
-            auto code = request->getHeader("X-Code");
-
-            if (email.empty() || code.empty()) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
-                callback(resp);
-                return;
-            }
-
-            // Parse JSON payload
-            auto json = request->getJsonObject();
-            if (!json || !json->isMember("CloudDataConnection")) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
-                callback(resp);
-                return;
-            }
-
-            std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
-            comet::Logger::log("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
-
-            // Create success response
-            nlohmann::json responseJson = {
-                {"Status", "success"},
-                {"message", "Status updated successfully"},
-                {"errorMessage", ""}
-            };
-
+          if (request->method() != drogon::Post) {
             auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k200OK);
-            resp->setContentTypeCode(CT_APPLICATION_JSON);
-            resp->setBody(responseJson.dump());
+            resp->setStatusCode(k405MethodNotAllowed);
+            resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
             callback(resp);
+            return;
+          }
+
+          // Extract headers
+          auto email = request->getHeader("X-Email");
+          auto code = request->getHeader("X-Code");
+
+          if (email.empty() || code.empty()) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
+            callback(resp);
+            return;
+          }
+
+          // Parse JSON payload
+          auto json = request->getJsonObject();
+          if (!json || !json->isMember("CloudDataConnection")) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+            callback(resp);
+            return;
+          }
+
+          std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
+          comet::Logger::log("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
+
+          // Create success response
+          nlohmann::json responseJson = {
+            {"Status", "success"},
+            {"message", "Status updated successfully"},
+            {"errorMessage", ""}
+          };
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setContentTypeCode(CT_APPLICATION_JSON);
+          resp->setBody(responseJson.dump());
+          callback(resp);
         },
-        {Post} // Only allow POST requests
+      {Post} // Only allow POST requests
+    );
+
+    app().registerHandler(
+      "/status/jobs/",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          if (request->method() != drogon::Get) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k405MethodNotAllowed);
+            resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
+            callback(resp);
+            return;
+          }
+
+          comet::Logger::log("Handling GET request to /status/jobs/", LoggerLevel::INFO);
+
+          // Fetch job status data from the database
+          std::string jobStatuses = Job::getAllJobStatuses(db);
+
+ 
+          // Create the JSON response
+          nlohmann::json jsonResponse = {
+            {"ErrorMessage", ""},
+            {"Status", jobStatuses}
+          };
+
+          auto resp = HttpResponse::newHttpJsonResponse(jsonResponse.dump());
+          callback(resp);
+        },
+      {Get} // Only allow GET requests
     );
 
     app().registerHandler(

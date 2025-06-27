@@ -69,7 +69,9 @@ namespace comet
         JobStatus setJobStatus(const char *statusDescription);
         std::string getReplaceQueryString() const;
         std::string description();
-        
+
+        static std::string getAllJobStatuses(Database &db);
+
         static bool createNewJobsTable(Database &db);
         static std::string jobStatusDescription(JobStatus aStatus);
         static std::string jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter);

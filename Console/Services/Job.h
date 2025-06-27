@@ -65,18 +65,14 @@ namespace comet
         Job(const drogon::HttpRequestPtr &request);
 
         JobStatus jobStatus() const;
-
         bool validJobStatus() const;
-
-        std::string jobStatusDescription() const;
-
         JobStatus setJobStatus(const char *statusDescription);
-
         std::string getReplaceQueryString() const;
-
-        static bool createNewJobsTable(Database &db);
-
         std::string description();
+        
+        static bool createNewJobsTable(Database &db);
+        static std::string jobStatusDescription(JobStatus aStatus);
+        static std::string jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter);
       };
   };
 #endif //JOB_H

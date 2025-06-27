@@ -54,14 +54,14 @@ WebServices::WebServices(const std::string &dbFilename)
           "Database Servant: Registration Date: " + row.at("registrationTime") + ", Last Updated Date: " + row.at(
             "lastUpdateTime"));
       }
-      
+
       auto email = results[0].at("email");
       auto code = results[0].at("code");
       auto ipAddress = results[0].at("ipAddress");
       if (!auth.valid(email, code, ipAddress)) {
         comet::Logger::log("Invalid verification code for machine.", LoggerLevel::WARNING);
       }
-      
+
       aServant.setAuthentication(&auth);
       aServant.startRoutineStatusUpdates();
     } else {
@@ -89,10 +89,9 @@ void WebServices::initializeHandlers()
              std::function<void(const HttpResponsePtr &)> &&callback)
         {
           auto resp = HttpResponse::newHttpResponse();
-          std::string responseBody = "Welcome to COMET Servants!";
-          responseBody += aServant.HtmlAuthenticationSettingsForm(auth);
+          std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
           if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
-          resp->setBody(setHTMLBody(responseBody));
+          resp->setBody(setHTMLBody(responseBody, "/"));
           Logger::log("COMET Servant Home: alive!");
           callback(resp);
         },
@@ -106,9 +105,9 @@ void WebServices::initializeHandlers()
 
           // Parse the JSON payload
           // Extract form parameters
-          aServant.setEmail( request->getParameter("email"));
-          aServant.setCode( request->getParameter("code"));
-          aServant.setIpAddress( request->getParameter("ipAddress"));
+          aServant.setEmail(request->getParameter("email"));
+          aServant.setCode(request->getParameter("code"));
+          aServant.setIpAddress(request->getParameter("ipAddress"));
 
           // Update Validation
           const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
@@ -123,7 +122,8 @@ void WebServices::initializeHandlers()
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
           comet::Logger::log(
-            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant.getEmail() +
+            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant
+            .getEmail() +
             ". Redirecting to /",
             LoggerLevel::INFO);
           callback(resp);
@@ -140,7 +140,8 @@ void WebServices::initializeHandlers()
           auto totalCores = request->getParameter("totalCores");
           auto unusedCores = request->getParameter("unusedCores");
           if (unusedCores.empty()) unusedCores = "0";
-          auto activeCores = request->getParameter("activeCores"); if (activeCores.empty()) activeCores = "0";
+          auto activeCores = request->getParameter("activeCores");
+          if (activeCores.empty()) activeCores = "0";
           auto managerIpAddress = request->getParameter("managerIpAddress");
 
           aServant.setTotalCores(std::stoi(totalCores));
@@ -149,9 +150,9 @@ void WebServices::initializeHandlers()
           aServant.setManagerIpAddress(managerIpAddress);
 
           if (!db.insertRecord(
-          "UPDATE servants SET totalCores = '" + totalCores + "' "
-            ", unusedCores = '" + unusedCores + + "' "
-            ", activeCores = '" + activeCores + + "' "
+            "UPDATE servants SET totalCores = '" + totalCores + "' "
+            ", unusedCores = '" + unusedCores + +"' "
+            ", activeCores = '" + activeCores + +"' "
             ", managerIpAddress = '" + managerIpAddress + "' "
             ", lastUpdateTime = DATETIME('now') "
             "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
@@ -186,9 +187,9 @@ void WebServices::initializeHandlers()
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
           if (!aServant.isManager()) {
-            
-            comet::Logger::log("This Servant does not accept jobs since it is not the managing Servant, sumbit to " + aServant.getManagerIpAddress(), LoggerLevel::DEBUG);
-            
+            comet::Logger::log(
+              "This Servant does not accept jobs since it is not the managing Servant, sumbit to " + aServant.
+              getManagerIpAddress(), LoggerLevel::DEBUG);
           }
           comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::DEBUG);
 
@@ -229,6 +230,39 @@ void WebServices::initializeHandlers()
         },
       {Post});
 
+    app().registerHandler(
+      "/job_summary",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          comet::Logger::log("Handling GET request to /job_summary", LoggerLevel::INFO);
+
+          // Extract sort and filter parameters
+          auto sort = request->getParameter("sort");
+          auto filter = request->getParameter("filter");
+
+          // Convert sort and filter to lowercase
+          std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
+          std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
+
+          // Validate sort parameter
+          if (sort != "status" && sort != "date" && sort != "npv" && sort != "case") {
+            sort = "date"; // Default sort
+          }
+
+          // Validate filter parameter
+          if (filter != "active" && filter != "completed" && filter != "failed" && filter != "all") {
+            filter = "all"; // Default filter
+          }
+
+          // Generate the job summary report based on sort and filter
+          std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setBody(setHTMLBody(report, "/job_summary"));
+          callback(resp);
+        },
+      {Get});
+
     // Register the /servant/status handler
     drogon::app().registerHandler(
       "/servant/status",
@@ -259,12 +293,12 @@ void WebServices::initializeHandlers()
             aServant.setUnusedCores((*json)["unusedCores"].asInt());
             aServant.setActiveCores((*json)["activeCores"].asInt());
             aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
-            aServant.setIpAddress( (*json)["ipAddress"].asString());
-            aServant.setVersion( (*json)["ServantVersion"].asString());
-            aServant.setEmail ((*json)["email"].asString());
-            aServant.setCode( (*json)["code"].asString());
-            aServant.setPort ((*json)["port"].asInt());
-            aServant.setProjectId( (*json)["projectId"].asInt());
+            aServant.setIpAddress((*json)["ipAddress"].asString());
+            aServant.setVersion((*json)["ServantVersion"].asString());
+            aServant.setEmail((*json)["email"].asString());
+            aServant.setCode((*json)["code"].asString());
+            aServant.setPort((*json)["port"].asInt());
+            aServant.setProjectId((*json)["projectId"].asInt());
             aServant.updateServantSettings(db);
 
             // Respond with success
@@ -289,7 +323,7 @@ void WebServices::initializeHandlers()
           m_running = false; // Set running to false
 
           auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("Server is shutting down..."));
+          resp->setBody(setHTMLBody("Server is shutting down...", "/"));
           callback(resp);
 
           // Stop the server from listening for new connections
@@ -329,12 +363,12 @@ void WebServices::handleRequest(const std::string &request)
     comet::Logger::log(std::string("WebServices::handleRequest() - Request: ") + request);
   }
 
-std::string WebServices::setHTMLBody(const std::string &body) const
+std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath) const
   {
     return R"(
           <!DOCTYPE html>
           <html>
-          )" + getHTMLHeader() + R"(
+          )" + getHTMLHeader(targetPath) + R"(
           <body>
           <div style="margin: 1cm;">
           )" + body + R"(
@@ -345,29 +379,42 @@ std::string WebServices::setHTMLBody(const std::string &body) const
           )";
   }
 
-std::string WebServices::getHTMLHeader() const
+std::string WebServices::getHTMLHeader(const std::string &targetPath) const
   {
-    auto now = std::chrono::system_clock::now();
-    std::time_t now_c = std::chrono::system_clock::to_time_t(now);
-    std::tm *localTime = std::localtime(&now_c);
+    struct Link
+      {
+        std::string name;
+        std::string href;
+      };
 
-    std::ostringstream oss;
-    oss << (1900 + localTime->tm_year); // tm_year is years since 1900
+    std::vector<Link> links = {
+      {"Public", "https://www.cometstrategy.com/"},
+      {"Support", "https://support.cometstrategy.com/?site=support&page=dashboard"},
+      {"Settings", "/"},
+      {"Job Summary", "/job_summary?sort=date&filter=all"},
+      {"Servant Status", "/servant/status"},
+      {"Quit", "/quit"}
+    };
+
+    std::string linksHTML;
+    for (const auto &link: links) {
+      std::string style = (link.href == targetPath)
+                            ? "style='color:#4DB0DD; font-weight: bold; margin-right: 10px'"
+                            : "";
+      linksHTML += "<a href='" + link.href + "' class='system_link' " + style + " style='margin-right: 10px;'>" + link.
+          name + "</a> ";
+    }
 
     return R"(
     <link rel="stylesheet" href="https://support.cometstrategy.com/themes/zCSS.css">
     <link rel='shortcut icon' type='image/png' href='https://media.cometstrategy.com/img/COMET_Icon.png'>
     <header>
-    <h1>
-    <img src='https://media.cometstrategy.com/img/COMET_DarkBG.svg' alt='1' height='60'>
-    <span class='heading_title' COMET Servants</span>
-    
-    Welcome to COMET Servants</h1> 
-    <h3>(c) )" + oss.str() + R"( COMET Strategy</h3>
-    
+        <img src='https://media.cometstrategy.com/img/COMET_DarkBG.svg' alt='1' height='60'>
+        <span class='heading_title'>COMET Servants</span>
+        <h1>Welcome to COMET Servants</h1>
+        )" + linksHTML + R"(
     </header>
-
-           )";
+    )";
   }
 
 std::string WebServices::getHTMLFooter() const
@@ -378,11 +425,13 @@ std::string WebServices::getHTMLFooter() const
     oss << std::put_time(std::localtime(&now_c), "%d %b %Y at %I:%M:%S %p");
 
     return R"(
-            <footer style="margin-top: auto; display: flex; justify-content: space-between;">
-              <h4>Run on )" + oss.str() + R"(</h4>
-              <h4>Config File: )" + configurationFilePath + R"(</h4>
-            </footer>
-            )";
+        <footer style="margin-top: auto; display: flex; justify-content: space-between; align-items: center;">
+            <h4 style="margin: 0;">)" + oss.str() + R"(</h4>
+            <h4 style="margin: 0;">&copy; )" + std::to_string(1900 + std::localtime(&now_c)->tm_year) +
+           R"( COMET Strategy</h4>
+            <h4 style="margin: 0;">Config File: )" + configurationFilePath + R"(</h4>
+        </footer>
+    )";
   }
 
 void WebServices::run()
@@ -441,15 +490,14 @@ bool WebServices::uploadJob(const drogon::HttpRequestPtr &request)
 
 bool WebServices::createNewDatabase()
   {
-    
     comet::Logger::log("Database file " + configurationFilePath + " Checking for all tables.",
                        LoggerLevel::INFO);
 
     aServant.createNewServentsTable(db);
 
-    
+
     Job::createNewJobsTable(db);
-    
+
 
     comet::Logger::log("Servants and Jobs tables created successfully.", LoggerLevel::INFO);
     return true;

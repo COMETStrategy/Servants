@@ -13,6 +13,7 @@
 #include "Encoding.h"
 #include "Database.h"
 #include "utilities.h"
+#include "drogon/orm/BaseBuilder.h"
 
 namespace comet
   {
@@ -156,11 +157,79 @@ namespace comet
         db.createTableIfNotExists("jobs", query);
         return true;
       }
-  
 
-std::string Job::description()
+    std::string Job::jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter)
+      {
+        std::string html = "";
+        // get the job summary from the database
+        std::string selection = "SELECT * FROM jobs ";
+        std::string whereClause = "";
+        if (filter == "all") {
+          whereClause = "";
+        } else if (filter == "active") {
+            whereClause = " WHERE Status IN ( 1, 2) ";
+        } else if (filter == "completed") {
+          whereClause = "WHERE Status  IN ( 4, 5) ";
+        } else if (filter == "failed") {
+          whereClause = "WHERE Status = 4 ";
+        }
+        std::string orderBy = " ORDER BY LastUpdate DESC ";
+        if (sort == "status") {
+          orderBy = " ORDER BY Status DESC, LastUpdate DESC ";
+        } else if (sort == "date") {
+          orderBy = " ORDER BY LastUpdate DESC ";
+        } else if (sort == "npv") {
+          orderBy = " ORDER BY Ranking DESC, LastUpdate DESC ";
+        } else if (sort == "case") {
+        orderBy = " ORDER BY CaseNumber ASC ";
+      }
+        auto query = selection + whereClause + orderBy + " Limit 500;";
+        auto results = db.getQueryResults(query);
+        if (results.empty()) {
+          html = "<p>No jobs found.</p>";
+          return html;
+        }
+        html += "<h1>Job Summary</h1>";
+        html += "<h4>Filter: " + filter + " (all, completed, active, failed)</h4>"
+                                          "<h4>Order: " + sort + " (status, date, npv, case)</h4>";
+        // For all job results, report the LastUpdate, GroupName, CaseNumber, Servant(if null say "None"), Status, CaseName, CreatorName, CreatorMachine, CreatorXEmail, InputFileName";
+        html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;' "
+               "<tr><th>Last Update</th><th>Group Name</th>"
+               "<th>Case Number</th>"
+               "<th>Servant</th>"
+               "<th>Status</th>"
+               "<th>Case Name</th>"
+               "<th>Creator Name</th>"
+               "<th>Creator Machine</th>"
+               "<th>Creator Email</th>"
+               "<th>Input File Name</th>"
+               "</tr>";
+        int rowIndex = 0;
+        for (const auto &row : results) {
+          std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
+          auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
+          html += "<tr class='" + rowClass + "'>";
+          html += "<td>" + row.at("LastUpdate") + "</td>";
+          html += "<td>" + row.at("GroupName") + "</td>";
+          html += "<td>" + row.at("CaseNumber") + "</td>";
+          html += "<td>" + (row.at("Servant").empty() ? "None" : row.at("Servant")) + "</td>";
+          html += "<td>" + Job::jobStatusDescription(aStatus) + "</td>";
+          html += "<td>" + row.at("CaseName") + "</td>";
+          html += "<td>" + row.at("CreatorName") + "</td>";
+          html += "<td>" + row.at("CreatorMachine") + "</td>";
+          html += "<td>" + row.at("CreatorXEmail") + "</td>";
+          html += "<td>" + row.at("InputFileName") + "</td>";
+          html += "</tr>";
+          rowIndex++;
+        }
+        html += "</table>";
+        return html;
+      }
+
+
+    std::string Job::description()
   {
-    return jobStatusDescription() + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
+    return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
   }
 
 JobStatus Job::jobStatus() const
@@ -173,10 +242,10 @@ bool Job::validJobStatus() const
     return status != JobStatus::Failed;
   }
 
-std::string Job::jobStatusDescription() const
+std::string Job::jobStatusDescription(const JobStatus aStatus) 
   {
     // Convert JobStatus to string description
-    switch (status) {
+    switch (aStatus) {
       case Queued: return "Queued";
       case Allocated: return "Allocated";
       case Running: return "Running";

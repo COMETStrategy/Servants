@@ -113,25 +113,7 @@ namespace comet
         std::string ip_public = getPublicIPAddressFromWeb();
         std::string ip_private = getPrivateIPAddress();
         std::string ip = ip_public + " (public), " + ip_private + " (private/local)";
-        std::string html = "<p></p> "
-        
-        "<script>"
-        "function toggleForm(id) {"
-            "const form = document.getElementById(id);"
-            "const button = document.getElementById('toggle' + id +'Button');"
-            "if (form.style.display === 'none') {"
-            "  form.style.display = 'block';"
-            "  button.textContent = '- Hide \' + id + \';"
-            "} else {"
-            "  form.style.display = 'none';"
-            "  button.textContent = '+ Show \' + id + \'';"
-            "}"
-        "}"
-        "</script>"
-        
-        "<button style='display: none;' id='toggleAuthenticationButton' onclick='toggleForm(\"Authentication\")'>- Hide Authentication</button>"
-        "<div id='Authentication' style='display: block;'>"
-                           " <h1>Authentication Settings</h1>";
+        std::string html = "<h1>Authentication Settings</h1>";
         ipAddress = ip_private;
         auto isValid = auth.valid(email, code, ipAddress);
         if (isValid) {
@@ -166,8 +148,7 @@ namespace comet
             "<td></td>"
             "</tr>"
             "</table>"
-            "</form>"
-            "</div>";
+            "</form>";
 
 
         return html;
@@ -180,11 +161,7 @@ namespace comet
         unusedCores = std::max(0, unusedCores); // Example value, replace with actual logic to get reserved cores
 
         std::string html = "";
-        html += "<p></p> "
-                "<button  style='display: none;' id='toggleSettingsButton' onclick='toggleForm(\'Settings\')'>- Hide Settings</button>"
-        
-        "<div id='Settings' style='display: block;'>"
-                "<h1>Servant Settings</h1>"
+        html += "<h1>Servant Settings</h1>"
                 ""
             "<form method='post' action='/configuration'>"
             "<table>"
@@ -218,8 +195,7 @@ namespace comet
             "<td></td>"
             "</tr>"
             "</table>"
-            "</form>"
-            "</div>";
+            "</form>";
 
         return html;
       }

@@ -168,10 +168,10 @@ namespace comet
           whereClause = "";
         } else if (filter == "active") {
             whereClause = " WHERE Status IN ( 1, 2) ";
-        } else if (filter == "completed") {
-          whereClause = "WHERE Status  IN ( 4, 5) ";
+        } else if (filter == "complete") {
+          whereClause = "WHERE Status  IN ( 3, 4) ";
         } else if (filter == "failed") {
-          whereClause = "WHERE Status = 4 ";
+          whereClause = "WHERE Status = 3 ";
         }
         std::string orderBy = " ORDER BY LastUpdate DESC ";
         if (sort == "status") {
@@ -190,7 +190,7 @@ namespace comet
           return html;
         }
         html += "<h1>Job Summary</h1>";
-        html += "<h4>Filter: " + filter + " (all, completed, active, failed)</h4>"
+        html += "<h4>Filter: " + filter + " (all, complete, active, failed)</h4>"
                                           "<h4>Order: " + sort + " (status, date, npv, case)</h4>";
         // For all job results, report the LastUpdate, GroupName, CaseNumber, Servant(if null say "None"), Status, CaseName, CreatorName, CreatorMachine, CreatorXEmail, InputFileName";
         html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;' "
@@ -198,6 +198,8 @@ namespace comet
                "<th>Case Number</th>"
                "<th>Servant</th>"
                "<th>Status</th>"
+               "<th>NPV</th>"
+               "<th>Life</th>"
                "<th>Case Name</th>"
                "<th>Creator Name</th>"
                "<th>Creator Machine</th>"
@@ -213,7 +215,9 @@ namespace comet
           html += "<td>" + row.at("GroupName") + "</td>";
           html += "<td>" + row.at("CaseNumber") + "</td>";
           html += "<td>" + (row.at("Servant").empty() ? "None" : row.at("Servant")) + "</td>";
-          html += "<td>" + Job::jobStatusDescription(aStatus) + "</td>";
+          html += "<td>" + Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "</td>";
+          html += "<td>" + row.at("Ranking") + "</td>";
+          html += "<td>" + row.at("Life") + "</td>";
           html += "<td>" + row.at("CaseName") + "</td>";
           html += "<td>" + row.at("CreatorName") + "</td>";
           html += "<td>" + row.at("CreatorMachine") + "</td>";

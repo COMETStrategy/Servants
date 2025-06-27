@@ -250,7 +250,7 @@ void WebServices::initializeHandlers()
           }
 
           // Validate filter parameter
-          if (filter != "active" && filter != "completed" && filter != "failed" && filter != "all") {
+          if (filter != "active" && filter != "complete" && filter != "failed" && filter != "all") {
             filter = "all"; // Default filter
           }
 

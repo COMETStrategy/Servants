@@ -49,6 +49,16 @@ namespace comet
         std::string configurationFilePath; // Default database path
         comet::Servant aServant;
 
+        void registerRootHandler();
+        void registerAuthenticateHandler();
+        void registerConfigurationHandler();
+        void registerUploadJobHandler();
+        void registerJobSummaryHandler();
+        void registerServantStatusHandler();
+        void registerStatusHandler();
+        void registerStatusJobsHandler();
+        void registerQuitHandler();      
+
         const std::string ciphering = "aes-256-cbc"; // Cipher method
         const std::string secret_key = "comet_servant_secret_key"; // Replace with your secret key
         const std::string secret_iv = "comet_servant_secret_iv";   // Replace with your secret IV

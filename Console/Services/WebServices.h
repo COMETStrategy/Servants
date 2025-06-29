@@ -57,7 +57,8 @@ namespace comet
         void registerServantStatusHandler();
         void registerStatusHandler();
         void registerStatusJobsHandler();
-        void registerQuitHandler();      
+        void registerQuitHandler();
+        
 
         const std::string ciphering = "aes-256-cbc"; // Cipher method
         const std::string secret_key = "comet_servant_secret_key"; // Replace with your secret key

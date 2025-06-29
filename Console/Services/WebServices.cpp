@@ -94,14 +94,21 @@ void WebServices::initializeHandlers()
     registerQuitHandler();
   }
 
+void handleInvalidMethod(const HttpRequestPtr &request)
+  {
+    std::string upperMethod = to_string(request->method());
+    std::transform(upperMethod.begin(), upperMethod.end(), upperMethod.begin(), ::toupper);
+    comet::Logger::log("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::DEBUG);
+  }
+
 void WebServices::registerRootHandler()
   {
     app().registerHandler(
       "/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          handleInvalidMethod(request);
           if (request->method() == drogon::Post) {
-            comet::Logger::log("Handling POST request to /", LoggerLevel::INFO);
             auto host = request->getHeader("Host");
             std::string hubAddress = "http://" + host + "/";
 
@@ -121,6 +128,7 @@ void WebServices::registerRootHandler()
             return;
           }
 
+          // GET response
           auto resp = HttpResponse::newHttpResponse();
           std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
           if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
@@ -137,7 +145,7 @@ void WebServices::registerAuthenticateHandler()
       "/authenticate",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          comet::Logger::log("Handling POST request to /authenticate", LoggerLevel::DEBUG);
+          handleInvalidMethod(request);
 
           aServant.setEmail(request->getParameter("email"));
           aServant.setCode(request->getParameter("code"));
@@ -169,7 +177,7 @@ void WebServices::registerConfigurationHandler()
       "/configuration",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          comet::Logger::log("Handling POST request to /configuration", LoggerLevel::DEBUG);
+          handleInvalidMethod(request);
 
           auto totalCores = request->getParameter("totalCores");
           auto unusedCores = request->getParameter("unusedCores");
@@ -218,13 +226,13 @@ void WebServices::registerUploadJobHandler()
       "/upload/job/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          handleInvalidMethod(request);
           if (!aServant.isManager()) {
             comet::Logger::log(
               "This Servant does not accept jobs since it is not the managing Servant, submit to " + aServant.
               getManagerIpAddress(),
               LoggerLevel::DEBUG);
           }
-          comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::DEBUG);
 
           if (!db.isConnected()) {
             comet::Logger::log("Database connection failed", LoggerLevel::CRITICAL);
@@ -268,6 +276,7 @@ void WebServices::registerJobSummaryHandler()
       "/job_summary",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          handleInvalidMethod(request);
           if (!auth.machineAuthenticationisValid()) {
             comet::Logger::log("Unauthorized access to /job_summary", LoggerLevel::WARNING);
             auto resp = HttpResponse::newHttpResponse();
@@ -276,7 +285,6 @@ void WebServices::registerJobSummaryHandler()
             callback(resp);
             return;
           }
-          comet::Logger::log("Handling GET request to /job_summary", LoggerLevel::INFO);
 
           auto sort = request->getParameter("sort");
           auto filter = request->getParameter("filter");
@@ -296,13 +304,7 @@ void WebServices::registerServantStatusHandler()
       "/servant/status",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          if (request->method() != drogon::Post) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k405MethodNotAllowed);
-            resp->setBody("Method Not Allowed");
-            callback(resp);
-            return;
-          }
+          handleInvalidMethod(request);
 
           auto json = request->getJsonObject();
           if (!json) {
@@ -345,13 +347,8 @@ void WebServices::registerStatusHandler()
       "/status/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          if (request->method() != drogon::Post) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k405MethodNotAllowed);
-            resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
-            callback(resp);
-            return;
-          }
+          
+          handleInvalidMethod(request);
 
           auto email = request->getHeader("X-Email");
           auto code = request->getHeader("X-Code");
@@ -397,38 +394,21 @@ void WebServices::registerStatusJobsHandler()
       "/status/jobs/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          if (request->method() != drogon::Post) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k405MethodNotAllowed);
-            resp->setBody( "{\"ErrorMessage\":\"Method {" + to_string(request->method()) + "} Not Allowed\"}");
-            callback(resp);
-            return;
-          }
-
-          comet::Logger::log("Handling GET request to /status/jobs/", LoggerLevel::INFO);
+          handleInvalidMethod(request);
 
           // Get GroupName from Posted data
           auto json = request->getJsonObject();
           if (!json || !json->isMember("GroupName")) {
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k400BadRequest);
-            resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+            resp->setBody(R"({"ErrorMessage":"Invalid or missing GroupName in JSON payload"})");
             callback(resp);
             return;
           }
           std::string GroupName = (*json)["GroupName"].asString();
           std::string jobStatuses = Job::getAllJobStatuses(db, GroupName);
 
-          //jobStatuses = R"(Hello\tworld\n" )";
-
-
-          nlohmann::json jsonResponse = {
-            {"ErrorMessage", ""},
-            {"Status", "jobStatuses"}
-          };
-
-          //auto resp = HttpResponse::newHttpJsonResponse(jsonResponse.dump());
-          jobStatuses = "{\"ErrorMessage\": \"\", \"Status\": \"" + jobStatuses + "\"}";
+          jobStatuses = R"({"ErrorMessage": "", "Status": ")" + jobStatuses + R"("})";
           auto resp = HttpResponse::newHttpResponse();
           resp->addHeader("Access-Control-Allow-Headers", "Content-type");
           resp->setContentTypeCode(CT_TEXT_HTML);
@@ -442,8 +422,9 @@ void WebServices::registerQuitHandler()
   {
     app().registerHandler(
       "/quit",
-      [this](const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&callback)
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
+          handleInvalidMethod(request);
           m_running = false;
 
           auto resp = HttpResponse::newHttpResponse();
@@ -455,6 +436,7 @@ void WebServices::registerQuitHandler()
         },
       {Get});
   }
+
 
 void WebServices::shutdown()
   {

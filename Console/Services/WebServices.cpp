@@ -80,7 +80,7 @@ WebServices::~WebServices()
   }
 
 void WebServices::initializeHandlers()
-{
+  {
     comet::Logger::log("WebServices::initialize()", LoggerLevel::DEBUG);
 
     registerRootHandler();
@@ -92,349 +92,370 @@ void WebServices::initializeHandlers()
     registerStatusHandler();
     registerStatusJobsHandler();
     registerQuitHandler();
-}
+  }
 
 void WebServices::registerRootHandler()
-{
+  {
     app().registerHandler(
-        "/",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+      "/",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-            if (request->method() == drogon::Post) {
-                comet::Logger::log("Handling POST request to /", LoggerLevel::INFO);
-                auto host = request->getHeader("Host");
-                std::string hubAddress = "http://" + host + "/";
+          if (request->method() == drogon::Post) {
+            comet::Logger::log("Handling POST request to /", LoggerLevel::INFO);
+            auto host = request->getHeader("Host");
+            std::string hubAddress = "http://" + host + "/";
 
-                nlohmann::json jsonResponse = {
-                    {"company", "COMET Strategy - Australia"},
-                    {"HubName", "COMET Servant (" + aServant.getIpAddress() + "):LOCAL"},
-                    {"HubAddress", hubAddress},
-                    {"CloudDataConnection", "notused"},
-                    {"ErrorMessage", ""}
-                };
-
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setContentTypeCode(CT_APPLICATION_JSON);
-                resp->setBody(jsonResponse.dump());
-                callback(resp);
-                return;
-            }
-
-            auto resp = HttpResponse::newHttpResponse();
-            std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
-            if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
-            resp->setBody(setHTMLBody(responseBody, "/"));
-            Logger::log("COMET Servant Home: alive!");
-            callback(resp);
-        },
-        {Get, Post});
-}
-
-void WebServices::registerAuthenticateHandler()
-{
-    app().registerHandler(
-        "/authenticate",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            comet::Logger::log("Handling POST request to /authenticate", LoggerLevel::DEBUG);
-
-            aServant.setEmail(request->getParameter("email"));
-            aServant.setCode(request->getParameter("code"));
-            aServant.setIpAddress(request->getParameter("ipAddress"));
-
-            const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
-            if (!isAuthenticated) {
-                comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
-            }
-
-            aServant.updateServantSettings(db);
-
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k302Found);
-            resp->addHeader("Location", "/");
-            comet::Logger::log(
-                std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant.getEmail() +
-                ". Redirecting to /",
-                LoggerLevel::INFO);
-            callback(resp);
-        },
-        {Post});
-}
-
-void WebServices::registerConfigurationHandler()
-{
-    app().registerHandler(
-        "/configuration",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            comet::Logger::log("Handling POST request to /configuration", LoggerLevel::DEBUG);
-
-            auto totalCores = request->getParameter("totalCores");
-            auto unusedCores = request->getParameter("unusedCores");
-            if (unusedCores.empty()) unusedCores = "0";
-            auto activeCores = request->getParameter("activeCores");
-            if (activeCores.empty()) activeCores = "0";
-            auto managerIpAddress = request->getParameter("managerIpAddress");
-
-            aServant.setTotalCores(std::stoi(totalCores));
-            aServant.setUnusedCores(std::stoi(unusedCores));
-            aServant.setActiveCores(std::stoi(activeCores));
-            aServant.setManagerIpAddress(managerIpAddress);
-
-            if (!db.insertRecord(
-                "UPDATE servants SET totalCores = '" + totalCores + "' "
-                ", unusedCores = '" + unusedCores + +"' "
-                ", activeCores = '" + activeCores + +"' "
-                ", managerIpAddress = '" + managerIpAddress + "' "
-                ", lastUpdateTime = DATETIME('now') "
-                "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
-                comet::Logger::log("Failed to update Settings table with configuration information: ",
-                                   LoggerLevel::CRITICAL);
-
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Location", "/");
-                resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
-                callback(resp);
-                return;
-            }
-
-            aServant.updateDatabase(db);
-
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k302Found);
-            resp->addHeader("Location", "/");
-            comet::Logger::log("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
-            callback(resp);
-        },
-        {Post});
-}
-
-void WebServices::registerUploadJobHandler()
-{
-    app().registerHandler(
-        "/upload/job/",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            if (!aServant.isManager()) {
-                comet::Logger::log(
-                    "This Servant does not accept jobs since it is not the managing Servant, submit to " + aServant.getManagerIpAddress(),
-                    LoggerLevel::DEBUG);
-            }
-            comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::DEBUG);
-
-            if (!db.isConnected()) {
-                comet::Logger::log("Database connection failed", LoggerLevel::CRITICAL);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k406NotAcceptable);
-                resp->setBody(R"({"ErrorMessage":"Error mySQL database connection"})");
-                callback(resp);
-                return;
-            }
-
-            auto json = request->getJsonObject();
-            if (!json) {
-                comet::Logger::log("Invalid JSON payload", LoggerLevel::WARNING);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"error":"Invalid JSON payload"})");
-                callback(resp);
-                return;
-            }
-
-            if (uploadJob(request)) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k201Created);
-                resp->setBody(R"({"status":"Job uploaded successfully"})");
-                comet::Logger::log("Response sent: Job uploaded successfully", LoggerLevel::DEBUG);
-                callback(resp);
-            } else {
-                comet::Logger::log("Failed to upload job", LoggerLevel::WARNING);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"error":"Failed to upload job"})");
-                callback(resp);
-            }
-        },
-        {Post});
-}
-
-void WebServices::registerJobSummaryHandler()
-{
-    app().registerHandler(
-        "/job_summary",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            if (!auth.machineAuthenticationisValid()) {
-                comet::Logger::log("Unauthorized access to /job_summary", LoggerLevel::WARNING);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k401Unauthorized);
-                resp->setBody("Unauthorized");
-                callback(resp);
-                return;
-            }
-            comet::Logger::log("Handling GET request to /job_summary", LoggerLevel::INFO);
-
-            auto sort = request->getParameter("sort");
-            auto filter = request->getParameter("filter");
-
-            std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
-
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setBody(setHTMLBody(report, "/job_summary"));
-            callback(resp);
-        },
-        {Get});
-}
-
-void WebServices::registerServantStatusHandler()
-{
-    app().registerHandler(
-        "/servant/status",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            if (request->method() != drogon::Post) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k405MethodNotAllowed);
-                resp->setBody("Method Not Allowed");
-                callback(resp);
-                return;
-            }
-
-            auto json = request->getJsonObject();
-            if (!json) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody("Invalid JSON properties");
-                callback(resp);
-                return;
-            }
-
-            try {
-                aServant.setTotalCores((*json)["totalCores"].asInt());
-                aServant.setUnusedCores((*json)["unusedCores"].asInt());
-                aServant.setActiveCores((*json)["activeCores"].asInt());
-                aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
-                aServant.setIpAddress((*json)["ipAddress"].asString());
-                aServant.setVersion((*json)["ServantVersion"].asString());
-                aServant.setEmail((*json)["email"].asString());
-                aServant.setCode((*json)["code"].asString());
-                aServant.setPort((*json)["port"].asInt());
-                aServant.setProjectId((*json)["projectId"].asInt());
-                aServant.updateServantSettings(db);
-
-                auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
-                auto resp = drogon::HttpResponse::newHttpJsonResponse(postData.dump());
-                callback(resp);
-            } catch (const std::exception &e) {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k400BadRequest);
-                resp->setBody("Error processing JSON: " + std::string(e.what()));
-                callback(resp);
-            }
-        },
-        {Post});
-}
-
-void WebServices::registerStatusHandler()
-{
-    app().registerHandler(
-        "/status/",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            if (request->method() != drogon::Post) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k405MethodNotAllowed);
-                resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
-                callback(resp);
-                return;
-            }
-
-            auto email = request->getHeader("X-Email");
-            auto code = request->getHeader("X-Code");
-
-            if (email.empty() || code.empty()) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
-                callback(resp);
-                return;
-            }
-
-            auto json = request->getJsonObject();
-            if (!json || !json->isMember("CloudDataConnection")) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
-                callback(resp);
-                return;
-            }
-
-            std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
-            comet::Logger::log("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
-
-            nlohmann::json responseJson = {
-                {"Status", "success"},
-                {"message", "Status updated successfully"},
-                {"errorMessage", ""}
+            nlohmann::json jsonResponse = {
+              {"company", "COMET Strategy - Australia"},
+              {"HubName", "COMET Servant (" + aServant.getIpAddress() + "):LOCAL"},
+              {"HubAddress", hubAddress},
+              {"CloudDataConnection", "notused"},
+              {"ErrorMessage", ""}
             };
 
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k200OK);
             resp->setContentTypeCode(CT_APPLICATION_JSON);
-            resp->setBody(responseJson.dump());
+            resp->setBody(jsonResponse.dump());
             callback(resp);
+            return;
+          }
+
+          auto resp = HttpResponse::newHttpResponse();
+          std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
+          if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
+          resp->setBody(setHTMLBody(responseBody, "/"));
+          Logger::log("COMET Servant Home: alive!");
+          callback(resp);
         },
-        {Post});
-}
+      {Get, Post});
+  }
 
-void WebServices::registerStatusJobsHandler()
-{
+void WebServices::registerAuthenticateHandler()
+  {
     app().registerHandler(
-        "/status/jobs/",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+      "/authenticate",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-            if (request->method() != drogon::Get) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k405MethodNotAllowed);
-                resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
-                callback(resp);
-                return;
-            }
+          comet::Logger::log("Handling POST request to /authenticate", LoggerLevel::DEBUG);
 
-            comet::Logger::log("Handling GET request to /status/jobs/", LoggerLevel::INFO);
+          aServant.setEmail(request->getParameter("email"));
+          aServant.setCode(request->getParameter("code"));
+          aServant.setIpAddress(request->getParameter("ipAddress"));
 
-            std::string jobStatuses = Job::getAllJobStatuses(db);
+          const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
+          if (!isAuthenticated) {
+            comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
+          }
 
-            nlohmann::json jsonResponse = {
-                {"ErrorMessage", ""},
-                {"Status", jobStatuses}
-            };
+          aServant.updateServantSettings(db);
 
-            auto resp = HttpResponse::newHttpJsonResponse(jsonResponse.dump());
-            callback(resp);
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/");
+          comet::Logger::log(
+            std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant
+            .getEmail() +
+            ". Redirecting to /",
+            LoggerLevel::INFO);
+          callback(resp);
         },
-        {Get});
-}
+      {Post});
+  }
 
-void WebServices::registerQuitHandler()
-{
+void WebServices::registerConfigurationHandler()
+  {
     app().registerHandler(
-        "/quit",
-        [this](const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&callback)
+      "/configuration",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-            m_running = false;
+          comet::Logger::log("Handling POST request to /configuration", LoggerLevel::DEBUG);
+
+          auto totalCores = request->getParameter("totalCores");
+          auto unusedCores = request->getParameter("unusedCores");
+          if (unusedCores.empty()) unusedCores = "0";
+          auto activeCores = request->getParameter("activeCores");
+          if (activeCores.empty()) activeCores = "0";
+          auto managerIpAddress = request->getParameter("managerIpAddress");
+
+          aServant.setTotalCores(std::stoi(totalCores));
+          aServant.setUnusedCores(std::stoi(unusedCores));
+          aServant.setActiveCores(std::stoi(activeCores));
+          aServant.setManagerIpAddress(managerIpAddress);
+
+          if (!db.insertRecord(
+            "UPDATE servants SET totalCores = '" + totalCores + "' "
+            ", unusedCores = '" + unusedCores + +"' "
+            ", activeCores = '" + activeCores + +"' "
+            ", managerIpAddress = '" + managerIpAddress + "' "
+            ", lastUpdateTime = DATETIME('now') "
+            "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
+            comet::Logger::log("Failed to update Settings table with configuration information: ",
+                               LoggerLevel::CRITICAL);
 
             auto resp = HttpResponse::newHttpResponse();
-            resp->setBody(setHTMLBody("Server is shutting down...", "/"));
+            resp->setStatusCode(k500InternalServerError);
+            resp->addHeader("Location", "/");
+            resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
             callback(resp);
+            return;
+          }
 
-            app().quit();
-            Logger::log("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUG);
+          aServant.updateDatabase(db);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/");
+          comet::Logger::log("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
+          callback(resp);
         },
-        {Get});
-}
+      {Post});
+  }
+
+void WebServices::registerUploadJobHandler()
+  {
+    app().registerHandler(
+      "/upload/job/",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          if (!aServant.isManager()) {
+            comet::Logger::log(
+              "This Servant does not accept jobs since it is not the managing Servant, submit to " + aServant.
+              getManagerIpAddress(),
+              LoggerLevel::DEBUG);
+          }
+          comet::Logger::log("Handling POST request to /upload/job/", LoggerLevel::DEBUG);
+
+          if (!db.isConnected()) {
+            comet::Logger::log("Database connection failed", LoggerLevel::CRITICAL);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k406NotAcceptable);
+            resp->setBody(R"({"ErrorMessage":"Error mySQL database connection"})");
+            callback(resp);
+            return;
+          }
+
+          auto json = request->getJsonObject();
+          if (!json) {
+            comet::Logger::log("Invalid JSON payload", LoggerLevel::WARNING);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"error":"Invalid JSON payload"})");
+            callback(resp);
+            return;
+          }
+
+          if (uploadJob(request)) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k201Created);
+            resp->setBody(R"({"status":"Job uploaded successfully"})");
+            comet::Logger::log("Response sent: Job uploaded successfully", LoggerLevel::DEBUG);
+            callback(resp);
+          } else {
+            comet::Logger::log("Failed to upload job", LoggerLevel::WARNING);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"error":"Failed to upload job"})");
+            callback(resp);
+          }
+        },
+      {Post});
+  }
+
+void WebServices::registerJobSummaryHandler()
+  {
+    app().registerHandler(
+      "/job_summary",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          if (!auth.machineAuthenticationisValid()) {
+            comet::Logger::log("Unauthorized access to /job_summary", LoggerLevel::WARNING);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k401Unauthorized);
+            resp->setBody("Unauthorized");
+            callback(resp);
+            return;
+          }
+          comet::Logger::log("Handling GET request to /job_summary", LoggerLevel::INFO);
+
+          auto sort = request->getParameter("sort");
+          auto filter = request->getParameter("filter");
+
+          std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setBody(setHTMLBody(report, "/job_summary"));
+          callback(resp);
+        },
+      {Get});
+  }
+
+void WebServices::registerServantStatusHandler()
+  {
+    app().registerHandler(
+      "/servant/status",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          if (request->method() != drogon::Post) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k405MethodNotAllowed);
+            resp->setBody("Method Not Allowed");
+            callback(resp);
+            return;
+          }
+
+          auto json = request->getJsonObject();
+          if (!json) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody("Invalid JSON properties");
+            callback(resp);
+            return;
+          }
+
+          try {
+            aServant.setTotalCores((*json)["totalCores"].asInt());
+            aServant.setUnusedCores((*json)["unusedCores"].asInt());
+            aServant.setActiveCores((*json)["activeCores"].asInt());
+            aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
+            aServant.setIpAddress((*json)["ipAddress"].asString());
+            aServant.setVersion((*json)["ServantVersion"].asString());
+            aServant.setEmail((*json)["email"].asString());
+            aServant.setCode((*json)["code"].asString());
+            aServant.setPort((*json)["port"].asInt());
+            aServant.setProjectId((*json)["projectId"].asInt());
+            aServant.updateServantSettings(db);
+
+            auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
+            auto resp = drogon::HttpResponse::newHttpJsonResponse(postData.dump());
+            callback(resp);
+          } catch (const std::exception &e) {
+            auto resp = drogon::HttpResponse::newHttpResponse();
+            resp->setStatusCode(drogon::k400BadRequest);
+            resp->setBody("Error processing JSON: " + std::string(e.what()));
+            callback(resp);
+          }
+        },
+      {Post});
+  }
+
+void WebServices::registerStatusHandler()
+  {
+    app().registerHandler(
+      "/status/",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          if (request->method() != drogon::Post) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k405MethodNotAllowed);
+            resp->setBody(R"({"ErrorMessage":"Method Not Allowed"})");
+            callback(resp);
+            return;
+          }
+
+          auto email = request->getHeader("X-Email");
+          auto code = request->getHeader("X-Code");
+
+          if (email.empty() || code.empty()) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
+            callback(resp);
+            return;
+          }
+
+          auto json = request->getJsonObject();
+          if (!json || !json->isMember("CloudDataConnection")) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+            callback(resp);
+            return;
+          }
+
+          std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
+          comet::Logger::log("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
+
+          nlohmann::json responseJson = {
+            {"Status", "success"},
+            {"message", "Status updated successfully"},
+            {"errorMessage", ""}
+          };
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setContentTypeCode(CT_APPLICATION_JSON);
+          resp->setBody(responseJson.dump());
+          callback(resp);
+        },
+      {Post});
+  }
+
+void WebServices::registerStatusJobsHandler()
+  {
+    app().registerHandler(
+      "/status/jobs/",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          if (request->method() != drogon::Post) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k405MethodNotAllowed);
+            resp->setBody( "{\"ErrorMessage\":\"Method {" + to_string(request->method()) + "} Not Allowed\"}");
+            callback(resp);
+            return;
+          }
+
+          comet::Logger::log("Handling GET request to /status/jobs/", LoggerLevel::INFO);
+
+          // Get GroupName from Posted data
+          auto json = request->getJsonObject();
+          if (!json || !json->isMember("GroupName")) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+            callback(resp);
+            return;
+          }
+          std::string GroupName = (*json)["GroupName"].asString();
+          std::string jobStatuses = Job::getAllJobStatuses(db, GroupName);
+
+          //jobStatuses = R"(Hello\tworld\n" )";
+
+
+          nlohmann::json jsonResponse = {
+            {"ErrorMessage", ""},
+            {"Status", "jobStatuses"}
+          };
+
+          //auto resp = HttpResponse::newHttpJsonResponse(jsonResponse.dump());
+          jobStatuses = "{\"ErrorMessage\": \"\", \"Status\": \"" + jobStatuses + "\"}";
+          auto resp = HttpResponse::newHttpResponse();
+          resp->addHeader("Access-Control-Allow-Headers", "Content-type");
+          resp->setContentTypeCode(CT_TEXT_HTML);
+          resp->setBody(jobStatuses);
+          callback(resp);
+        },
+      {Get, Post});
+  }
+
+void WebServices::registerQuitHandler()
+  {
+    app().registerHandler(
+      "/quit",
+      [this](const HttpRequestPtr &, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          m_running = false;
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setBody(setHTMLBody("Server is shutting down...", "/"));
+          callback(resp);
+
+          app().quit();
+          Logger::log("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUG);
+        },
+      {Get});
+  }
+
 void WebServices::shutdown()
   {
     comet::Logger::log("WebServices::shutdown()", LoggerLevel::DEBUG);

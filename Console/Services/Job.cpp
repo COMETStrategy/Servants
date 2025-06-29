@@ -180,7 +180,7 @@ namespace comet
         std::vector<std::string> filters = {"all", "complete", "active", "failed"};
         for (const auto &f: filters) {
           if (f == filter) {
-            filterLinks += "<span class='highlightbutton'>" + f +"</span>";
+            filterLinks += "<span class='highlightbutton'>" + f + "</span>";
           } else {
             filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + f + "</a>";
           }
@@ -198,7 +198,8 @@ namespace comet
             if (sortDescAsc == "DESC") {
               std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::toupper);
             }
-            sortLinks += "<a href='" + baseUrl + "?sort=" + sortCaseAdjusted + "&filter=" + filter + "' class='highlightbutton'>" + s + " (" + sortDescAsc + ")" +
+            sortLinks += "<a href='" + baseUrl + "?sort=" + sortCaseAdjusted + "&filter=" + filter +
+                "' class='highlightbutton'>" + s + " (" + sortDescAsc + ")" +
                 "</a>";
           } else {
             sortLinks += "<a href='" + baseUrl + "?sort=" + s + "&filter=" + filter + "'>" + s + "</a>";
@@ -279,10 +280,10 @@ namespace comet
         return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
       }
 
-    std::string Job::getAllJobStatuses(Database &db)
+    std::string Job::getAllJobStatuses(Database &db, std::string &GroupName)
       {
         std::string result;
-        std::string query = "Select * from jobs where 1 order by LastUpdate Limit 500;";
+        std::string query = "Select * from jobs where GroupName = '" + GroupName + "' order by LastUpdate Limit 500;";
         auto results = db.getQueryResults(query);
         if (results.empty()) {
           result = "No jobs found.";
@@ -290,28 +291,38 @@ namespace comet
         }
 
         result =
-            "Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n";
+            R"(Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n)";
 
         for (const auto &row: results) {
           auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
-          // Getthe following Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n
-          result += row.at("GroupName") + "\t" +
-              row.at("CaseNumber") + "\t" +
-              row.at("CaseName") + "\t" +
-              row.at("IterationsComplete") + "\t" +
-              row.at("Ranking") + "\t" +
-              row.at("Life") + "\t" +
-              row.at("ID") + "\t" +
-              Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "\t" +
-              row.at("Progress") + "\t" +
-              row.at("RunTimeMin") + "\t" +
-              row.at("LastUpdate") + "\t" +
-              row.at("Servant") + "\t" +
-              row.at("CreatorName") + "\t" +
-              row.at("EngineVersion") + "\t" +
-              row.at("WorkingDirectory") + "\n";
-        }
+          std::string lookupkey = "";
+          // Get the following Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n
+          try {
+            std::vector<std::string> keys = {
+              "GroupName", "CaseNumber", "CaseName", "IterationsComplete", "Ranking",
+              "Life", "Id", "Status", "RunProgress", "RunTimeMin", "LastUpdate",
+              "Servant", "CreatorName", "EngineVersion", "WorkingDirectory"
+            };
 
+            std::string separator = "";
+            for (const auto &key: keys) {
+              lookupkey = key; // Update lookupkey before accessing the row
+              auto value = row.at(key);
+              if (key == "Status") {
+                value = Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")";
+              }
+              result += separator + value;
+              separator = R"(\t)";
+            }
+            
+            result += R"(\n)";
+
+            result += "\n"; // Add a newline at the end of the row
+          } catch (const std::exception &e) {
+            comet::Logger::log(std::string("Error processing key: ") + lookupkey + " - " + e.what(), comet::CRITICAL);
+            result += "invalid " + lookupkey + "\t"; // Add an invalid record for the failed key
+          }
+        }
         return result;
       }
 

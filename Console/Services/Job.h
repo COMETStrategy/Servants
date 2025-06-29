@@ -70,6 +70,10 @@ namespace comet
         std::string getReplaceQueryString() const;
         std::string description();
 
+        static int mockRunJobs(const Database & db);
+
+        static int resetRunningJobs(Database &db);
+
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
 
         static bool createNewJobsTable(Database &db);

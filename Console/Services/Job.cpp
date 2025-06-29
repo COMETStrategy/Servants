@@ -164,6 +164,8 @@ namespace comet
 
 
         // Save original sort and order
+        if (sort.empty()) sort = "date";
+        if (filter.empty()) filter = "all";
         auto rawSort = sort;
         auto rawFilter = filter;
         std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
@@ -278,6 +280,33 @@ namespace comet
     std::string Job::description()
       {
         return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
+      }
+
+    int Job::mockRunJobs(const Database &db)
+      {
+        auto query = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Running)) +
+                  ", Servant = 'MockServant', Ranking = 123.457, Life = 45.67, IterationsComplete = 0, RunTimeMin = 12.34, RunProgress = 'Completed Iteration 0', LastUpdate = datetime('now') " +
+                  "WHERE  CaseNumber  = 20.000012 ;";
+        auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
+        if (rowsImpacted == 0) {
+          comet::Logger::log("Failed to reset running jobs", comet::CRITICAL);
+          return 0;
+        }
+        return rowsImpacted;
+
+      }
+
+    int Job::resetRunningJobs(Database &db)
+      {
+        auto query = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Queued)) +
+                     ", Servant = NULL, Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now') " +
+                     "WHERE  Status  = " + std::to_string(int(JobStatus::Running)) + " ;";
+        auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
+        if (rowsImpacted == 0) {
+          comet::Logger::log("No running jobs reset", comet::CRITICAL);
+          return 0;
+        }
+        return rowsImpacted;
       }
 
     std::string Job::getAllJobStatuses(Database &db, std::string &GroupName)

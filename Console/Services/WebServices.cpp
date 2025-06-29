@@ -88,6 +88,8 @@ void WebServices::initializeHandlers()
     registerConfigurationHandler();
     registerUploadJobHandler();
     registerJobSummaryHandler();
+    registerMockRunJobsHandler();
+    registerResetRunningJobsHandler();
     registerServantStatusHandler();
     registerStatusHandler();
     registerStatusJobsHandler();
@@ -220,6 +222,80 @@ void WebServices::registerConfigurationHandler()
       {Post});
   }
 
+void WebServices::registerMockRunJobsHandler()
+  {
+    app().registerHandler(
+      "/mockrunjobs",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          handleInvalidMethod(request);
+
+          try {
+            int updatedRows = Job::mockRunJobs(db);
+
+            nlohmann::json responseJson = {
+              {"ErrorMessage", ""},
+              {"Status", "Mock run jobs ({" + std::to_string(updatedRows) + "} rows affected)."},
+              {"Message", "Mock run jobs executed successfully"},
+              {"UpdatedRows", updatedRows}
+            };
+
+            auto resp = HttpResponse::newHttpResponse();
+          resp->setBody(setHTMLBody("Mock run jobs ({" + std::to_string(updatedRows) + "} rows affected).", request->path()));
+          callback(resp);
+
+            comet::Logger::log("Successfully executed mock run jobs", LoggerLevel::INFO);
+          } catch (const std::exception &e) {
+            comet::Logger::log(std::string("Error executing mock run jobs: ") + e.what(), LoggerLevel::CRITICAL);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(R"({"ErrorMessage":"Failed to execute mock run jobs"})");
+            callback(resp);
+          }
+        },
+      {Post, Get});
+  }
+
+void WebServices::registerResetRunningJobsHandler()
+  {
+    app().registerHandler(
+      "/resetrunningjobs",
+      [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+          handleInvalidMethod(request);
+
+
+          try {
+            // Reset all jobs with status "Running" to "Queued"
+            int updatedRows = Job::resetRunningJobs(db);
+
+            nlohmann::json responseJson = {
+              {"ErrorMessage", ""},
+              {
+                "Status",
+                "Reset Allocated and Running to received status ({" + to_string(updatedRows) + "} rows affected)."
+              },
+              {"Message", "Reset running jobs to queued"},
+              {"UpdatedRows", updatedRows}
+            };
+
+ 
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setBody(setHTMLBody("Reset Allocated and Running to received status ({" + to_string(updatedRows) + "} rows affected).", request->path()));
+            callback(resp);
+
+            comet::Logger::log("Successfully reset running jobs to queued", LoggerLevel::INFO);
+          } catch (const std::exception &e) {
+            comet::Logger::log(std::string("Error resetting running jobs: ") + e.what(), LoggerLevel::CRITICAL);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(R"({"ErrorMessage":"Failed to reset running jobs"})");
+            callback(resp);
+          }
+        },
+      {Post, Get});
+  }
+
 void WebServices::registerUploadJobHandler()
   {
     app().registerHandler(
@@ -347,7 +423,6 @@ void WebServices::registerStatusHandler()
       "/status/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
-          
           handleInvalidMethod(request);
 
           auto email = request->getHeader("X-Email");
@@ -478,6 +553,8 @@ std::string WebServices::getHTMLHeader(const std::string &targetPath) const
       {"Settings", "/"},
       {"Job Summary", "/job_summary?sort=date&filter=all"},
       {"Servant Status", "/servant/status"},
+      {"Reset Running Jobs (Dev only)", "/resetrunningjobs"},
+      {"Mock Run Jobs (Dev only)", "/mockrunjobs"},
       {"Quit", "/quit"}
     };
 

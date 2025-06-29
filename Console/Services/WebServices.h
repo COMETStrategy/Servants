@@ -24,6 +24,10 @@ namespace comet
         explicit WebServices(const std::string& dbFilename = "~/comet-servants.db");
         ~WebServices();
 
+        void registerResetRunningJobsHandler();
+
+        void registerMockRunJobsHandler();
+
         void initializeHandlers();
         void shutdown();
 

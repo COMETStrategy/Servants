@@ -90,7 +90,7 @@ namespace comet
                             "unusedCores = " + std::to_string(unusedCores) + ", activeCores = " + std::to_string(activeCores) + " "
                             "WHERE ipAddress = '" + ipAddress + "';";
         
-        if (!db.updateQuery("Update Servants", query, false)) {
+        if (db.updateQuery("Update Servants", query, false) == 0) {
           // do an insert a new record
           query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
                   "version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress) "
@@ -309,7 +309,7 @@ namespace comet
           ", '" + managerIpAddress + "' )", false
         )) {
           // Just update the record but not the registration time
-          if (!db.updateQuery("Update the Servant table",
+          if (db.updateQuery("Update the Servant table",
                               "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + email  + "' "
                               ", code = '" + code + "', port = '" + std::to_string(port)  + "' "
                               ", totalCores = '" + std::to_string(totalCores)  + "' "
@@ -318,7 +318,7 @@ namespace comet
                               ", version = '" + version + "' "
                               ", managerIpAddress = '" + managerIpAddress + "' "
                               "WHERE ipAddress = '" + ipAddress + "' and projectId = '" + std::to_string(
-                                projectId) + "';")) {
+                                projectId) + "';") == 0) {
             comet::Logger::log("Failed to insert or update Servants table with authentication information: ",
                                LoggerLevel::CRITICAL);
           }

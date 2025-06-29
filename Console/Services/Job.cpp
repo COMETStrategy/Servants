@@ -158,111 +158,126 @@ namespace comet
         return true;
       }
 
- std::string Job::jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter)
-{
-    std::string html = "";
+    std::string Job::jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter)
+      {
+        std::string html = "";
 
-    // Generate the base URL
-    std::string baseUrl = "/job_summary";
 
-    // Generate links for filters
-    std::string filterLinks = "Filter: ";
-    std::vector<std::string> filters = {"all", "complete", "active", "failed"};
-    for (const auto &f : filters) {
-        if (f == filter) {
-            filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "' class='highlightbutton'>" + f + "</a>";
-        } else {
+        // Save original sort and order
+        auto rawSort = sort;
+        auto rawFilter = filter;
+        std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
+        std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
+
+        std::string sortDescAsc = "DESC";
+        if (sort != rawSort) sortDescAsc = "ASC";
+
+        // Generate the base URL
+        std::string baseUrl = "/job_summary";
+
+        // Generate links for filters
+        std::string filterLinks = "Filter: ";
+        std::vector<std::string> filters = {"all", "complete", "active", "failed"};
+        for (const auto &f: filters) {
+          if (f == filter) {
+            filterLinks += "<span class='highlightbutton'>" + f +"</span>";
+          } else {
             filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + f + "</a>";
-        }
-        if (f != filters.back()) {
+          }
+          if (f != filters.back()) {
             filterLinks += ", ";
+          }
         }
-    }
 
-    // Generate links for sorting options
-    std::string sortLinks = "Order: ";
-    std::vector<std::string> sorts = {"status", "date", "npv", "case"};
-    for (const auto &s : sorts) {
-        if (s == sort) {
-            sortLinks += "<a href='" + baseUrl + "?sort=" + s + "&filter=" + filter + "' class='highlightbutton'>" + s + "</a>";
-        } else {
+        // Generate links for sorting options
+        std::string sortLinks = "Order: ";
+        std::vector<std::string> sorts = {"status", "date", "npv", "case"};
+        for (const auto &s: sorts) {
+          if (s == sort) {
+            std::string sortCaseAdjusted = s;
+            if (sortDescAsc == "DESC") {
+              std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::toupper);
+            }
+            sortLinks += "<a href='" + baseUrl + "?sort=" + sortCaseAdjusted + "&filter=" + filter + "' class='highlightbutton'>" + s + " (" + sortDescAsc + ")" +
+                "</a>";
+          } else {
             sortLinks += "<a href='" + baseUrl + "?sort=" + s + "&filter=" + filter + "'>" + s + "</a>";
-        }
-        if (s != sorts.back()) {
+          }
+          if (s != sorts.back()) {
             sortLinks += ", ";
+          }
         }
-    }
 
-    // Add filter and sort links to the HTML
-    html += "<h1>Job Summary</h1>";
-    html += "<h4>" + filterLinks + "</h4>";
-    html += "<h4>" + sortLinks + "</h4>";
+        // Add filter and sort links to the HTML
+        html += "<h1>Job Summary</h1>";
+        html += "<h4>" + filterLinks + "</h4>";
+        html += "<h4>" + sortLinks + "</h4>";
 
-    // Get the job summary from the database
-    std::string selection = "SELECT * FROM jobs ";
-    std::string whereClause = "";
-    if (filter == "all") {
-        whereClause = "";
-    } else if (filter == "active") {
-        whereClause = " WHERE Status IN (1, 2) ";
-    } else if (filter == "complete") {
-        whereClause = " WHERE Status IN (3, 4) ";
-    } else if (filter == "failed") {
-        whereClause = " WHERE Status = 3 ";
-    }
-    std::string orderBy = " ORDER BY LastUpdate DESC ";
-    if (sort == "status") {
-        orderBy = " ORDER BY Status DESC, LastUpdate DESC ";
-    } else if (sort == "date") {
-        orderBy = " ORDER BY LastUpdate DESC ";
-    } else if (sort == "npv") {
-        orderBy = " ORDER BY Ranking DESC, LastUpdate DESC ";
-    } else if (sort == "case") {
-        orderBy = " ORDER BY CaseNumber ASC ";
-    }
-    auto query = selection + whereClause + orderBy + " LIMIT 500;";
-    auto results = db.getQueryResults(query);
+        // Get the job summary from the database
+        std::string selection = "SELECT * FROM jobs ";
+        std::string whereClause = "";
+        if (filter == "all") {
+          whereClause = "";
+        } else if (filter == "active") {
+          whereClause = " WHERE Status IN (1, 2) ";
+        } else if (filter == "complete") {
+          whereClause = " WHERE Status IN (3, 4) ";
+        } else if (filter == "failed") {
+          whereClause = " WHERE Status = 3 ";
+        }
+        std::string orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
+        if (sort == "status") {
+          orderBy = " ORDER BY Status " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
+        } else if (sort == "date") {
+          orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
+        } else if (sort == "npv") {
+          orderBy = " ORDER BY Ranking " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
+        } else if (sort == "case") {
+          orderBy = " ORDER BY CaseNumber " + sortDescAsc + " ";
+        }
+        auto query = selection + whereClause + orderBy + " LIMIT 500;";
+        auto results = db.getQueryResults(query);
 
-    if (results.empty()) {
-        html += "<p>No jobs found.</p>";
-        return html;
-    }
+        if (results.empty()) {
+          html += "<p>No jobs found.</p>";
+          return html;
+        }
 
-    // Generate the table
-    html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;'>";
-    html += "<tr><th>Last Update</th><th>Group Name</th><th>Case Number</th><th>Servant</th><th>Status</th>"
+        // Generate the table
+        html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;'>";
+        html += "<tr><th>Last Update</th><th>Group Name</th><th>Case Number</th><th>Servant</th><th>Status</th>"
             "<th>NPV</th><th>Life</th><th>Case Name</th><th>Creator Name</th><th>Creator Machine</th>"
             "<th>Creator Email</th><th>Input File Name</th></tr>";
 
-    int rowIndex = 0;
-    for (const auto &row : results) {
-        std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
-        auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
-        html += "<tr class='" + rowClass + "'>";
-        html += "<td>" + row.at("LastUpdate") + "</td>";
-        html += "<td>" + row.at("GroupName") + "</td>";
-        html += "<td>" + row.at("CaseNumber") + "</td>";
-        html += "<td>" + (row.at("Servant").empty() ? "None" : row.at("Servant")) + "</td>";
-        html += "<td>" + Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "</td>";
-        html += "<td>" + row.at("Ranking") + "</td>";
-        html += "<td>" + row.at("Life") + "</td>";
-        html += "<td>" + row.at("CaseName") + "</td>";
-        html += "<td>" + row.at("CreatorName") + "</td>";
-        html += "<td>" + row.at("CreatorMachine") + "</td>";
-        html += "<td>" + row.at("CreatorXEmail") + "</td>";
-        html += "<td>" + row.at("InputFileName") + "</td>";
-        html += "</tr>";
-        rowIndex++;
-    }
-    html += "</table>";
+        int rowIndex = 0;
+        for (const auto &row: results) {
+          std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
+          auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
+          html += "<tr class='" + rowClass + "'>";
+          html += "<td>" + row.at("LastUpdate") + "</td>";
+          html += "<td>" + row.at("GroupName") + "</td>";
+          html += "<td>" + row.at("CaseNumber") + "</td>";
+          html += "<td>" + (row.at("Servant").empty() ? "None" : row.at("Servant")) + "</td>";
+          html += "<td>" + Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "</td>";
+          html += "<td>" + row.at("Ranking") + "</td>";
+          html += "<td>" + row.at("Life") + "</td>";
+          html += "<td>" + row.at("CaseName") + "</td>";
+          html += "<td>" + row.at("CreatorName") + "</td>";
+          html += "<td>" + row.at("CreatorMachine") + "</td>";
+          html += "<td>" + row.at("CreatorXEmail") + "</td>";
+          html += "<td>" + row.at("InputFileName") + "</td>";
+          html += "</tr>";
+          rowIndex++;
+        }
+        html += "</table>";
 
-    return html;
-}
+        return html;
+      }
 
     std::string Job::description()
-  {
-    return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
-  }
+      {
+        return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
+      }
 
     std::string Job::getAllJobStatuses(Database &db)
       {
@@ -274,74 +289,72 @@ namespace comet
           return result;
         }
 
-        result = "Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n";
+        result =
+            "Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n";
 
-        for (const auto &row : results) {
+        for (const auto &row: results) {
           auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
           // Getthe following Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n
           result += row.at("GroupName") + "\t" +
-                    row.at("CaseNumber") + "\t" +
-                    row.at("CaseName") + "\t" +
-                    row.at("IterationsComplete") + "\t" +
-                    row.at("Ranking") + "\t" +
-                    row.at("Life") + "\t" +
-                    row.at("ID") + "\t" +
-                    Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")"  + "\t" +
-                    row.at("Progress") + "\t" +
-                    row.at("RunTimeMin") + "\t" +
-                    row.at("LastUpdate") + "\t" +
-                    row.at("Servant") + "\t" +
-                    row.at("CreatorName") + "\t" +
-                    row.at("EngineVersion") + "\t" +
-                    row.at("WorkingDirectory") + "\n";
-
+              row.at("CaseNumber") + "\t" +
+              row.at("CaseName") + "\t" +
+              row.at("IterationsComplete") + "\t" +
+              row.at("Ranking") + "\t" +
+              row.at("Life") + "\t" +
+              row.at("ID") + "\t" +
+              Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "\t" +
+              row.at("Progress") + "\t" +
+              row.at("RunTimeMin") + "\t" +
+              row.at("LastUpdate") + "\t" +
+              row.at("Servant") + "\t" +
+              row.at("CreatorName") + "\t" +
+              row.at("EngineVersion") + "\t" +
+              row.at("WorkingDirectory") + "\n";
         }
 
         return result;
-        
       }
 
     JobStatus Job::jobStatus() const
-  {
-    return status;
-  }
+      {
+        return status;
+      }
 
-bool Job::validJobStatus() const
-  {
-    return status != JobStatus::Failed;
-  }
+    bool Job::validJobStatus() const
+      {
+        return status != JobStatus::Failed;
+      }
 
-std::string Job::jobStatusDescription(const JobStatus aStatus) 
-  {
-    // Convert JobStatus to string description
-    switch (aStatus) {
-      case Queued: return "Queued";
-      case Allocated: return "Allocated";
-      case Running: return "Running";
-      case Failed: return "Failed";
-      case Completed: return "Completed";
-      default: return "Unknown Status";
-    }
-  }
+    std::string Job::jobStatusDescription(const JobStatus aStatus)
+      {
+        // Convert JobStatus to string description
+        switch (aStatus) {
+          case Queued: return "Queued";
+          case Allocated: return "Allocated";
+          case Running: return "Running";
+          case Failed: return "Failed";
+          case Completed: return "Completed";
+          default: return "Unknown Status";
+        }
+      }
 
-JobStatus Job::setJobStatus(const char *statusDescription)
-  {
-    // update the status from the description using a switch statement
-    if (strcmp(statusDescription, "Queued") == 0) {
-      status = Queued;
-    } else if (strcmp(statusDescription, "Allocated") == 0) {
-      status = Allocated;
-    } else if (strcmp(statusDescription, "Running") == 0) {
-      status = Running;
-    } else if (strcmp(statusDescription, "Failed") == 0) {
-      status = Failed;
-    } else if (strcmp(statusDescription, "Completed") == 0) {
-      status = Completed;
-    } else {
-      status = Unknown;
-      //throw std::invalid_argument("Invalid job status description");
-    }
-    return status;
+    JobStatus Job::setJobStatus(const char *statusDescription)
+      {
+        // update the status from the description using a switch statement
+        if (strcmp(statusDescription, "Queued") == 0) {
+          status = Queued;
+        } else if (strcmp(statusDescription, "Allocated") == 0) {
+          status = Allocated;
+        } else if (strcmp(statusDescription, "Running") == 0) {
+          status = Running;
+        } else if (strcmp(statusDescription, "Failed") == 0) {
+          status = Failed;
+        } else if (strcmp(statusDescription, "Completed") == 0) {
+          status = Completed;
+        } else {
+          status = Unknown;
+          //throw std::invalid_argument("Invalid job status description");
+        }
+        return status;
+      }
   }
-
-}

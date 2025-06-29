@@ -279,17 +279,6 @@ void WebServices::registerJobSummaryHandler()
             auto sort = request->getParameter("sort");
             auto filter = request->getParameter("filter");
 
-            std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
-            std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
-
-            if (sort != "status" && sort != "date" && sort != "npv" && sort != "case") {
-                sort = "date";
-            }
-
-            if (filter != "active" && filter != "complete" && filter != "failed" && filter != "all") {
-                filter = "all";
-            }
-
             std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
 
             auto resp = HttpResponse::newHttpResponse();
@@ -481,8 +470,8 @@ std::string WebServices::getHTMLHeader(const std::string &targetPath) const
       };
 
     std::vector<Link> links = {
-      {"Public", "https://www.cometstrategy.com/"},
-      {"Support", "https://support.cometstrategy.com/?site=support&page=dashboard"},
+      //{"Public", "https://www.cometstrategy.com/"},
+      //{"Support", "https://support.cometstrategy.com/?site=support&page=dashboard"},
       {"Settings", "/"},
       {"Job Summary", "/job_summary?sort=date&filter=all"},
       {"Servant Status", "/servant/status"},

@@ -52,10 +52,10 @@ namespace comet
         std::filesystem::path parentPath = std::filesystem::path(fullPath).parent_path();
         if (!std::filesystem::exists(parentPath)) {
           if (!std::filesystem::create_directories(parentPath)) {
-            comet::Logger::log("Failed to create database directory: " + parentPath.string(), comet::LoggerLevel::CRITICAL);
+            COMETLOG("Failed to create database directory: " + parentPath.string(), comet::LoggerLevel::CRITICAL);
             throw std::runtime_error("Unable to create database directory: " + parentPath.string());
           }
-          comet::Logger::log("Database directory created: " + parentPath.string(), comet::LoggerLevel::INFO);
+          COMETLOG("Database directory created: " + parentPath.string(), comet::LoggerLevel::INFO);
         }
     
         return std::filesystem::path(fullPath);
@@ -231,7 +231,7 @@ namespace comet
 
         curl = curl_easy_init();
         if (!curl) {
-          Logger::log( "Failed to initialize CURL", LoggerLevel::CRITICAL);
+          COMETLOG( "Failed to initialize CURL", LoggerLevel::CRITICAL);
           curl_global_cleanup();
           return publicIP;
         }
@@ -243,7 +243,7 @@ namespace comet
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
           
-          Logger::log( std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res), LoggerLevel::CRITICAL);
+          COMETLOG( std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res), LoggerLevel::CRITICAL);
 
         }
 
@@ -257,14 +257,14 @@ namespace comet
       {
         std::string mac = getMacAddress();
         if (mac.empty()) {
-          Logger::log( "Failed to retrieve MAC address", LoggerLevel::CRITICAL);
+          COMETLOG( "Failed to retrieve MAC address", LoggerLevel::CRITICAL);
 
           return "";
         }
 
         std::string uuid = getUuid();
         if (uuid.empty()) {
-          Logger::log( "Failed to generate UUID", LoggerLevel::CRITICAL);
+          COMETLOG( "Failed to generate UUID", LoggerLevel::CRITICAL);
           return "";
         }
         return mac;

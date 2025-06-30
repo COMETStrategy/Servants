@@ -12,7 +12,7 @@ namespace comet
     enum LoggerLevel
       {
         ALL,
-        DEBUG,
+        DEBUGGING,
         INFO,
         WARNING,
         CRITICAL,
@@ -21,18 +21,17 @@ namespace comet
 
     std::string LogLevelToString(LoggerLevel level);
     std::string formatTime(std::time_t time);
-    #define LOG(message, logLevel) comet::Logger::log(message, logLevel, __FILE__, __LINE__)
+    #define COMETLOG(message, LoggerLevel) comet::Logger::log(message, LoggerLevel, __FILE__, __LINE__)
 
-    class Logger
+    class   Logger
       {
       private:
         static std::string m_fileName;
-        static LoggerLevel m_logLevel;
+        static LoggerLevel m_LoggerLevel;
 
       public:
-        // Use >> operator overload to write to the log file
-        static void log(const std::string &message, LoggerLevel logLevel = LoggerLevel::INFO, const char *file = __FILE__, int line =
-                            __LINE__);
+        // Use >> operator overload to write to the COMETLOG file
+        static void log(const std::string &message, LoggerLevel COMETLogLevel, const char *file, int line);
 
         static void setFileName(const std::string &fileName);
         static const std::string getFileName();

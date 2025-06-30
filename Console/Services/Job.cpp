@@ -90,12 +90,12 @@ namespace comet
           peopleRefValue = 456; // Replace with actual people reference value
           projectRefValue = 123; // Replace with actual project reference value
         } catch (const std::invalid_argument &e) {
-          comet::Logger::log(e.what(), comet::INFO); // Log the error message
+          COMETLOG(e.what(), comet::INFO); // COMETLOG the error message
           status = JobStatus::Failed; // Set job status to Failed
         }
 
         status = JobStatus::Queued; // Set initial job status to Queued
-        // Log the job status
+        // COMETLOG the job status
       }
 
     std::string Job::getReplaceQueryString() const
@@ -289,7 +289,7 @@ namespace comet
                   "WHERE  CaseNumber  = 20.000012 ;";
         auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
         if (rowsImpacted == 0) {
-          comet::Logger::log("Failed to reset running jobs", comet::CRITICAL);
+          COMETLOG("Failed to reset running jobs", comet::CRITICAL);
           return 0;
         }
         return rowsImpacted;
@@ -303,7 +303,7 @@ namespace comet
                      "WHERE  Status  = " + std::to_string(int(JobStatus::Running)) + " ;";
         auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
         if (rowsImpacted == 0) {
-          comet::Logger::log("No running jobs reset", comet::CRITICAL);
+          COMETLOG("No running jobs reset", comet::CRITICAL);
           return 0;
         }
         return rowsImpacted;
@@ -348,7 +348,7 @@ namespace comet
 
             result += "\n"; // Add a newline at the end of the row
           } catch (const std::exception &e) {
-            comet::Logger::log(std::string("Error processing key: ") + lookupkey + " - " + e.what(), comet::CRITICAL);
+            COMETLOG(std::string("Error processing key: ") + lookupkey + " - " + e.what(), comet::CRITICAL);
             result += "invalid " + lookupkey + "\t"; // Add an invalid record for the failed key
           }
         }

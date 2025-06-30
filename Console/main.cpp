@@ -8,19 +8,19 @@ int main()
      
       comet::WebServices server("~/comet-servants.db");
       
-      comet::Logger::log("Server is running. Press Ctrl+C to stop.", comet::DEBUG);
+      COMETLOG("Server is running. Press Ctrl+C to stop.", comet::DEBUGGING);
   
       server.join();
     }
     catch (const std::exception& e) {
-      comet::Logger::log(std::string("Exception occurred: ") + e.what(), comet::CRITICAL);
+      COMETLOG(std::string("Exception occurred: ") + e.what(), comet::CRITICAL);
       return 1; // Return a non-zero value to indicate failure
     }
     catch (...) {
-      comet::Logger::log("An unknown error occurred.", comet::CRITICAL);
+      COMETLOG("An unknown error occurred.", comet::CRITICAL);
       return 1; // Return a non-zero value to indicate failure
     }
-    comet::Logger::log( std::string("☑️Completed 👋") );
+    COMETLOG( std::string("☑️Completed 👋"), comet::INFO );
     
     return 0;
   }

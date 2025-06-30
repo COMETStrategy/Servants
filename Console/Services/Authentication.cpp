@@ -57,13 +57,13 @@ namespace comet
 
         if (response.isError()) {
           if (response.type == Curl::ResponseType::Error) {
-            Logger::log(std::string("Licence Error: ") + std::to_string(response.status) + " - " + response.body,
+            COMETLOG(std::string("Licence Error: ") + std::to_string(response.status) + " - " + response.body,
                         LoggerLevel::CRITICAL);
           } else if (response.type == Curl::ResponseType::CurlError) {
-            Logger::log(std::string("Licence Curl Error: ") + response.curlError + " at " + requestUrl,
+            COMETLOG(std::string("Licence Curl Error: ") + response.curlError + " at " + requestUrl,
                         LoggerLevel::CRITICAL);
           } else {
-            Logger::log(std::string("Licence Undefined Error at ") + requestUrl, LoggerLevel::CRITICAL);
+            COMETLOG(std::string("Licence Undefined Error at ") + requestUrl, LoggerLevel::CRITICAL);
           }
           return false;
         }
@@ -73,15 +73,15 @@ namespace comet
         try {
           jsonResponse = nlohmann::json::parse(response.body);
         } catch (const nlohmann::json::parse_error &e) {
-          Logger::log("JSON Parse Error: " + std::string(e.what()), LoggerLevel::CRITICAL);
+          COMETLOG("JSON Parse Error: " + std::string(e.what()), LoggerLevel::CRITICAL);
           return false;
         }
         if (!jsonResponse.contains("isValid") || !jsonResponse["isValid"].is_boolean()) {
-          Logger::log("Invalid response format: 'isValid' field not found or not a boolean", LoggerLevel::CRITICAL);
+          COMETLOG("Invalid response format: 'isValid' field not found or not a boolean", LoggerLevel::CRITICAL);
           return false;
         }
         if (!jsonResponse["isValid"]) {
-          Logger::log("Validation failed " + response.body, LoggerLevel::CRITICAL);
+          COMETLOG("Validation failed " + response.body, LoggerLevel::CRITICAL);
           return false;
         }
         return jsonResponse["isValid"].get<bool>();
@@ -92,13 +92,13 @@ namespace comet
       {
         isAuthenticated = false;
         if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 8) {
-          Logger::log("Invalid authentication parameters.", LoggerLevel::CRITICAL);
+          COMETLOG("Invalid authentication parameters.", LoggerLevel::CRITICAL);
           return false;
         }
         if (!CheckVerificationInformation(email, code)) return false;
         
         isAuthenticated = true;
-        Logger::log("Valid authentication settings ✅", LoggerLevel::INFO);
+        COMETLOG("Valid authentication settings ✅", LoggerLevel::INFO);
         return true;
       }
 

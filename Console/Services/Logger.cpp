@@ -13,14 +13,14 @@ namespace comet
     // comet
 
     std::string comet::Logger::m_fileName = "";
-    LoggerLevel comet::Logger::m_logLevel = LoggerLevel::INFO;
+    LoggerLevel comet::Logger::m_LoggerLevel = LoggerLevel::INFO;
 
     std::string LogLevelToString(LoggerLevel level)
       {
         switch (level) {
           case LoggerLevel::ALL: return "ALL";
           case LoggerLevel::INFO: return "INFO";
-          case LoggerLevel::DEBUG: return "DEBUG";
+          case LoggerLevel::DEBUGGING: return "DEBUGGING";
           case LoggerLevel::WARNING: return "WARNING";
           case LoggerLevel::CRITICAL: return "CRITICAL";
           case LoggerLevel::NONE: return "NONE";
@@ -36,7 +36,7 @@ namespace comet
         return std::string(buffer);
       }
 
-    void comet::Logger::log(const std::string &message, const LoggerLevel logLevel, const char *file, int line)
+    void Logger::log(const std::string &message, const LoggerLevel COMETLOGLevel, const char *file, int line)
       {
         // Extract the file name using string manipulation
         std::string filePath = file;
@@ -44,21 +44,23 @@ namespace comet
         size_t secondLastSlash = filePath.find_last_of("/\\", lastSlash - 1);
 
         std::string lastDirectoryAndFile = (secondLastSlash != std::string::npos)
-            ? filePath.substr(secondLastSlash + 1)
-            : filePath;
+                                             ? filePath.substr(secondLastSlash + 1)
+                                             : filePath;
+        std::string fileLocation = " (" + lastDirectoryAndFile + ":" + std::to_string(line) + ")";
 
         std::string timeStamp = formatTime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-        std::string commonText = "COMET LOGGER " + timeStamp + " [" + LogLevelToString(logLevel) + "] " +
-                                 " (" + lastDirectoryAndFile + ":" + std::to_string(line) + "): Message: " + message;
+        std::string commonText = "COMET Logger " + timeStamp + " [" + LogLevelToString(COMETLOGLevel) + "] " + message +
+                                 "" +
+                                 fileLocation;
 
-        if (logLevel >= Logger::m_logLevel) {
-          if (logLevel < LoggerLevel::WARNING)
+        if (COMETLOGLevel >= Logger::m_LoggerLevel) {
+          if (COMETLOGLevel < LoggerLevel::WARNING)
             std::cout << commonText << std::endl << std::flush;
           else
             std::cerr << commonText << std::endl << std::flush;
         }
       }
-    
+
     void comet::Logger::setFileName(const std::string &fileName)
       {
         m_fileName = fileName;
@@ -71,11 +73,11 @@ namespace comet
 
     void comet::Logger::setLoggerLevel(const LoggerLevel &level)
       {
-        m_logLevel = level;
+        m_LoggerLevel = level;
       }
 
     LoggerLevel Logger::getLoggerLevel(const LoggerLevel &level)
       {
-        return m_logLevel;
+        return m_LoggerLevel;
       }
   }

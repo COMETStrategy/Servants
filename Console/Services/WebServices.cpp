@@ -1,5 +1,4 @@
 #include <drogon/drogon.h>
-#include <trantor/utils/Logger.h>
 #include <thread>
 #include <chrono>
 #include <ctime>
@@ -31,16 +30,16 @@ WebServices::WebServices(const std::string &dbFilename)
 
     createNewDatabase();
 
-    // Log it
-    comet::Logger::log("Configuration path: " + configurationFilePath, comet::LoggerLevel::INFO);
+    // COMETLOG it
+    COMETLOG("Configuration path: " + configurationFilePath, comet::LoggerLevel::INFO);
     comet::Logger::setLoggerLevel(LoggerLevel::INFO);
-    comet::Logger::log("WebServices::WebServices()", LoggerLevel::DEBUG);
+    COMETLOG("WebServices::WebServices()", LoggerLevel::DEBUGGING);
     aServant.setPort(7777);
     initializeHandlers();
     run();
 
     auto results = db.getQueryResults("SELECT * FROM servants where iPAddress = '" + aServant.getIpAddress() + "';");
-    // Log the created Date and the last updated date
+    // COMETLOG the created Date and the last updated date
     if (!results.empty()) {
       aServant.setTotalCores(stoi(results[0].at("totalCores")));
       aServant.setUnusedCores(stoi(results[0].at("unusedCores")));
@@ -49,24 +48,25 @@ WebServices::WebServices(const std::string &dbFilename)
       aServant.setEmail(results[0].at("email"));
       aServant.setCode(results[0].at("code"));
       aServant.setPort(stoi(results[0].at("port")));;
+      aServant.setPriority(stod(results[0].at("priority")));;
       aServant.setIpAddress(results[0].at("ipAddress"));
       for (const auto &row: results) {
-        comet::Logger::log(
+        COMETLOG(
           "Database Servant: Registration Date: " + row.at("registrationTime") + ", Last Updated Date: " + row.at(
-            "lastUpdateTime"));
+            "lastUpdateTime"), LoggerLevel::INFO);
       }
 
       auto email = results[0].at("email");
       auto code = results[0].at("code");
       auto ipAddress = results[0].at("ipAddress");
       if (!auth.valid(email, code, ipAddress)) {
-        comet::Logger::log("Invalid verification code for machine.", LoggerLevel::WARNING);
+        COMETLOG("Invalid verification code for machine.", LoggerLevel::WARNING);
       }
 
       aServant.setAuthentication(&auth);
       aServant.startRoutineStatusUpdates();
     } else {
-      comet::Logger::log("No records found in Settings table, authentication required.", LoggerLevel::WARNING);
+      COMETLOG("No records found in Settings table, authentication required.", LoggerLevel::WARNING);
     }
   }
 
@@ -76,12 +76,12 @@ WebServices::~WebServices()
     shutdown();
     if (m_serverThread && m_serverThread->joinable()) m_serverThread->join();
 
-    comet::Logger::log("WebServices::~WebServices()", LoggerLevel::DEBUG);
+    COMETLOG("WebServices::~WebServices()", LoggerLevel::DEBUGGING);
   }
 
 void WebServices::initializeHandlers()
   {
-    comet::Logger::log("WebServices::initialize()", LoggerLevel::DEBUG);
+    COMETLOG("WebServices::initialize()", LoggerLevel::DEBUGGING);
 
     registerRootHandler();
     registerAuthenticateHandler();
@@ -100,7 +100,7 @@ void handleInvalidMethod(const HttpRequestPtr &request)
   {
     std::string upperMethod = to_string(request->method());
     std::transform(upperMethod.begin(), upperMethod.end(), upperMethod.begin(), ::toupper);
-    comet::Logger::log("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::DEBUG);
+    COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::INFO);
   }
 
 void WebServices::registerRootHandler()
@@ -135,7 +135,7 @@ void WebServices::registerRootHandler()
           std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
           if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
           resp->setBody(setHTMLBody(responseBody, "/"));
-          Logger::log("COMET Servant Home: alive!");
+          COMETLOG("COMET Servant Home: alive!", LoggerLevel::INFO);
           callback(resp);
         },
       {Get, Post});
@@ -155,7 +155,7 @@ void WebServices::registerAuthenticateHandler()
 
           const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
           if (!isAuthenticated) {
-            comet::Logger::log("Invalid authentication parameters", LoggerLevel::CRITICAL);
+            COMETLOG("Invalid authentication parameters", LoggerLevel::CRITICAL);
           }
 
           aServant.updateServantSettings(db);
@@ -163,7 +163,7 @@ void WebServices::registerAuthenticateHandler()
           auto resp = HttpResponse::newHttpResponse();
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
-          comet::Logger::log(
+          COMETLOG(
             std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " + aServant
             .getEmail() +
             ". Redirecting to /",
@@ -186,11 +186,14 @@ void WebServices::registerConfigurationHandler()
           if (unusedCores.empty()) unusedCores = "0";
           auto activeCores = request->getParameter("activeCores");
           if (activeCores.empty()) activeCores = "0";
+          auto priority = request->getParameter("priority");
+          if (priority.empty()) priority = "0";
           auto managerIpAddress = request->getParameter("managerIpAddress");
 
           aServant.setTotalCores(std::stoi(totalCores));
           aServant.setUnusedCores(std::stoi(unusedCores));
           aServant.setActiveCores(std::stoi(activeCores));
+          aServant.setPriority(std::stod(priority));
           aServant.setManagerIpAddress(managerIpAddress);
 
           if (!db.insertRecord(
@@ -200,7 +203,7 @@ void WebServices::registerConfigurationHandler()
             ", managerIpAddress = '" + managerIpAddress + "' "
             ", lastUpdateTime = DATETIME('now') "
             "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
-            comet::Logger::log("Failed to update Settings table with configuration information: ",
+            COMETLOG("Failed to update Settings table with configuration information: ",
                                LoggerLevel::CRITICAL);
 
             auto resp = HttpResponse::newHttpResponse();
@@ -216,7 +219,7 @@ void WebServices::registerConfigurationHandler()
           auto resp = HttpResponse::newHttpResponse();
           resp->setStatusCode(k302Found);
           resp->addHeader("Location", "/");
-          comet::Logger::log("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
+          COMETLOG("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
           callback(resp);
         },
       {Post});
@@ -244,9 +247,9 @@ void WebServices::registerMockRunJobsHandler()
           resp->setBody(setHTMLBody("Mock run jobs (" + std::to_string(updatedRows) + " row/s affected).", request->path()));
           callback(resp);
 
-            comet::Logger::log("Successfully executed mock run jobs", LoggerLevel::INFO);
+            COMETLOG("Successfully executed mock run jobs", LoggerLevel::INFO);
           } catch (const std::exception &e) {
-            comet::Logger::log(std::string("Error executing mock run jobs: ") + e.what(), LoggerLevel::CRITICAL);
+            COMETLOG(std::string("Error executing mock run jobs: ") + e.what(), LoggerLevel::CRITICAL);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k500InternalServerError);
             resp->setBody(R"({"ErrorMessage":"Failed to execute mock run jobs"})");
@@ -284,9 +287,9 @@ void WebServices::registerResetRunningJobsHandler()
             resp->setBody(setHTMLBody("Reset Allocated and Running to received status (" + to_string(updatedRows) + " row/s affected).", request->path()));
             callback(resp);
 
-            comet::Logger::log("Successfully reset running jobs to queued", LoggerLevel::INFO);
+            COMETLOG("Successfully reset running jobs to queued", LoggerLevel::INFO);
           } catch (const std::exception &e) {
-            comet::Logger::log(std::string("Error resetting running jobs: ") + e.what(), LoggerLevel::CRITICAL);
+            COMETLOG(std::string("Error resetting running jobs: ") + e.what(), LoggerLevel::CRITICAL);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k500InternalServerError);
             resp->setBody(R"({"ErrorMessage":"Failed to reset running jobs"})");
@@ -304,14 +307,14 @@ void WebServices::registerUploadJobHandler()
         {
           handleInvalidMethod(request);
           if (!aServant.isManager()) {
-            comet::Logger::log(
+            COMETLOG(
               "This Servant does not accept jobs since it is not the managing Servant, submit to " + aServant.
               getManagerIpAddress(),
-              LoggerLevel::DEBUG);
+              LoggerLevel::DEBUGGING);
           }
 
           if (!db.isConnected()) {
-            comet::Logger::log("Database connection failed", LoggerLevel::CRITICAL);
+            COMETLOG("Database connection failed", LoggerLevel::CRITICAL);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k406NotAcceptable);
             resp->setBody(R"({"ErrorMessage":"Error mySQL database connection"})");
@@ -321,7 +324,7 @@ void WebServices::registerUploadJobHandler()
 
           auto json = request->getJsonObject();
           if (!json) {
-            comet::Logger::log("Invalid JSON payload", LoggerLevel::WARNING);
+            COMETLOG("Invalid JSON payload", LoggerLevel::WARNING);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k400BadRequest);
             resp->setBody(R"({"error":"Invalid JSON payload"})");
@@ -333,10 +336,10 @@ void WebServices::registerUploadJobHandler()
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k201Created);
             resp->setBody(R"({"status":"Job uploaded successfully"})");
-            comet::Logger::log("Response sent: Job uploaded successfully", LoggerLevel::DEBUG);
+            COMETLOG("Response sent: Job uploaded successfully", LoggerLevel::DEBUGGING);
             callback(resp);
           } else {
-            comet::Logger::log("Failed to upload job", LoggerLevel::WARNING);
+            COMETLOG("Failed to upload job", LoggerLevel::WARNING);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k400BadRequest);
             resp->setBody(R"({"error":"Failed to upload job"})");
@@ -354,7 +357,7 @@ void WebServices::registerJobSummaryHandler()
         {
           handleInvalidMethod(request);
           if (!auth.machineAuthenticationisValid()) {
-            comet::Logger::log("Unauthorized access to /job_summary", LoggerLevel::WARNING);
+            COMETLOG("Unauthorized access to /job_summary", LoggerLevel::WARNING);
             auto resp = HttpResponse::newHttpResponse();
             resp->setStatusCode(k401Unauthorized);
             resp->setBody("Unauthorized");
@@ -446,7 +449,7 @@ void WebServices::registerStatusHandler()
           }
 
           std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
-          comet::Logger::log("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
+          COMETLOG("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
 
           nlohmann::json responseJson = {
             {"Status", "success"},
@@ -507,7 +510,7 @@ void WebServices::registerQuitHandler()
           callback(resp);
 
           app().quit();
-          Logger::log("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUG);
+          COMETLOG("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUGGING);
         },
       {Get});
   }
@@ -515,12 +518,12 @@ void WebServices::registerQuitHandler()
 
 void WebServices::shutdown()
   {
-    comet::Logger::log("WebServices::shutdown()", LoggerLevel::DEBUG);
+    COMETLOG("WebServices::shutdown()", LoggerLevel::DEBUGGING);
   }
 
 void WebServices::handleRequest(const std::string &request)
   {
-    comet::Logger::log(std::string("WebServices::handleRequest() - Request: ") + request);
+    COMETLOG(std::string("WebServices::handleRequest() - Request: ") + request, LoggerLevel::INFO);
   }
 
 std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath) const
@@ -600,7 +603,7 @@ void WebServices::run()
   {
     m_serverThread = std::make_unique<std::thread>([this]
       {
-        Logger::log(std::string("Server running on localhost:") + to_string(aServant.getPort())
+        COMETLOG(std::string("Server running on localhost:") + to_string(aServant.getPort())
                     + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(aServant.getPort())
                     + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(aServant.getPort())
                     , comet::INFO);
@@ -637,14 +640,14 @@ bool WebServices::uploadJob(const drogon::HttpRequestPtr &request)
     job->setJobStatus("Queued");
     auto query = job->getReplaceQueryString();
 
-    comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
+    COMETLOG("Executing query: " + query, LoggerLevel::DEBUGGING);
     auto result = db.executeQuery(query);
     if (!result) {
-      comet::Logger::log("Failed to execute database query: " + query, LoggerLevel::CRITICAL);
+      COMETLOG("Failed to execute database query: " + query, LoggerLevel::CRITICAL);
       return false; // Or handle the error appropriately
     }
 
-    comet::Logger::log("✅ " + job->description());
+    COMETLOG("✅ " + job->description(), LoggerLevel::INFO);
     delete job; // Clean up the job object
 
     return true;
@@ -652,7 +655,7 @@ bool WebServices::uploadJob(const drogon::HttpRequestPtr &request)
 
 bool WebServices::createNewDatabase()
   {
-    comet::Logger::log("Database file " + configurationFilePath + " Checking for all tables.",
+    COMETLOG("Database file " + configurationFilePath + " Checking for all tables.",
                        LoggerLevel::INFO);
 
     aServant.createNewServentsTable(db);
@@ -661,7 +664,7 @@ bool WebServices::createNewDatabase()
     Job::createNewJobsTable(db);
 
 
-    comet::Logger::log("Servants and Jobs tables created successfully.", LoggerLevel::INFO);
+    COMETLOG("Servants and Jobs tables created successfully.", LoggerLevel::INFO);
     return true;
   }
 

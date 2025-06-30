@@ -25,6 +25,7 @@ namespace comet
         port = 7777;
         projectId = 0;
         version = "V 2025.06.26";
+        priority = 1.0;
         managerIpAddress = ""; // Default empty manager IP address
         ipAddress = getPrivateIPAddress();
       }
@@ -54,7 +55,7 @@ namespace comet
       {
         projectId = aProjectId;
       }
-    
+
 
     void Servant::setEmail(const std::string &aEmail)
       {
@@ -81,29 +82,35 @@ namespace comet
         version = aVersion;
       }
 
+    void Servant::setPriority(const double aPriority)
+      {
+        priority = aPriority;
+      }
+
     void Servant::updateServantSettings(Database &db)
       {
-
         std::string query = "UPDATE servants SET projectId = 0, lastUpdateTime = DATETIME('now'), "
                             "version = '" + version + "', email = '" + email + "', code = '" + code + "', "
                             "port = " + std::to_string(port) + ", totalCores = " + std::to_string(totalCores) + ", "
-                            "unusedCores = " + std::to_string(unusedCores) + ", activeCores = " + std::to_string(activeCores) + " "
+                            "unusedCores = " + std::to_string(unusedCores) + ", activeCores = " + std::to_string(
+                              activeCores) + " " + "priority = " + std::to_string(priority) + " "
                             "WHERE ipAddress = '" + ipAddress + "';";
-        
+
         if (db.updateQuery("Update Servants", query, false) == 0) {
           // do an insert a new record
           query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
-                  "version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress) "
+                  "version, email, code, port, priority, totalCores, unusedCores, activeCores, managerIpAddress) "
                   "VALUES ('" + ipAddress + "', 0, DATETIME('now'), DATETIME('now'), '1.0', '" + email + "', '" +
-                  code + "', " + std::to_string(port) + ", " + std::to_string(totalCores) + ", " +
+                  code + "', " + std::to_string(port) + "', " + std::to_string(priority) + ", " +
+                  std::to_string(totalCores) + ", " +
                   std::to_string(unusedCores) + ", " +
                   std::to_string(activeCores) + ",'" + managerIpAddress + "');";
           if (!db.insertRecord(query, false)) {
-            comet::Logger::log("Failed to update Servants table with servant settings.", LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servants table with servant settings.", LoggerLevel::CRITICAL);
             return;
           }
 
-          comet::Logger::log("Servant settings updated successfully in the database.", LoggerLevel::DEBUG);
+          COMETLOG("Servant settings updated successfully in the database.", LoggerLevel::DEBUGGING);
         }
       }
 
@@ -157,12 +164,12 @@ namespace comet
     std::string Servant::HtmlServantSettingsForm()
       {
         totalCores = std::thread::hardware_concurrency();
-        // Example value, replace with actual logic to get total cores
-        unusedCores = std::max(0, unusedCores); // Example value, replace with actual logic to get reserved cores
+        // Example value, replace with actual COMETLOGic to get total cores
+        unusedCores = std::max(0, unusedCores); // Example value, replace with actual COMETLOGic to get reserved cores
 
         std::string html = "";
         html += "<h1>Servant Settings</h1>"
-                ""
+            ""
             "<form method='post' action='/configuration'>"
             "<table>"
             "<tr>"
@@ -181,6 +188,12 @@ namespace comet
             "<td><label for='activeCores'>Active Cores:</label></td>"
             "<td style='text-align: right;'><input type='text' id='activeCores' name='activeCores' value='" +
             std::to_string(activeCores) +
+            "'  style='border: none; background-color: #f0f0f0;'></td>"
+            "</tr>"
+            "<tr>" "<tr>"
+            "<td><label for='priority'>Priority (higher number for higher priority):</label></td>"
+            "<td style='text-align: right;'><input type='text' id='priority' name='priority' value='" +
+            std::to_string(priority) +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
@@ -211,6 +224,7 @@ namespace comet
                     , `email` varchar(100) NOT NULL
                     , `code` varchar(100)NOT NULL
                     , `port` int NOT NULL
+                    , priority double DEFAULT(1)
                     , `totalCores` int NOT NULL
                     , `unusedCores` int NOT NULL
                     , `activeCores` int NOT NULL
@@ -229,7 +243,6 @@ namespace comet
 
     bool Servant::routineStatusUpdates() const
       {
-
         // Post to the manager IP address
         auto url = "http://" + ipAddress + ":" + std::to_string(port) + "/servant/status";
         nlohmann::json jsonData;
@@ -241,45 +254,42 @@ namespace comet
         jsonData["version"] = version;
         jsonData["email"] = email;
         jsonData["code"] = code;
-        jsonData["port"] = port; // Replace with actual port if needed
+        jsonData["port"] = port;
+        jsonData["priority"] = priority;
         jsonData["projectId"] = 0; // Replace with actual project ID if needed
         auto response = Curl::postJson(url, jsonData);
         if (response.isError()) {
           if (!response.body.empty())
-            Logger::log("Failed to update Servant status (local), body: " + response.body, LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servant status (local), body: " + response.body, LoggerLevel::CRITICAL);
           else
-            Logger::log("Failed to update Servant status (local), curl: " + response.curlError,
-                        LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servant status (local), curl: " + response.curlError, LoggerLevel::CRITICAL);
           return false;
         } else {
-          Logger::log("Servant status updated successfully (local): " + ipAddress + " ✅",
-                      LoggerLevel::DEBUG);
+          COMETLOG("Servant status updated successfully (local): " + ipAddress + " ✅",
+                   LoggerLevel::DEBUGGING);
         }
 
         // Update the manager servant
         if (managerIpAddress.empty()) {
-          
-          Logger::log("Manager updated: " + ipAddress + " ✅",
-                      LoggerLevel::INFO);
-        }
-        else
-          {
+          COMETLOG("Manager updated: " + ipAddress + " ✅",
+                   LoggerLevel::INFO);
+        } else {
           auto url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/status";
-          
+
           auto response = Curl::postJson(url, jsonData);
           if (response.isError()) {
             if (!response.body.empty())
-              Logger::log("Failed to update Servant status (manager), body: " + response.body, LoggerLevel::CRITICAL);
+              COMETLOG("Failed to update Servant status (manager), body: " + response.body, LoggerLevel::CRITICAL);
             else
-              Logger::log("Failed to update Servant status (manager), curl: " + response.curlError,
-                          LoggerLevel::CRITICAL);
+              COMETLOG("Failed to update Servant status (manager), curl: " + response.curlError,
+                     LoggerLevel::CRITICAL);
             return false;
           } else {
-            Logger::log("Updated Servant Manager at: " + managerIpAddress + " ✅",
-                        LoggerLevel::INFO);
+            COMETLOG("Updated Servant Manager at: " + managerIpAddress + " ✅",
+                     LoggerLevel::INFO);
           }
         }
-        
+
         return true;
       }
 
@@ -290,7 +300,7 @@ namespace comet
             while (true) {
               auto bUpdated = routineStatusUpdates();
               if (bUpdated)
-                std::this_thread::sleep_for(std::chrono::hours(1)); 
+                std::this_thread::sleep_for(std::chrono::hours(1));
                 //std::this_thread::sleep_for(std::chrono::seconds(10));
               else
                 std::this_thread::sleep_for(std::chrono::minutes(10));
@@ -303,24 +313,25 @@ namespace comet
       {
         if (!db.insertRecord(
           "INSERT INTO Servants (ipAddress, projectId, registrationTime, lastUpdateTime, version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress) "
-          "VALUES ('" + ipAddress + "', '" + std::to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '"  +
+          "VALUES ('" + ipAddress + "', '" + std::to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '" +
           version + "', '" + email + "', '" + code + "', '" + std::to_string(port) + "', '" +
           std::to_string(totalCores) + "', '" + std::to_string(unusedCores) + "', '" + std::to_string(activeCores) + "'"
           ", '" + managerIpAddress + "' )", false
         )) {
           // Just update the record but not the registration time
           if (db.updateQuery("Update the Servant table",
-                              "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + email  + "' "
-                              ", code = '" + code + "', port = '" + std::to_string(port)  + "' "
-                              ", totalCores = '" + std::to_string(totalCores)  + "' "
-                              ", unusedCores = '" + std::to_string(unusedCores)  + "' "
-                              ", activeCores = '" + std::to_string(activeCores)  + "' "
-                              ", version = '" + version + "' "
-                              ", managerIpAddress = '" + managerIpAddress + "' "
-                              "WHERE ipAddress = '" + ipAddress + "' and projectId = '" + std::to_string(
-                                projectId) + "';") == 0) {
-            comet::Logger::log("Failed to insert or update Servants table with authentication information: ",
-                               LoggerLevel::CRITICAL);
+                             "UPDATE Servants SET lastUpdateTime = DATETIME('now'), email = '" + email + "' "
+                             ", code = '" + code + "', port = '" + std::to_string(port) + "', priority = '" +
+                             std::to_string(priority) + "' "
+                             ", totalCores = '" + std::to_string(totalCores) + "' "
+                             ", unusedCores = '" + std::to_string(unusedCores) + "' "
+                             ", activeCores = '" + std::to_string(activeCores) + "' "
+                             ", version = '" + version + "' "
+                             ", managerIpAddress = '" + managerIpAddress + "' "
+                             "WHERE ipAddress = '" + ipAddress + "' and projectId = '" + std::to_string(
+                               projectId) + "';") == 0) {
+            COMETLOG("Failed to insert or update Servants table with authentication information: ",
+                     LoggerLevel::CRITICAL);
           }
         }
       }

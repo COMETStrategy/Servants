@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.31)
 project(servant-console)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 include(FetchContent)
 

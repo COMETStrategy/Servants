@@ -50,41 +50,41 @@ namespace comet
         char *errMsg;
         // Insert jobs table
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          comet::Logger::log("Failed to create table " + tableName + ": " + std::string(errMsg),
+          COMETLOG("Failed to create table " + tableName + ": " + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           throw std::runtime_error("Failed to create " + tableName + " table");
         } else {
-          comet::Logger::log("Table " + tableName + " created successfully.", LoggerLevel::INFO);
+          COMETLOG("Table " + tableName + " created successfully.", LoggerLevel::INFO);
         }
       }
 
-    bool Database::insertRecord(std::string insertQuery, bool logErrors)
+    bool Database::insertRecord(std::string insertQuery, bool COMETLOGErrors)
       {
         char *errMsg;
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          if (logErrors)
-            comet::Logger::log("Failed to insert record into Settings table: " + std::string(errMsg),
+          if (COMETLOGErrors)
+            COMETLOG("Failed to insert record into Settings table: " + std::string(errMsg),
                                LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           return false; // Return false to indicate failure
         } else {
-          if (logErrors) comet::Logger::log("Record inserted into Settings table successfully.", LoggerLevel::DEBUG);
+          if (COMETLOGErrors) COMETLOG("Record inserted into Settings table successfully.", LoggerLevel::DEBUGGING);
           return true;
         }
       }
 
 
-    int Database::updateQuery(const std::string &description, const std::string &queryText, bool logErrors) const
+    int Database::updateQuery(const std::string &description, const std::string &queryText, bool COMETLOGErrors) const
       {
         char *errMsg;
         if (sqlite3_exec(m_db, queryText.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          if (logErrors) comet::Logger::log("Failed to update: " + description + std::string(errMsg),
+          if (COMETLOGErrors) COMETLOG("Failed to update: " + description + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           throw std::runtime_error("Failed to update record into Settings table: " + std::string(errMsg));
         } else {
-          if (logErrors) comet::Logger::log("Record updated into Settings table successfully.", LoggerLevel::DEBUG);
+          if (COMETLOGErrors) COMETLOG("Record updated into Settings table successfully.", LoggerLevel::DEBUGGING);
         }
         return sqlite3_changes(m_db);
 
@@ -95,10 +95,10 @@ namespace comet
         bool databaseExists = std::filesystem::exists(databaseFullPath);
 
         if (sqlite3_open(databaseFullPath.c_str(), &m_db) != SQLITE_OK) {
-          comet::Logger::log("Failed to open database: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
+          COMETLOG("Failed to open database: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
           return false;
         }
-        LOG("Database file '" + databaseFullPath + "' opened successfully.", LoggerLevel::INFO);
+        COMETLOG("Database file '" + databaseFullPath + "' opened successfully.", LoggerLevel::INFO);
         
         m_dbPath = databaseFullPath;
         return databaseExists;
@@ -109,7 +109,7 @@ namespace comet
         char *errMsg = nullptr;
         if (sqlite3_exec(m_db, query.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
           std::string error = "SQL error: " + std::string(errMsg);
-          comet::Logger::log(error, LoggerLevel::CRITICAL);
+          COMETLOG(error, LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           throw std::runtime_error(error);
           return false;
@@ -122,8 +122,8 @@ namespace comet
       {
         sqlite3_stmt *stmt = nullptr;
         std::vector<std::map<std::string, std::string> > results;
-        // Debug log the query being executed
-        comet::Logger::log("Executing query: " + query, LoggerLevel::DEBUG);
+        // Debug COMETLOG the query being executed
+        COMETLOG("Executing query: " + query, LoggerLevel::DEBUGGING);
 
         if (sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
           while (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -138,12 +138,12 @@ namespace comet
           }
           sqlite3_finalize(stmt);
         } else {
-          comet::Logger::log("Failed to execute query: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
+          COMETLOG("Failed to execute query: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
           sqlite3_finalize(stmt);
           throw std::runtime_error("Failed to execute query");
         }
 
-        comet::Logger::log("Number of rows retrieved: " + std::to_string(results.size()), LoggerLevel::DEBUG);
+        COMETLOG("Number of rows retrieved: " + std::to_string(results.size()), LoggerLevel::DEBUGGING);
         return results;
       }
 
@@ -153,13 +153,13 @@ namespace comet
           // Set pCur and pCurUsed to nullptr
           int current = 0, highwater = 0;
           int result = sqlite3_db_status(m_db, SQLITE_DBSTATUS_LOOKASIDE_USED, &current, &highwater, 0);
-          comet::Logger::log("sqlite3_db_status result: " + std::to_string(result), LoggerLevel::DEBUG);
+          COMETLOG("sqlite3_db_status result: " + std::to_string(result), LoggerLevel::DEBUGGING);
           if (result == SQLITE_OK || result == SQLITE_BUSY || result == SQLITE_DBSTATUS_LOOKASIDE_USED) {
-            comet::Logger::log("Database is connected.", LoggerLevel::DEBUG);
+            COMETLOG("Database is connected.", LoggerLevel::DEBUGGING);
             return true;
           }
         }
-        comet::Logger::log("Database is not connected.", LoggerLevel::WARNING);
+        COMETLOG("Database is not connected.", LoggerLevel::WARNING);
         return false;
       }
   } // comet

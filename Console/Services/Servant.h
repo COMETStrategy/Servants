@@ -25,6 +25,7 @@ namespace comet
         std::string managerIpAddress;
         std::string version;
         int projectId;
+        double priority;
         Authentication *auth;
         
       public:
@@ -38,6 +39,7 @@ namespace comet
         void setIpAddress(const std::string &aIpAddress);
         void setManagerIpAddress(const std::string &aManagerIpAddress);
         void setVersion(const std::string &aVersion);
+        void setPriority(const double aPriority);
         void setAuthentication(Authentication *authState);
         
 
@@ -48,6 +50,7 @@ namespace comet
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}
         int getPort() const {return port;};
+        double getPriority() const {return priority;};
         std::string getManagerIpAddress() {return managerIpAddress;};;
         
         bool isManager() {return managerIpAddress.empty();}

@@ -98,7 +98,7 @@ namespace comet
           comet::Logger::log("Failed to open database: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
           return false;
         }
-        comet::Logger::log("Database file '" + databaseFullPath + "' opened successfully.", LoggerLevel::DEBUG);
+        LOG("Database file '" + databaseFullPath + "' opened successfully.", LoggerLevel::INFO);
         
         m_dbPath = databaseFullPath;
         return databaseExists;

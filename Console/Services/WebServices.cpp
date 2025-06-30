@@ -225,7 +225,7 @@ void WebServices::registerConfigurationHandler()
 void WebServices::registerMockRunJobsHandler()
   {
     app().registerHandler(
-      "/mockrunjobs",
+      "/mockrunjobs/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
           handleInvalidMethod(request);
@@ -235,13 +235,13 @@ void WebServices::registerMockRunJobsHandler()
 
             nlohmann::json responseJson = {
               {"ErrorMessage", ""},
-              {"Status", "Mock run jobs ({" + std::to_string(updatedRows) + "} rows affected)."},
+              {"Status", "Mock run jobs (" + std::to_string(updatedRows) + " row/s affected)."},
               {"Message", "Mock run jobs executed successfully"},
               {"UpdatedRows", updatedRows}
             };
 
             auto resp = HttpResponse::newHttpResponse();
-          resp->setBody(setHTMLBody("Mock run jobs ({" + std::to_string(updatedRows) + "} rows affected).", request->path()));
+          resp->setBody(setHTMLBody("Mock run jobs (" + std::to_string(updatedRows) + " row/s affected).", request->path()));
           callback(resp);
 
             comet::Logger::log("Successfully executed mock run jobs", LoggerLevel::INFO);
@@ -259,7 +259,7 @@ void WebServices::registerMockRunJobsHandler()
 void WebServices::registerResetRunningJobsHandler()
   {
     app().registerHandler(
-      "/resetrunningjobs",
+      "/resetrunningjobs/",
       [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
         {
           handleInvalidMethod(request);
@@ -273,7 +273,7 @@ void WebServices::registerResetRunningJobsHandler()
               {"ErrorMessage", ""},
               {
                 "Status",
-                "Reset Allocated and Running to received status ({" + to_string(updatedRows) + "} rows affected)."
+                "Reset Allocated and Running to received status (" + to_string(updatedRows) + " rows affected)."
               },
               {"Message", "Reset running jobs to queued"},
               {"UpdatedRows", updatedRows}
@@ -281,7 +281,7 @@ void WebServices::registerResetRunningJobsHandler()
 
  
             auto resp = HttpResponse::newHttpResponse();
-            resp->setBody(setHTMLBody("Reset Allocated and Running to received status ({" + to_string(updatedRows) + "} rows affected).", request->path()));
+            resp->setBody(setHTMLBody("Reset Allocated and Running to received status (" + to_string(updatedRows) + " row/s affected).", request->path()));
             callback(resp);
 
             comet::Logger::log("Successfully reset running jobs to queued", LoggerLevel::INFO);
@@ -553,8 +553,8 @@ std::string WebServices::getHTMLHeader(const std::string &targetPath) const
       {"Settings", "/"},
       {"Job Summary", "/job_summary?sort=date&filter=all"},
       {"Servant Status", "/servant/status"},
-      {"Reset Running Jobs (Dev only)", "/resetrunningjobs"},
-      {"Mock Run Jobs (Dev only)", "/mockrunjobs"},
+      {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
+      {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
       {"Quit", "/quit"}
     };
 

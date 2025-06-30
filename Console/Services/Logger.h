@@ -21,6 +21,7 @@ namespace comet
 
     std::string LogLevelToString(LoggerLevel level);
     std::string formatTime(std::time_t time);
+    #define LOG(message, logLevel) comet::Logger::log(message, logLevel, __FILE__, __LINE__)
 
     class Logger
       {
@@ -30,7 +31,8 @@ namespace comet
 
       public:
         // Use >> operator overload to write to the log file
-        static void log(const std::string &message, LoggerLevel logLevel = LoggerLevel::INFO);
+        static void log(const std::string &message, LoggerLevel logLevel = LoggerLevel::INFO, const char *file = __FILE__, int line =
+                            __LINE__);
 
         static void setFileName(const std::string &fileName);
         static const std::string getFileName();

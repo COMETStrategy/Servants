@@ -290,8 +290,8 @@ namespace comet
             while (true) {
               auto bUpdated = routineStatusUpdates();
               if (bUpdated)
-                //std::this_thread::sleep_for(std::chrono::hours(2)); 
-                std::this_thread::sleep_for(std::chrono::seconds(10));
+                std::this_thread::sleep_for(std::chrono::hours(1)); 
+                //std::this_thread::sleep_for(std::chrono::seconds(10));
               else
                 std::this_thread::sleep_for(std::chrono::minutes(10));
             }

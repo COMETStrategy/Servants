@@ -28,26 +28,37 @@ namespace comet
         }
       }
 
-    std::string formatTime(std::time_t time) {
-        std::tm* utcTime = std::gmtime(&time); // Use UTC
+    std::string formatTime(std::time_t time)
+      {
+        std::tm *utcTime = std::gmtime(&time); // Use UTC
         char buffer[20];
         std::strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", utcTime);
         return std::string(buffer);
-    }
-
-    void comet::Logger::log(const std::string &message, const LoggerLevel logLevel)
-      {
-        {
-          if (logLevel >= Logger::m_logLevel) {
-            std::string timeStamp = formatTime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-            if (logLevel < LoggerLevel::WARNING)
-              std::cout << "COMET LOGGER " << timeStamp << " [" << LogLevelToString(logLevel) << "] " << message << std::endl << std::flush;
-            else              
-              std::cerr << "COMET LOGGER " << timeStamp << " [" << LogLevelToString(logLevel) << "] " << message << std::endl << std::flush;
-          }
-        }
       }
 
+    void comet::Logger::log(const std::string &message, const LoggerLevel logLevel, const char *file, int line)
+      {
+        // Extract the file name using string manipulation
+        std::string filePath = file;
+        size_t lastSlash = filePath.find_last_of("/\\");
+        size_t secondLastSlash = filePath.find_last_of("/\\", lastSlash - 1);
+
+        std::string lastDirectoryAndFile = (secondLastSlash != std::string::npos)
+            ? filePath.substr(secondLastSlash + 1)
+            : filePath;
+
+        std::string timeStamp = formatTime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
+        std::string commonText = "COMET LOGGER " + timeStamp + " [" + LogLevelToString(logLevel) + "] " +
+                                 " (" + lastDirectoryAndFile + ":" + std::to_string(line) + "): Message: " + message;
+
+        if (logLevel >= Logger::m_logLevel) {
+          if (logLevel < LoggerLevel::WARNING)
+            std::cout << commonText << std::endl << std::flush;
+          else
+            std::cerr << commonText << std::endl << std::flush;
+        }
+      }
+    
     void comet::Logger::setFileName(const std::string &fileName)
       {
         m_fileName = fileName;

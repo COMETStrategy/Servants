@@ -26,14 +26,7 @@ namespace comet
         ~WebServices();
 
         void registerResetRunningJobsHandler();
-
         void registerMockRunJobsHandler();
-
-        void initializeHandlers();
-
-        bool processJobs();
-
-        static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
 
         void shutdown();
 
@@ -51,20 +44,33 @@ namespace comet
         bool uploadJob(const drogon::HttpRequestPtr &request);
         bool createNewDatabase();
 
+        static Servant &getServant()
+          {
+            return aServant;
+          }
+
       private:
         std::unique_ptr<std::thread> m_serverThread;
         std::atomic<bool> m_running{true};
         Database db;
         Authentication auth;
         std::string configurationFilePath; // Default database path
-        comet::Servant aServant;
+        static comet::Servant aServant;
         Scheduler scheduler;
+        
+      public:
 
+        void initializeHandlers();
+        static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
+      private:
         void registerRootHandler();
         void registerAuthenticateHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
         void registerJobSummaryHandler();
+        void registerJobStartHandler();
+
+        void registerJobStatusDatabaseUpdateHandler();
 
         void registerServantSummaryHandler();
 

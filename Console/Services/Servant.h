@@ -43,6 +43,8 @@ namespace comet
         void setManagerIpAddress(const std::string &aManagerIpAddress);
         void setVersion(const std::string &aVersion);
         void setPriority(const double aPriority);
+        void setAlive(const int aAlive);
+
         void setAuthentication(Authentication *authState);
         
 

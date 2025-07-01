@@ -5,7 +5,7 @@
 #ifndef JOB_H
 #define JOB_H
 #include <string>
-#include <json/json.h>
+#include <nlohmann/json.hpp>
 
 #include "drogon/HttpRequest.h"
 
@@ -67,14 +67,21 @@ namespace comet
         JobStatus jobStatus() const;
         bool validJobStatus() const;
         JobStatus setJobStatus(JobStatus newStatus);
-        std::string getReplaceQueryString() const;
+        std::string getFullReplaceQueryString() const;
         std::string description();
+
+        static bool startJob(Database &db, nlohmann::json &job);
+
+        static bool runningProcessUpdate(Database &db, nlohmann::json &json);
+
+        static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::__wrap_iter<std::map<std::string, std::string> *> servant);
+
         static std::string getJobId(const std::map<std::string, std::string> &jobMap);
 
         static int mockRunJobs(const Database & db);
 
         static int resetRunningJobs(Database &db);
-        bool updateInDatabase(Database &db) const;
+        bool updateAllInLocalDatabase(Database &db) const;
 
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
 

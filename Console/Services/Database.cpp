@@ -59,32 +59,32 @@ namespace comet
         }
       }
 
-    bool Database::insertRecord(std::string insertQuery, bool COMETLOGErrors)
+    bool Database::insertRecord(std::string insertQuery, bool logErrors)
       {
         char *errMsg;
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          if (COMETLOGErrors)
+          if (logErrors)
             COMETLOG("Failed to insert record into Settings table: " + std::string(errMsg),
                                LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           return false; // Return false to indicate failure
         } else {
-          if (COMETLOGErrors) COMETLOG("Record inserted into Settings table successfully.", LoggerLevel::DEBUGGING);
+          if (logErrors) COMETLOG("Record inserted into Settings table successfully.", LoggerLevel::DEBUGGING);
           return true;
         }
       }
 
 
-    int Database::updateQuery(const std::string &description, const std::string &queryText, bool COMETLOGErrors) const
+    int Database::updateQuery(const std::string &description, const std::string &queryText, bool logErrors) const
       {
         char *errMsg;
         if (sqlite3_exec(m_db, queryText.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
-          if (COMETLOGErrors) COMETLOG("Failed to update: " + description + std::string(errMsg),
+          if (logErrors) COMETLOG("Failed to update: " + description + std::string(errMsg),
                              LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           throw std::runtime_error("Failed to update record into Settings table: " + std::string(errMsg));
         } else {
-          if (COMETLOGErrors) COMETLOG("Record updated into Settings table successfully.", LoggerLevel::DEBUGGING);
+          if (logErrors) COMETLOG("Record updated into Settings table successfully.", LoggerLevel::DEBUGGING);
         }
         return sqlite3_changes(m_db);
 

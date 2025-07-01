@@ -23,7 +23,7 @@ namespace comet
 
         ~Scheduler();
 
-        int startJobsOnBestServants(Database &db);
+        static int startJobsOnBestServants(Database &db);
       };
 
 

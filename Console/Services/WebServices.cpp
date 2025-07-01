@@ -6,7 +6,7 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <openssl/rand.h>
-#include <nlohmann/json.hpp>
+#include <json/json.h>
 
 #include "WebServices.h"
 
@@ -25,6 +25,8 @@ using namespace drogon;
 
 namespace comet
   {
+    comet::Servant comet::WebServices::aServant;
+    
     WebServices::WebServices(const std::string &dbFilename)
       : db(dbFilename)
       {
@@ -91,6 +93,8 @@ namespace comet
         registerAuthenticateHandler();
         registerConfigurationHandler();
         registerUploadJobHandler();
+        registerJobStartHandler();
+        registerJobStatusDatabaseUpdateHandler();
         registerJobSummaryHandler();
         registerServantSummaryHandler();
         registerMockRunJobsHandler();
@@ -99,28 +103,6 @@ namespace comet
         registerStatusHandler();
         registerStatusJobsHandler();
         registerQuitHandler();
-      }
-
-    bool WebServices::processJobs()
-      {
-        // Look for jobs in the database that are not running
-        auto availableJobs = db.getQueryResults(
-          "SELECT * FROM jobs WHERE Status != " + std::to_string(int(JobStatus::Queued)) +
-          " ORDER BY LastUpdate DESC LIMIT 100;");
-        if (!availableJobs.empty()) {
-          for (const auto &job: availableJobs) {
-            // Get available servants
-            auto availableServantCores = db.getQueryResults(
-              "SELECT * FROM servants WHERE activeCores > 0 ORDER BY priority DESC;");
-            if (!availableServantCores.empty()) {
-              // Process job using available highest priority servant
-              COMETLOG("WebServices::processJobs()" + Job::getJobId(job), LoggerLevel::INFO);
-            } else {
-              COMETLOG("No cores available for processing jobs", LoggerLevel::INFO);
-            }
-          }
-        }
-        return true;
       }
 
     void WebServices::handleInvalidMethod(const HttpRequestPtr &request)
@@ -217,12 +199,15 @@ namespace comet
               auto priority = request->getParameter("priority");
               if (priority.empty()) priority = "0";
               auto managerIpAddress = request->getParameter("managerIpAddress");
+              auto alive = request->getParameter("alive");
+              if (alive.empty()) alive = "0";
 
               aServant.setTotalCores(std::stoi(totalCores));
               aServant.setUnusedCores(std::stoi(unusedCores));
               aServant.setActiveCores(std::stoi(activeCores));
               aServant.setPriority(std::stod(priority));
               aServant.setManagerIpAddress(managerIpAddress);
+              aServant.setAlive(std::stoi(alive));
 
               if (!db.insertRecord(
                 "UPDATE servants SET totalCores = '" + totalCores + "' "
@@ -362,7 +347,7 @@ namespace comet
               }
 
               if (uploadJob(request)) {
-                auto processingJobs = processJobs();
+                auto newJobsStarted = Scheduler::startJobsOnBestServants(db);
                 auto resp = HttpResponse::newHttpResponse();
                 // Start the job if possible
                 resp->setStatusCode(k201Created);
@@ -375,6 +360,118 @@ namespace comet
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody(R"({"error":"Failed to upload job"})");
                 callback(resp);
+              }
+            },
+          {Post});
+      }
+
+
+    void WebServices::registerJobStartHandler()
+      {
+        app().registerHandler(
+          "/start/job/",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              if (!aServant.isManager()) {
+                COMETLOG(
+                  "This Servant does not start jobs since it is not the managing Servant, submit to " + aServant.
+                  getManagerIpAddress(),
+                  LoggerLevel::DEBUGGING);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k403Forbidden);
+                resp->setBody(R"({"ErrorMessage":"This servant is not authorized to start jobs"})");
+                callback(resp);
+                return;
+              }
+
+              auto job = request->getJsonObject();
+              if (!job) {
+                COMETLOG("Invalid JSON payload", LoggerLevel::WARNING);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid JSON job payload"})");
+                callback(resp);
+                return;
+              }
+
+              try {
+                nlohmann::json jobData;
+                for (const auto &key: job->getMemberNames()) {
+                  jobData[key] = (*job)[key].asString(); // Adjust type conversion as needed
+                }
+                bool jobStarted = Job::startJob(db, jobData);
+
+                if (jobStarted) {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k200OK);
+                  resp->setBody(R"({"status":"Job started successfully"})");
+                  COMETLOG("Job started successfully ", LoggerLevel::INFO);
+                  callback(resp);
+                } else {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k400BadRequest);
+                  resp->setBody(R"({"ErrorMessage":"Failed to start job"})");
+                  COMETLOG("Failed to start job", LoggerLevel::WARNING);
+                  callback(resp);
+                }
+              } catch (const std::exception &e) {
+                COMETLOG(std::string("Error starting job: ") + e.what(), LoggerLevel::CRITICAL);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(R"({"ErrorMessage":"Internal server error"})");
+                callback(resp);
+              }
+            },
+          {Post});
+      }
+
+    void WebServices::registerJobStatusDatabaseUpdateHandler()
+      {
+        app().registerHandler(
+          "/job/status/database/update",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json || !json->isMember("JobId") || !json->isMember("Status")) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JobId/Status in JSON payload"})");
+                callback(resp);
+                return;
+              }
+
+              try {
+                auto Id = (*json)["Id"].asString();
+                std::string status = (*json)["Status"].asString();
+
+                bool updateSuccess = true; //Job::updateJobStatusInDatabase(db, jobId, status);
+                if (updateSuccess) {
+                  Json::Value responseJson;
+                  responseJson["ErrorMessage"] = "";
+                  responseJson["Status"] = "Job status updated successfully";
+                  responseJson["Id"] = Id;
+
+                  auto resp = HttpResponse::newHttpJsonResponse(responseJson);
+                  callback(resp);
+                  COMETLOG("Job status updated successfully for JobId: " + Id, LoggerLevel::INFO);
+                } else {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody(R"({"ErrorMessage":"Failed to update job status in database"})");
+                  callback(resp);
+                  COMETLOG("Failed to update job status for JobId: " + Id, LoggerLevel::CRITICAL);
+                }
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+                COMETLOG(std::string("Exception occurred while updating job status: ") + e.what(),
+                         LoggerLevel::CRITICAL);
               }
             },
           {Post});
@@ -424,7 +521,7 @@ namespace comet
                 return;
               }
 
- 
+
               std::string report = Servant::servantSummaryHtmlReport(db);
 
               auto resp = HttpResponse::newHttpResponse();
@@ -695,10 +792,6 @@ namespace comet
     bool WebServices::uploadJob(const drogon::HttpRequestPtr &request)
       {
         Job aJob(request, JobStatus::Queued, db);
-
-        auto newJobsStarted = scheduler.startJobsOnBestServants(db);
-        COMETLOG("✅ " + newJobsStarted, LoggerLevel::INFO);
-
         return aJob.validJobStatus();
       }
 

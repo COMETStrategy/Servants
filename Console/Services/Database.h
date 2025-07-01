@@ -15,9 +15,9 @@ namespace comet
       {
       public:
         void createTableIfNotExists(std::string tableName, std::string insertQuery);
-        bool insertRecord(std::string insertQuery, bool COMETLOGErrors = true);
+        bool insertRecord(std::string insertQuery, bool logErrors = true);
 
-        int updateQuery(const std::string &description, const std::string &queryText, bool COMETLOGErrors = true) const;
+        int updateQuery(const std::string &description, const std::string &queryText, bool logErrors = true) const;
         bool openDatabase(const std::string & databaseFullPath);
 
         // Constructor: Opens the database

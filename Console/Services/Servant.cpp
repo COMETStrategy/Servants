@@ -88,6 +88,11 @@ namespace comet
         priority = aPriority;
       }
 
+    void Servant::setAlive(const int aAlive)
+      {
+        alive = aAlive;
+      }
+
     void Servant::updateServantSettings(Database &db)
       {
         std::string query = "UPDATE servants SET projectId = 0, lastUpdateTime = DATETIME('now'), "
@@ -122,7 +127,7 @@ namespace comet
           "SELECT * FROM servants WHERE (totalCores-unusedCores-activeCores) > 0 and alive = true ORDER BY priority DESC;");
         return availableServants;
       }
-    
+
     std::vector<std::map<std::string, std::string> > Servant::getAllServants(Database &db)
       {
         auto availableServants = db.getQueryResults(
@@ -135,21 +140,22 @@ namespace comet
         auto thisIp = getPrivateIPAddress();
         auto servants = getAllServants(db);
         for (auto &servant: servants) {
-            auto isAlive = false;
+          auto isAlive = false;
           if (thisIp == servant.at("ipAddress")) {
             isAlive = true;
           } else {
             isAlive = check200Response(servant.at("ipAddress") + ":" + servant.at("port"));
           }
-          auto aliveStatusText = (isAlive)? "ALIVE": "NOT ALIVE";
+          auto aliveStatusText = (isAlive) ? "ALIVE" : "NOT ALIVE";
           if ((servant.at("alive") == "1" && !isAlive) || (servant.at("alive") == "0" && isAlive)) {
             COMETLOG("Servant " + servant.at("ipAddress") + " status changed: " + aliveStatusText, LoggerLevel::INFO);
             servant["alive"] = (isAlive) ? "1" : "0";
             auto updateQuery = "UPDATE servants SET alive = " + servant["alive"] +
-                ", lastUpdateTime = DATETIME('now') WHERE ipAddress = '" + servant.at("ipAddress") + "';";
+                               ", lastUpdateTime = DATETIME('now') WHERE ipAddress = '" + servant.at("ipAddress") +
+                               "';";
             auto result = db.updateQuery("Update Servant Alive Status", updateQuery, false);
           }
-            COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::INFO);
+          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::WARNING);
         }
       }
 
@@ -235,10 +241,10 @@ namespace comet
             std::to_string(priority) +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>" "<tr>"
-            "<td><label for='alive'>Alive/Enabled (1 = alive, 0= not alive):</label></td>"
-            "<td style='text-align: right;'><input type='text' id='alive' name='alive' value='" +
-            std::to_string(alive) +
-            "'  style='border: none; background-color: #f0f0f0;'></td>"
+            "<td><label for='alive'>Alive/Enabled (1 = alive, 0 = not alive):</label></td>"
+            "<td style='text-align: right;'><input type='checkbox' id='alive' name='alive' value='1' " +
+            (std::to_string(alive) == "1" ? "checked" : "") +
+            " style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
             "<td><label for='managerIpAddress'>Servant Manager Name/IP Address: <br>"

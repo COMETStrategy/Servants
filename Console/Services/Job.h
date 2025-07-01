@@ -72,6 +72,8 @@ namespace comet
 
         static bool startJob(Database &db, nlohmann::json &job);
 
+        static int runExecutable(const std::string &executableEngine, const std::string &workingDirectory, const std::string &inputFileName);
+
         static bool runningProcessUpdate(Database &db, nlohmann::json &json);
 
         static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::__wrap_iter<std::map<std::string, std::string> *> servant);

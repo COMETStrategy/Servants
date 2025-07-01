@@ -314,6 +314,15 @@ namespace comet
         auto servant = WebServices::getServant();
         COMETLOG("🏃Job:Starting job " + to_string(job["GroupName"]) + " " + to_string(job["CaseNumber"])
                  + " on this servant. ", comet::INFO);
+        auto executableEngine = to_string(job["EngineVersion"]);
+        auto workingDirectory = to_string(job["WorkingDirectory"]);
+        auto inputFileName = to_string(job["InputFileName"]);
+        // run executable;
+        COMETLOG("Job: Executing job with Engine: " + executableEngine + " in directory: " + workingDirectory +
+                 " with input file: " + inputFileName, comet::DEBUGGING);
+        int processId = Job::runExecutable(executableEngine, workingDirectory, inputFileName);
+        COMETLOG("Process ID: " + std::to_string(processId), comet::INFO);
+        
         // Update job on manager
         nlohmann::json json;
         json["GroupName"] = job["GroupName"];
@@ -322,7 +331,7 @@ namespace comet
         json["Servant"] = servant.getIpAddress();
         json["LastUpdate"] = "datetime('now')"; // This will be updated by the database
         json["RunProgress"] = "Job started on this servant.";
-        json["Id"] = "123456";
+        json["Id"] = std::to_string(processId);
         // Update the job in the manager
         if (servant.getIpAddress() == getPrivateIPAddress()) {
           auto res = Job::runningProcessUpdate(db, json);
@@ -336,6 +345,43 @@ namespace comet
 
         return true;
       }
+
+    int Job::runExecutable(const std::string &executableEngine, const std::string &workingDirectory, const std::string &inputFileName) {
+        try {
+          // Make directory if it doesnt exist
+          if (!std::filesystem::exists(workingDirectory)) {
+            COMETLOG("Creating working directory: " + workingDirectory, comet::DEBUGGING);
+            std::filesystem::create_directories(workingDirectory);
+          } else {
+            COMETLOG("Working directory already exists: " + workingDirectory, comet::DEBUGGING);
+          }
+          // Change the current working directory
+          std::filesystem::current_path(workingDirectory);
+
+          // Fork a new process
+          pid_t pid = fork();
+          if (pid == -1) {
+            COMETLOG("Failed to fork process", comet::CRITICAL);
+            throw std::runtime_error("Failed to fork process");
+          }
+
+          if (pid == 0) {
+            // Child process: Execute the command
+            std::string executablePath = "./" + executableEngine;
+            execl(executablePath.c_str(), executableEngine.c_str(), inputFileName.c_str(), nullptr);
+
+            // If execl fails
+            COMETLOG("Failed to execute: " + executablePath, comet::CRITICAL);
+            _exit(EXIT_FAILURE);
+          }
+
+          // Parent process: Return the process ID
+          return pid;
+        } catch (const std::exception &e) {
+          COMETLOG("Exception in runExecutable: " + std::string(e.what()), comet::CRITICAL);
+          return -1; // Indicate failure
+        }
+    }
 
     bool Job::runningProcessUpdate(Database &db, nlohmann::json &json)
       {

@@ -5,9 +5,11 @@
 #ifndef SERVANT_H
 #define SERVANT_H
 #include <string>
+#include <map>
 
 namespace comet
   {
+    class Authentication;
     class Database;
     class Servant
       {
@@ -27,6 +29,7 @@ namespace comet
         int projectId;
         double priority;
         Authentication *auth;
+        bool alive;
         
       public:
         void setTotalCores(int total_cores);
@@ -46,7 +49,9 @@ namespace comet
         int getTotalCores() const{return totalCores;}
         int getUnusedCores() const{return unusedCores;}
         int getActiveCores() const { return activeCores; }
-        std::string getCode() {return code;};
+        std::string getCode() {return code;}
+
+        static std::string servantSummaryHtmlReport(Database &db);;
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}
         int getPort() const {return port;};
@@ -60,6 +65,12 @@ namespace comet
 
         static bool createNewServentsTable(Database &db);
         void updateServantSettings(Database & db);
+
+        static std::vector<std::map<std::string, std::string>> getAvailableServants(Database &db);
+
+        static std::vector<std::map<std::string, std::string>> getAllServants(Database &db);
+
+        static void checkAllServantsAlive(Database &db);
 
 
 

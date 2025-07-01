@@ -27,7 +27,7 @@ namespace comet
 
         // Run an SQL query
         bool executeQuery(const std::string &query) const;
-        std::vector<std::map<std::string, std::string>> getQueryResults(const std::string &query);
+        std::vector<std::map<std::string, std::string>> getQueryResults(const std::string &query) const;
 
         bool isConnected();
         bool databaseExists;

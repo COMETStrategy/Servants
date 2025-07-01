@@ -12,6 +12,7 @@
 #include "drogon/utils/FunctionTraits.h"
 #include "Database.h"
 #include "Authentication.h"
+#include "Scheduler.h"
 #include "Servant.h"
 
 
@@ -29,6 +30,11 @@ namespace comet
         void registerMockRunJobsHandler();
 
         void initializeHandlers();
+
+        bool processJobs();
+
+        static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
+
         void shutdown();
 
         void handleRequest(const std::string& request);
@@ -52,12 +58,16 @@ namespace comet
         Authentication auth;
         std::string configurationFilePath; // Default database path
         comet::Servant aServant;
+        Scheduler scheduler;
 
         void registerRootHandler();
         void registerAuthenticateHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
         void registerJobSummaryHandler();
+
+        void registerServantSummaryHandler();
+
         void registerServantStatusHandler();
         void registerStatusHandler();
         void registerStatusJobsHandler();

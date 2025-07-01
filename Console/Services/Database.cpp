@@ -118,7 +118,7 @@ namespace comet
       }
 
 
-    std::vector<std::map<std::string, std::string> > Database::getQueryResults(const std::string &query)
+    std::vector<std::map<std::string, std::string> > Database::getQueryResults(const std::string &query) const
       {
         sqlite3_stmt *stmt = nullptr;
         std::vector<std::map<std::string, std::string> > results;

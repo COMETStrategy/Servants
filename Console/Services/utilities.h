@@ -22,11 +22,12 @@
 #include <unistd.h>
 #include <openssl/sha.h>
 
+#include <future>
+
 #include "Logger.h"
 
 namespace comet
   {
-
     // Function to get the full filename and directory, creating directories if necessary
 
     inline std::string getFullFilenameAndDirectory(const std::string &filename)
@@ -57,9 +58,8 @@ namespace comet
           }
           COMETLOG("Database directory created: " + parentPath.string(), comet::LoggerLevel::INFO);
         }
-    
-        return std::filesystem::path(fullPath);
 
+        return std::filesystem::path(fullPath);
       }
 
     inline std::string generateTimestamp()
@@ -144,9 +144,9 @@ namespace comet
 #endif
       }
 
-        inline std::string getUuid()
+    inline std::string getUuid()
       {
-        #ifdef _WIN32
+#ifdef _WIN32
                 UUID uuid;
                 UuidCreate(&uuid);
                 RPC_CSTR uuidStr;
@@ -154,15 +154,15 @@ namespace comet
                 std::string result((char*)uuidStr);
                 RpcStringFreeA(&uuidStr);
                 return result;
-        #elif __APPLE__ || __linux__
-                uuid_t uuid;
-                uuid_generate(uuid);
-                char uuidStr[37];
-                uuid_unparse_lower(uuid, uuidStr);
-                return std::string(uuidStr);
-        #else
+#elif __APPLE__ || __linux__
+        uuid_t uuid;
+        uuid_generate(uuid);
+        char uuidStr[37];
+        uuid_unparse_lower(uuid, uuidStr);
+        return std::string(uuidStr);
+#else
                 return "Unsupported platform";
-        #endif
+#endif
       }
 
     inline std::string generateMachineId(const std::string &mac, const std::string &uuid)
@@ -231,7 +231,7 @@ namespace comet
 
         curl = curl_easy_init();
         if (!curl) {
-          COMETLOG( "Failed to initialize CURL", LoggerLevel::CRITICAL);
+          COMETLOG("Failed to initialize CURL", LoggerLevel::CRITICAL);
           curl_global_cleanup();
           return publicIP;
         }
@@ -242,9 +242,7 @@ namespace comet
 
         res = curl_easy_perform(curl);
         if (res != CURLE_OK) {
-          
-          COMETLOG( std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res), LoggerLevel::CRITICAL);
-
+          COMETLOG(std::string("curl_easy_perform() failed: ") + curl_easy_strerror(res), LoggerLevel::CRITICAL);
         }
 
         curl_easy_cleanup(curl);
@@ -257,21 +255,59 @@ namespace comet
       {
         std::string mac = getMacAddress();
         if (mac.empty()) {
-          COMETLOG( "Failed to retrieve MAC address", LoggerLevel::CRITICAL);
+          COMETLOG("Failed to retrieve MAC address", LoggerLevel::CRITICAL);
 
           return "";
         }
 
         std::string uuid = getUuid();
         if (uuid.empty()) {
-          COMETLOG( "Failed to generate UUID", LoggerLevel::CRITICAL);
+          COMETLOG("Failed to generate UUID", LoggerLevel::CRITICAL);
           return "";
         }
         return mac;
-
       }
 
-    
+
+    inline bool check200Response(const std::string &ipaddress)
+      {
+        CURL *curl;
+        CURLcode res;
+        long httpCode = 0;
+
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        curl = curl_easy_init();
+
+        if (!curl) {
+          COMETLOG("Failed to initialize CURL", LoggerLevel::CRITICAL);
+          curl_global_cleanup();
+          return false;
+        }
+
+        curl_easy_setopt(curl, CURLOPT_URL, ipaddress.c_str());
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+        curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 2L);
+
+        res = curl_easy_perform(curl);
+        if (res == CURLE_OK) {
+          COMETLOG(std::string("Found IP Address: " + ipaddress), LoggerLevel::INFO);
+        } else if (res == CURLE_OPERATION_TIMEDOUT) {
+          COMETLOG(std::string("curl timeout failed: ") + curl_easy_strerror(res), LoggerLevel::DEBUGGING);
+          curl_easy_cleanup(curl);
+          curl_global_cleanup();
+          return false;
+        } else {
+          COMETLOG(std::string("curl failed: ") + curl_easy_strerror(res), LoggerLevel::DEBUGGING);
+          curl_easy_cleanup(curl);
+          curl_global_cleanup();
+          return false;
+        }
+
+        curl_easy_cleanup(curl);
+        curl_global_cleanup();
+        return res == CURLE_OK;
+      }
   }
 
 #endif //UTILITIES_H

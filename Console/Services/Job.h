@@ -62,17 +62,19 @@ namespace comet
 
         // Constructor
       public:
-        Job(const drogon::HttpRequestPtr &request);
+        Job(const drogon::HttpRequestPtr &request, JobStatus newStatus, Database & db);
 
         JobStatus jobStatus() const;
         bool validJobStatus() const;
-        JobStatus setJobStatus(const char *statusDescription);
+        JobStatus setJobStatus(JobStatus newStatus);
         std::string getReplaceQueryString() const;
         std::string description();
+        static std::string getJobId(const std::map<std::string, std::string> &jobMap);
 
         static int mockRunJobs(const Database & db);
 
         static int resetRunningJobs(Database &db);
+        bool updateInDatabase(Database &db) const;
 
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
 

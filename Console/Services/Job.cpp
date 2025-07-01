@@ -17,8 +17,10 @@
 
 namespace comet
   {
-    Job::Job(const drogon::HttpRequestPtr &request)
+    Job::Job(const drogon::HttpRequestPtr &request, JobStatus newStatus, Database & db)
       {
+        status = newStatus; // Set initial job status to Queued
+
         /* Sample json data
           {
             "type": "base64",
@@ -92,28 +94,28 @@ namespace comet
         } catch (const std::invalid_argument &e) {
           COMETLOG(e.what(), comet::INFO); // COMETLOG the error message
           status = JobStatus::Failed; // Set job status to Failed
+          return;
         }
-
-        status = JobStatus::Queued; // Set initial job status to Queued
-        // COMETLOG the job status
+        
+        updateInDatabase(db);
       }
 
     std::string Job::getReplaceQueryString() const
       {
         auto jobId = comet::generateTimestamp(); // Member function to generate timestamp
-        return std::string("") + "REPLACE INTO jobs (GroupName, CaseNumber, projectId, LastUpdate, "
-               "CaseName, ID, CreatorName, CreatorXEmail, CreatorXCode, CreatorMachine, peopleId, "
-               "InputFileName, EngineVersion, EngineDirectory, PhaseFileLocation, WorkingDirectory, "
-               "Status, RunProgress, Servant, Ranking, Life, IterationsComplete, RunTimeMin, CaseBody) "
-               "VALUES ('" + title + "', " + caseNumber + ", " + std::to_string(
-                 projectRefValue) + ", datetime('now'), "
-               "'" + caseName + "', '" + jobId + "', '" + creatorName + "', '" + creatorXEmail +
-               "', '" + creatorXCode + "', '" + creatorMachine + "', " + std::to_string(peopleRefValue) +
-               ", "
-               "'" + inputFileName + "', '" + engineVersion + "', '" + engineDirectory + "', '" +
-               basePhaseDirectory + "', '" + workingDirectory + "', "
-               + std::to_string(status) +
-               ", '', NULL, NULL, NULL, NULL, NULL, '" + caseBody + "');";
+        auto query = std::string("") + "REPLACE INTO jobs (GroupName, CaseNumber, projectId, LastUpdate, "
+                     "CaseName, ID, CreatorName, CreatorXEmail, CreatorXCode, CreatorMachine, peopleId, "
+                     "InputFileName, EngineVersion, EngineDirectory, PhaseFileLocation, WorkingDirectory, "
+                     "Status, RunProgress, Servant, Ranking, Life, IterationsComplete, RunTimeMin, CaseBody) "
+                     "VALUES ('" + title + "', " + caseNumber + ", " + std::to_string(projectRefValue) +
+                     ", datetime('now'), "
+                     "'" + caseName + "', '" + jobId + "', '" + creatorName + "', '" + creatorXEmail +
+                     "', '" + creatorXCode + "', '" + creatorMachine + "', " + std::to_string(peopleRefValue) +
+                     ", "
+                     "'" + inputFileName + "', '" + engineVersion + "', '" + engineDirectory + "', '" +
+                     basePhaseDirectory + "', '" + workingDirectory + "', "
+                     + std::to_string(status) + ", '', NULL, NULL, NULL, NULL, NULL, '" + caseBody + "');";
+        return query;
       }
 
     bool Job::createNewJobsTable(Database &db)
@@ -179,12 +181,14 @@ namespace comet
 
         // Generate links for filters
         std::string filterLinks = "Filter: ";
-        std::vector<std::string> filters = {"all", "complete", "active", "failed"};
-        for (const auto &f: filters) {
+        std::vector<std::string> filters = {"All", "Queued", "Active", "Failed", "Complete"};
+        for (const auto &aFilter: filters) {
+          auto f = aFilter;
+          std::transform(f.begin(), f.end(), f.begin(), ::tolower);
           if (f == filter) {
-            filterLinks += "<span class='highlightbutton'>" + f + "</span>";
+            filterLinks += "<span class='highlightbutton'>" + aFilter + "</span>";
           } else {
-            filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + f + "</a>";
+            filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
           }
           if (f != filters.back()) {
             filterLinks += ", ";
@@ -193,22 +197,31 @@ namespace comet
 
         // Generate links for sorting options
         std::string sortLinks = "Order: ";
-        std::vector<std::string> sorts = {"status", "date", "npv", "case"};
+        std::vector<std::string> sorts = {"Status", "Date", "NPV", "Case", "Creator", "Servant"};
         for (const auto &s: sorts) {
-          if (s == sort) {
-            std::string sortCaseAdjusted = s;
-            if (sortDescAsc == "DESC") {
-              std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::toupper);
-            }
-            sortLinks += "<a href='" + baseUrl + "?sort=" + sortCaseAdjusted + "&filter=" + filter +
-                "' class='highlightbutton'>" + s + " (" + sortDescAsc + ")" +
-                "</a>";
+          std::string sortCaseAdjusted = s;
+          std::string sortLowerCase = s;
+          std::transform(sortLowerCase.begin(), sortLowerCase.end(), sortLowerCase.begin(), ::tolower);
+
+          sortLinks += "<a href='" + baseUrl;
+          sortLinks += "?filter=" + filter;
+
+          if (sortDescAsc == "DESC") {
+            std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::toupper);
           } else {
-            sortLinks += "<a href='" + baseUrl + "?sort=" + s + "&filter=" + filter + "'>" + s + "</a>";
+            std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::tolower);
           }
-          if (s != sorts.back()) {
-            sortLinks += ", ";
+          sortLinks += "&sort=" + sortCaseAdjusted + "' ";
+
+          if (sortLowerCase == sort) {
+            sortLinks += " class='highlightbutton'";
+            sortLinks += ">" + s + " (" + sortDescAsc + ")";
+          } else {
+            sortLinks += ">" + s;
           }
+          sortLinks += "</a>";
+
+          sortLinks += ", ";
         }
 
         // Add filter and sort links to the HTML
@@ -218,9 +231,12 @@ namespace comet
 
         // Get the job summary from the database
         std::string selection = "SELECT * FROM jobs ";
+
         std::string whereClause = "";
         if (filter == "all") {
           whereClause = "";
+        } else if (filter == "queued") {
+          whereClause = " WHERE Status IN (0) ";
         } else if (filter == "active") {
           whereClause = " WHERE Status IN (1, 2) ";
         } else if (filter == "complete") {
@@ -228,6 +244,7 @@ namespace comet
         } else if (filter == "failed") {
           whereClause = " WHERE Status = 3 ";
         }
+
         std::string orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
         if (sort == "status") {
           orderBy = " ORDER BY Status " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
@@ -235,7 +252,11 @@ namespace comet
           orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
         } else if (sort == "npv") {
           orderBy = " ORDER BY Ranking " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
-        } else if (sort == "case") {
+        } else if (sort == "creator") {
+          orderBy = " ORDER BY CreatorName " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
+        } else if (sort == "servant") {
+          orderBy = " ORDER BY servant " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
+        } else if (sort == "c ase") {
           orderBy = " ORDER BY CaseNumber " + sortDescAsc + " ";
         }
         auto query = selection + whereClause + orderBy + " LIMIT 500;";
@@ -261,7 +282,8 @@ namespace comet
           html += "<td>" + row.at("GroupName") + "</td>";
           html += "<td>" + row.at("CaseNumber") + "</td>";
           html += "<td>" + (row.at("Servant").empty() ? "None" : row.at("Servant")) + "</td>";
-          html += "<td>" + Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "</td>";
+          //html += "<td>" + Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")" + "</td>";
+          html += "<td>" + Job::jobStatusDescription(aStatus) + "</td>";
           html += "<td>" + row.at("Ranking") + "</td>";
           html += "<td>" + row.at("Life") + "</td>";
           html += "<td>" + row.at("CaseName") + "</td>";
@@ -282,24 +304,48 @@ namespace comet
         return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
       }
 
+    std::string Job::getJobId(const std::map<std::string, std::string> &jobMap)
+      {
+        std::vector<std::string> keys = {"Id", "GroupName", "CaseNumber", "CaseName", "CreatorName", "CreatorMachine"};
+        // Join all these firlds if they exist
+        std::string result = "";
+        for (const auto &key: keys) {
+          auto it = jobMap.find(key);
+          if (it != jobMap.end()) {
+            if (!result.empty()) {
+              result += " - ";
+            }
+            result += it->second;
+          }
+        }
+        return result;
+      }
+
     int Job::mockRunJobs(const Database &db)
       {
-        auto query = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Running)) +
-                  ", Servant = 'MockServant', Ranking = 123.457, Life = 45.67, IterationsComplete = 0, RunTimeMin = 12.34, RunProgress = 'Completed Iteration 0', LastUpdate = datetime('now') " +
-                  "WHERE  CaseNumber  = 20.000012 ;";
+        auto query = "UPDATE Jobs set Status = '" + std::to_string(int(JobStatus::Running)) + "'" +
+                     ", Servant = 'MockServant', Ranking = 123.457, Life = 45.67, IterationsComplete = 0, RunTimeMin = 12.34, RunProgress = 'Completed Iteration 0', LastUpdate = datetime('now') "
+                     +
+                     "WHERE  CaseNumber  = 20.000012 ;";
         auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
+
+        auto queryQueued = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Queued)) +
+                        ", Servant = '', Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now') "
+                        +
+                        "WHERE  CaseNumber  = 20.000011 or CaseNumber  = 20.000025 or CaseNumber  = 20.00025 ;";
+        rowsImpacted += db.updateQuery("Reset Queued Jobs", queryQueued, false);
         if (rowsImpacted == 0) {
           COMETLOG("Failed to reset running jobs", comet::CRITICAL);
           return 0;
         }
         return rowsImpacted;
-
       }
 
     int Job::resetRunningJobs(Database &db)
       {
         auto query = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Queued)) +
-                     ", Servant = NULL, Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now') " +
+                     ", Servant = NULL, Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now') "
+                     +
                      "WHERE  Status  = " + std::to_string(int(JobStatus::Running)) + " ;";
         auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
         if (rowsImpacted == 0) {
@@ -308,6 +354,23 @@ namespace comet
         }
         return rowsImpacted;
       }
+
+    bool Job::updateInDatabase(Database &db) const
+      {
+        
+        auto query = getReplaceQueryString();
+
+        COMETLOG("Executing query: " + query, LoggerLevel::DEBUGGING);
+        auto result = db.executeQuery(query);
+        if (!result) {
+          COMETLOG("Failed to execute database query: " + query, LoggerLevel::CRITICAL);
+          return false; // Or handle the error appropriately
+        }
+        
+        return true;
+        
+      }
+
 
     std::string Job::getAllJobStatuses(Database &db, std::string &GroupName)
       {
@@ -343,7 +406,7 @@ namespace comet
               result += separator + value;
               separator = R"(\t)";
             }
-            
+
             result += R"(\n)";
 
             result += "\n"; // Add a newline at the end of the row
@@ -378,23 +441,9 @@ namespace comet
         }
       }
 
-    JobStatus Job::setJobStatus(const char *statusDescription)
+    JobStatus Job::setJobStatus(const JobStatus newStatus)
       {
-        // update the status from the description using a switch statement
-        if (strcmp(statusDescription, "Queued") == 0) {
-          status = Queued;
-        } else if (strcmp(statusDescription, "Allocated") == 0) {
-          status = Allocated;
-        } else if (strcmp(statusDescription, "Running") == 0) {
-          status = Running;
-        } else if (strcmp(statusDescription, "Failed") == 0) {
-          status = Failed;
-        } else if (strcmp(statusDescription, "Completed") == 0) {
-          status = Completed;
-        } else {
-          status = Unknown;
-          //throw std::invalid_argument("Invalid job status description");
-        }
+        status = newStatus;
         return status;
       }
   }

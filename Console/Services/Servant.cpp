@@ -28,6 +28,7 @@ namespace comet
         priority = 1.0;
         managerIpAddress = ""; // Default empty manager IP address
         ipAddress = getPrivateIPAddress();
+        alive = true;
       }
 
 
@@ -93,24 +94,62 @@ namespace comet
                             "version = '" + version + "', email = '" + email + "', code = '" + code + "', "
                             "port = " + std::to_string(port) + ", totalCores = " + std::to_string(totalCores) + ", "
                             "unusedCores = " + std::to_string(unusedCores) + ", activeCores = " + std::to_string(
-                              activeCores) + " " + "priority = " + std::to_string(priority) + " "
+                              activeCores) + ", " + "priority = " + std::to_string(priority) +
+                            ", " + "alive = " + std::to_string(alive) + " "
                             "WHERE ipAddress = '" + ipAddress + "';";
 
         if (db.updateQuery("Update Servants", query, false) == 0) {
           // do an insert a new record
           query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
-                  "version, email, code, port, priority, totalCores, unusedCores, activeCores, managerIpAddress) "
+                  "version, email, code, port, priority, totalCores, unusedCores, activeCores, managerIpAddress, alive) "
                   "VALUES ('" + ipAddress + "', 0, DATETIME('now'), DATETIME('now'), '1.0', '" + email + "', '" +
                   code + "', " + std::to_string(port) + "', " + std::to_string(priority) + ", " +
                   std::to_string(totalCores) + ", " +
                   std::to_string(unusedCores) + ", " +
-                  std::to_string(activeCores) + ",'" + managerIpAddress + "');";
+                  std::to_string(activeCores) + ",'" + managerIpAddress + "'," + std::to_string(alive) + ", );";
           if (!db.insertRecord(query, false)) {
             COMETLOG("Failed to update Servants table with servant settings.", LoggerLevel::CRITICAL);
             return;
           }
 
           COMETLOG("Servant settings updated successfully in the database.", LoggerLevel::DEBUGGING);
+        }
+      }
+
+    std::vector<std::map<std::string, std::string> > Servant::getAvailableServants(Database &db)
+      {
+        auto availableServants = db.getQueryResults(
+          "SELECT * FROM servants WHERE (totalCores-unusedCores-activeCores) > 0 and alive = true ORDER BY priority DESC;");
+        return availableServants;
+      }
+    
+    std::vector<std::map<std::string, std::string> > Servant::getAllServants(Database &db)
+      {
+        auto availableServants = db.getQueryResults(
+          "SELECT * FROM servants WHERE (totalCores-unusedCores-activeCores) > 0  ORDER BY priority DESC;");
+        return availableServants;
+      }
+
+    void Servant::checkAllServantsAlive(Database &db)
+      {
+        auto thisIp = getPrivateIPAddress();
+        auto servants = getAllServants(db);
+        for (auto &servant: servants) {
+            auto isAlive = false;
+          if (thisIp == servant.at("ipAddress")) {
+            isAlive = true;
+          } else {
+            isAlive = check200Response(servant.at("ipAddress") + ":" + servant.at("port"));
+          }
+          auto aliveStatusText = (isAlive)? "ALIVE": "NOT ALIVE";
+          if ((servant.at("alive") == "1" && !isAlive) || (servant.at("alive") == "0" && isAlive)) {
+            COMETLOG("Servant " + servant.at("ipAddress") + " status changed: " + aliveStatusText, LoggerLevel::INFO);
+            servant["alive"] = (isAlive) ? "1" : "0";
+            auto updateQuery = "UPDATE servants SET alive = " + servant["alive"] +
+                ", lastUpdateTime = DATETIME('now') WHERE ipAddress = '" + servant.at("ipAddress") + "';";
+            auto result = db.updateQuery("Update Servant Alive Status", updateQuery, false);
+          }
+            COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::INFO);
         }
       }
 
@@ -190,10 +229,15 @@ namespace comet
             std::to_string(activeCores) +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
-            "<tr>" "<tr>"
+            "<tr>"
             "<td><label for='priority'>Priority (higher number for higher priority):</label></td>"
             "<td style='text-align: right;'><input type='text' id='priority' name='priority' value='" +
             std::to_string(priority) +
+            "'  style='border: none; background-color: #f0f0f0;'></td>"
+            "</tr>" "<tr>"
+            "<td><label for='alive'>Alive/Enabled (1 = alive, 0= not alive):</label></td>"
+            "<td style='text-align: right;'><input type='text' id='alive' name='alive' value='" +
+            std::to_string(alive) +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
@@ -229,6 +273,7 @@ namespace comet
                     , `unusedCores` int NOT NULL
                     , `activeCores` int NOT NULL
                     , `managerIpAddress` varchar(250) NOT NULL
+                    , alive bool not null
                     , PRIMARY KEY(`ipAddress`, `projectId`)
                     );)";
 
@@ -239,6 +284,49 @@ namespace comet
     void Servant::setAuthentication(Authentication *authState)
       {
         auth = authState;
+      }
+
+    std::string Servant::servantSummaryHtmlReport(Database &db)
+      {
+        std::string html = "";
+
+        checkAllServantsAlive(db);
+
+        // Add filter and sort links to the HTML
+        html += "<h1>Servant Summary</h1>";
+
+        auto query = "SELECT * FROM Servants ORDER BY LastUpdateTime DESC LIMIT 500;";
+        auto results = db.getQueryResults(query);
+
+        if (results.empty()) {
+          html += "<p>No servants found.</p>";
+          return html;
+        }
+
+        // Generate the table
+        html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;'>";
+        html +=
+            "<tr><th>Alive</th><th>Last Update</th><th>IP Address</th><th>Priority</th><th>Total Cores</th><th>Unused Cores</th>"
+            "<th>Active Cores</th><th>Manager IP</th></tr>";
+
+        int rowIndex = 0;
+        for (const auto &row: results) {
+          std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
+          html += "<tr class='" + rowClass + "'>";
+          html += "<td>" + row.at("alive") + "</td>";
+          html += "<td>" + row.at("lastUpdateTime") + "</td>";
+          html += "<td>" + row.at("ipAddress") + "</td>";
+          html += "<td>" + row.at("priority") + "</td>";
+          html += "<td>" + row.at("totalCores") + "</td>";
+          html += "<td>" + row.at("unusedCores") + "</td>";
+          html += "<td>" + row.at("activeCores") + "</td>";
+          html += "<td>" + row.at("managerIpAddress") + "</td>";
+          html += "</tr>";
+          rowIndex++;
+        }
+        html += "</table>";
+
+        return html;
       }
 
     bool Servant::routineStatusUpdates() const
@@ -256,6 +344,7 @@ namespace comet
         jsonData["code"] = code;
         jsonData["port"] = port;
         jsonData["priority"] = priority;
+        jsonData["alive"] = alive;
         jsonData["projectId"] = 0; // Replace with actual project ID if needed
         auto response = Curl::postJson(url, jsonData);
         if (response.isError()) {
@@ -295,6 +384,8 @@ namespace comet
 
     void Servant::startRoutineStatusUpdates()
       {
+        // wait for 2 seconds
+        std::this_thread::sleep_for(std::chrono::seconds(1));
         std::thread([this]()
           {
             while (true) {
@@ -328,6 +419,7 @@ namespace comet
                              ", activeCores = '" + std::to_string(activeCores) + "' "
                              ", version = '" + version + "' "
                              ", managerIpAddress = '" + managerIpAddress + "' "
+                             ", alive = " + std::to_string(alive) + " "
                              "WHERE ipAddress = '" + ipAddress + "' and projectId = '" + std::to_string(
                                projectId) + "';") == 0) {
             COMETLOG("Failed to insert or update Servants table with authentication information: ",

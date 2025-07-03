@@ -1,0 +1,841 @@
+/* CSS Document */
+@import url(//fonts.googleapis.com/css?family=Source+Sans+Pro:400,600|Oswald);
+
+
+a {
+
+    color:  #002b5a;
+    text-decoration:none;
+
+}
+
+a:hover {
+
+    color: #4DB0DD;
+
+}
+
+header > a {
+
+    color:  graytext; 
+    text-decoration:none;
+
+
+}
+
+body{
+    background-size: cover;
+    background-repeat:  no-repeat;
+    padding: 0;
+    margin: 0;
+    font-family: "Helvetica Neue", Helvetica, "Arial Black", arial-black, sans-serif;
+    height: 100vh !important;
+    display: flex;
+    flex-direction: column;
+}
+
+dl {
+    margin-top: 0em;
+    margin-left: 3em;
+    margin-bottom: 1em;
+    background-color:  green;
+}
+
+dt {
+    background-color:  #FFD;
+}
+
+dt h2 {
+    background-color:  #FFB;
+}
+
+footer {
+    background-color:  #002b5a;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+header {
+    background-color:  #002b5a;
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+header>a {
+    display: inline-block;
+    margin-right: 10px;
+    min-width: 150px;
+    text-align: center;
+    height: 30px;
+    line-height: 30px;
+    color: #002b5a;
+    background: white;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-bottom: 10px;
+}
+
+div#pagebody {
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+div#pagefooter {
+    width: 100%;
+    min-height: 60px;   /* Height of the footer */
+    margin-top: auto;
+}
+
+div#local-developer {
+    height: 7px;
+    background: #a91300;
+}
+
+
+input {
+    color: #002b5a;
+    font-size:large;
+    background-color:  inherit;
+}
+
+input:disabled {
+    color: gray;
+    font-size:large;
+    border-style:  none;
+    background-color:  inherit;
+}
+
+
+h1 {
+    color:white;
+    font-size:  xx-large;
+    background-color: #002b5a;
+    vertical-align:middle;
+}
+
+h2 {
+    color:#002b5a;
+    text-align:left;
+}
+
+h20 {
+    color:white;
+    background-color: red;
+    font-size:  xx-large;
+    font-weight: bold;
+    text-align:left;
+}
+
+h3 {
+    color:#4DB0DD;
+    text-align:left;
+}
+
+h4 {
+    color:#4DB0DD;
+    text-align:left;
+}
+
+p.quote {
+    color:white;
+    text-align:right;
+    vertical-align: central;
+    font-size: small;
+
+
+}
+
+p {
+    color: #002b5a;
+    margin-left: 0%;
+}
+
+li {
+    color: #002b5a;
+}
+
+svg {
+    vertical-align:middle;
+}
+
+table {
+    /* width: 100%; */
+    color: #002b5a;
+}
+td {
+    text-align:left;
+    vertical-align:  top;
+}
+
+th {
+    text-align:left;
+    vertical-align:  top;
+}
+
+.heading_title {
+    color: white;
+}
+
+
+.number {
+    text-align:right;
+
+}
+td .rightAlign {
+    text-align:right;
+
+}
+
+.smalltext{
+
+    width:100px;
+
+}
+.number_small{
+    text-align:right;
+    width:100px;
+    background-color: white;
+    border: #CCC solid thin;
+}
+
+td .number_small[disabled]{
+    text-align:right;
+    width:100px;
+    color: #333;
+    border: #FFF solid thin;
+}
+
+.even
+{
+    background-color: #eee;
+}
+
+tr .list_heading
+{
+    background-color: #4DB0DD;
+    color: white;
+    border: 5px solid red; 
+}
+
+.BankDescription
+{
+    color: #777;
+}
+
+.currency  
+{
+    text-align: right;
+}
+
+.DefaultDescription
+{
+    color:#4DB0DD;
+    text-align:left;
+}
+
+.formatted_table{
+    background-color: #DDD;
+}
+
+.formatted_table th{
+    background-color: #002b5a;
+    color:#4DB0DD;
+    border-spacing:1em;
+}
+
+.formatted_table td{
+    color:#002b5a;
+    border-spacing:1em;
+    border-color: red;
+}
+
+
+.formatted_special_table{
+    background-color: white;
+    margin: auto;
+}
+
+.formatted_special_table th{
+    background-color: #002b5a;
+    color:white;
+    border-spacing:1em;
+    min-width:  200px;
+}
+
+.formatted_special_table td{
+    color:#002b5a;
+    border-spacing:1em;
+    text-align: right;
+}
+
+.largetable{
+    background-color: #FFe;
+    border: #0066cc dotted thin;
+
+}
+
+
+.fullwidth {
+    width: 100%;
+    background-color: white;
+}
+
+.largetable th {
+    background-color: #FFB;
+    color:#002b5a;
+    border-spacing:1em;
+    min-width:  150px;
+    text-align: left;
+}
+
+.largetable td {
+    color:#002b5a;
+    border-spacing:1em;
+    min-width:  150px;
+    text-align: left;
+
+}
+
+.Logoright{
+    font-size: 200%;
+    font-weight: bold;
+    color:#002b5a;
+    text-align:right;
+}
+
+.odd
+{
+    background-color: aliceblue;
+}
+
+.user_message
+{
+    background-color: white; 
+}
+
+.socialmedia 
+{
+    color: white;
+    text-align: right;
+}
+
+.headerText 
+{
+    color: white;
+    text-align: right;
+}
+
+
+.table_header
+{
+    color: white;
+    background-color: #002b5a;
+}
+
+.textarea_medium
+{
+    width: 100%;
+    height: 50px;
+    /* padding: 12px 20px; */
+    box-sizing: border-box;
+    border: 2px solid #ccc;
+    border-radius: 4px;
+    background-color: #f8f8f8;
+    /* resize: none; */
+}
+
+
+.topics
+{
+    color: blue;
+    width:100%
+
+}
+
+.tableEditRow
+{
+    background: inherit;
+}
+
+.showHide_none
+{
+    color: gray;
+    background: url("../graphics/plus.svg") no-repeat;
+    background-size: 20px;
+    text-align: center;
+    font-weight: bold;
+    border-style:  none;
+    border-width: 0;
+    margin:0;
+    padding:20px;
+}
+
+.showHide_show
+{
+    color: gray;
+    background: url("../graphics/minus.svg") no-repeat;
+    background-size: 20px;
+    text-align: center;
+    font-weight: bold;
+    border-style:  none;
+    border-width: 0;
+    margin:0;
+    padding:20px;
+
+}
+
+
+.z_format_number_right
+{
+    text-align: right;
+    float: right; 
+
+}
+
+
+.z_ajaxbutton
+{
+    color: #002b5a;
+    background: white;
+    width: 115px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.z_ajaxresult
+{
+    background-color: aliceblue;
+    padding-top: 1%;
+    padding-bottom: 1%;
+    width:100%;
+    min-width:  500px;
+    font-size: medium;
+    border-radius: 5px 5px 5px 5px;
+    border-width: thin;
+    border-color: #4DB0DD;
+    border-style: solid;
+    padding: 0px;
+    border-style: dotted;
+}
+.z_ajaxresult:empty
+{
+    display: none;
+}
+.z_ajaxsearch
+{
+    background-color: aliceblue  ;
+    width:60%;
+}
+
+
+.z_button
+{
+    color: #002b5a;
+    background: white;
+    width: 115px;
+    padding: 10px;
+    text-align: center;
+    border-radius: 5px;
+    font-weight: bold;
+}
+
+.z_button:hover
+{
+    background: #4DB0DD;
+    color: white;
+}
+.z_button:disabled
+{
+    background: lightgray;
+    color: gray;
+}
+
+.z_email
+{
+    color: #002b5a;
+    font-size:medium;
+    min-width:100%;
+}
+
+
+
+.z_description
+{
+    color: #0066cc;
+    font-size:large;
+}
+
+.z_description_text
+{
+    color: #0066cc;
+    font-size:large;
+}
+
+.z_download
+{
+    color: #002b5a;
+    background: gray;
+    text-align:center;
+}
+.z_download:hover
+{
+    background: #002b5a;
+    color: white;
+}
+
+.z_heading
+{
+    color: #002b5a;
+    font-size: large;
+    font-weight:  bold;
+    text-align:left;
+}
+.z_heading_label
+{
+    color: #002b5a;
+    font-size: large;
+    font-weight:  bold;
+    text-align:left;
+}
+
+.z_html_block
+{
+    padding-top: 1%;
+    padding-bottom: 1%;
+    width:100%;
+    font-size: medium;
+    border-width: thin;
+    border-color: gray;
+    border-style: solid;
+    border-radius: 1px 1px 1px 1px;
+}
+
+.z_label
+{
+    color: inherit;
+    font-size:large;
+}
+
+.z_dlabel
+{
+    text-align: right;
+}
+
+.z_number
+{
+    text-align: right;
+}
+
+.z_page
+{
+}
+
+
+.z_password
+{
+    color: #002b5a;
+    font-size:medium;
+    min-width:400px;
+}
+
+
+.z_quickfeedback 
+{
+    color: #002b5a;
+    background-color: white;
+    text-align: right;
+    width:200px;
+}
+
+.z_sql_pick_list, .z_sql_pick_list_with_empty, .z_select_list
+{
+    background-color: #002b5a;
+    color: white;
+    font-size:medium;
+    min-width:100px;
+
+}
+
+.z_sql_pick_list[disabled], .z_sql_pick_list_with_empty[disabled] ,.z_select_list[disabled]
+{
+    background-color: #777;
+    color: white;
+    font-size:medium;
+
+}
+
+.z_readonly
+{
+    color: gray;
+}
+
+.z_readonly:disabled
+{
+    color: #333333;
+    width:400px;
+}
+
+.z_text
+{
+    color: #002b5a;
+    background-color: white;
+    font-size:medium;
+    min-width:20%;
+    width:400px;
+}
+
+.z_text_small
+{
+    color: #002b5a;
+    font-size:medium;
+}
+
+.z_textarea
+{
+    background-color: #ddd;
+    border: #4DB0DD;
+    border-radius: 5px 5px 5px 5px;
+    padding-top: 2%;
+    min-height: 100px;
+    min-width:  800px;
+    width:  100%;
+    font-size: medium;
+}
+
+.z_textarea_rtf
+{
+    background-color: white;
+    border: #4DB0DD;
+    border-radius: 15px 15px 15px 15px;
+    padding-top: 2%;
+    min-height: 100px;
+    min-width:  800px;
+    width:  100%;
+    font-size: medium;
+}
+
+.home_button
+{
+    background: white;
+    color: #4DB0DD;
+    border:  dotted #002b5a;
+}
+
+.signout_button
+{
+    background: white;
+    color: #4DB0DD;
+    border:  dotted #002b5a;
+}
+
+
+.comment 
+{
+    color: darkgray;
+    margin-top: 20px;
+    margin-left: 0px;
+    padding: 20px; 
+
+}
+
+.systembutton
+{
+    background: blue;
+    color: white;
+}
+
+.borderless_button 
+{
+    background: inherit;
+    width: auto;
+    border:  none;
+
+}
+
+StdCopyButton
+{
+    background: blue;
+    width: auto;
+    color: white;
+    border:  none;
+
+}
+
+
+.StdDeleteButton
+{
+    background: inherit;
+    width: auto;
+    color: red;
+    border:  none;
+
+}
+.StdDeleteButton:hover
+{
+    background: red;
+    width: auto;
+    color: white;
+    border:  none;
+
+}
+
+.StdUpdateButton
+{
+    background: inherit;
+    width: auto;
+    color: green;
+    border:  none;
+}
+
+.StdUpdateButton:disabled
+{
+    background: inherit;
+    width: auto;
+    color: gray;
+    border:  none;
+
+}
+
+.scriptfont
+{
+    text-align: center;
+    font-family:  cursive;
+    font-size:  x-small;
+    padding-right: 100px;
+}
+
+.success
+{
+    color: green;
+}
+
+
+.error
+{
+    background-color: red;
+    color: white;
+    margin: 0;
+}
+
+
+.warning
+{
+    background-color: #C36241;
+    background-color: #4181c3;
+    color: white;
+    margin: 0;
+}
+
+.message
+{
+    background-color: #4181c3;
+    color: white;
+    margin: 0;
+}
+
+.timerActive
+{
+    background-color: #4181c3;
+    color: white;
+
+}
+
+.timerWaiting
+{
+
+}
+
+
+.highlight_cell
+{
+    background: #777;
+    background: greenyellow;
+    background: gold;
+    color: #eee;
+    color: #002b5a;
+    text-align:center;
+}
+
+.highlight
+{
+    background-color: highlight;
+    color: blue;
+}
+
+
+.buybutton
+{
+    background: #5cb85c;
+    border: #4cae4c;
+}
+
+.highlightbutton
+{
+    background: #4181c3;
+    color: white;
+    border: #002b5a;
+}
+
+
+.small_text{
+    width:  40px;
+
+
+}
+
+.medium_text{
+    width:  80px;
+
+
+}
+
+.large_text{
+    width:  180px;
+}
+
+.extra_large_text{
+    width:  580px;
+}
+
+.system_link{
+    position: relative;
+    /* padding: 100px 30px 45px 30px;  */
+    text-transform: none;
+    font: bold 14px 'Source Sans Pro';
+    color: #fff;
+    text-transform: uppercase;
+    background: transparent;
+    -webkit-transition: all 0.35s ease;
+    transition: all 0.35s ease;
+
+    text-decoration: none;
+    cursor: auto;
+    box-sizing: border-box;
+    line-height: 30px;
+    display: inline-block;
+    min-width: 0px;
+    
+    border: none;
+
+}
+
+.system_link:hover{
+    color: #ffffff;
+    background: #3188bb;
+    -webkit-transition: all 1.35s ease;
+    transition: all 0.35s ease;
+}
+
+
+.user_link{
+    color: #aaa;
+    min-width: 0px;
+
+}
+
+a.z_link:hover {
+    cursor: pointer;
+}
+

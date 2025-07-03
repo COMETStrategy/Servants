@@ -4,6 +4,8 @@ project(servant-console)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
+
+
 include(FetchContent)
 
 # Fetch Drogon
@@ -64,3 +66,13 @@ add_executable(servant-console-tests GTests/LoggerTest.cpp ${SERVICES_SRC}
 target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon sqlite3 CURL::libcurl)
 target_include_directories(servant-console-tests PRIVATE Services)
 add_test(NAME servant-console-tests COMMAND servant-console-tests)
+
+# Copy the static directory to the build directory
+add_custom_command(
+        TARGET servant-console POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/static
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static
+)
+
+install(DIRECTORY static/ DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

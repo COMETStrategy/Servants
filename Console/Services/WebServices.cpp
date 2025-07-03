@@ -726,10 +726,10 @@ namespace comet
         }
 
         return R"(
-    <link rel="stylesheet" href="https://support.cometstrategy.com/themes/zCSS.css">
-    <link rel='shortcut icon' type='image/png' href='https://media.cometstrategy.com/img/COMET_Icon.png'>
+    <link rel="stylesheet" href="/css/styles.css">
+    <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
     <header>
-        <img src='https://media.cometstrategy.com/img/COMET_DarkBG.svg' alt='1' height='60'>
+        <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
         <span class='heading_title'>COMET Servants</span>
         <h1>Welcome to COMET Servants</h1>
         )" + linksHTML + R"(
@@ -756,6 +756,9 @@ namespace comet
 
     void WebServices::run()
       {
+       
+        app().setDocumentRoot("static");
+        
         m_serverThread = std::make_unique<std::thread>([this]
           {
             COMETLOG(std::string("Server running on localhost:") + to_string(aServant.getPort())

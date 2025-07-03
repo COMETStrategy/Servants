@@ -260,6 +260,7 @@ namespace comet
             "</table>"
             "</form>";
 
+
         return html;
       }
 
@@ -296,8 +297,6 @@ namespace comet
       {
         std::string html = "";
 
-        checkAllServantsAlive(db);
-
         // Add filter and sort links to the HTML
         html += "<h1>Servant Summary</h1>";
 
@@ -331,6 +330,12 @@ namespace comet
           rowIndex++;
         }
         html += "</table>";
+
+        html += "<p></p><h2>Options for Servants</h2>"
+            "<span id=message class='success'><button onclick=\"writeMessage(); location.href='/updateAliveServants'\" class='highlightbutton'>Update Alive Servants</button>"
+            "</span>"
+            "<script>function writeMessage() {document.getElementById('message').textContent = 'Please wait, contacting Servants...';}</script>"
+            "";
 
         return html;
       }

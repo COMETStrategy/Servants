@@ -26,7 +26,7 @@ using namespace drogon;
 namespace comet
   {
     comet::Servant comet::WebServices::aServant;
-    
+
     WebServices::WebServices(const std::string &dbFilename)
       : db(dbFilename)
       {
@@ -70,7 +70,6 @@ namespace comet
 
           aServant.setAuthentication(&auth);
           aServant.startRoutineStatusUpdates();
-          Servant::checkAllServantsAlive(db);
         } else {
           COMETLOG("No records found in Servant Settings table, authentication required.", LoggerLevel::WARNING);
         }
@@ -92,16 +91,17 @@ namespace comet
         registerRootHandler();
         registerAuthenticateHandler();
         registerConfigurationHandler();
-        registerUploadJobHandler();
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
         registerJobSummaryHandler();
-        registerServantSummaryHandler();
         registerMockRunJobsHandler();
         registerResetRunningJobsHandler();
         registerServantStatusHandler();
+        registerServantSummaryHandler();
         registerStatusHandler();
         registerStatusJobsHandler();
+        registerUpdateAliveServantsHandler();
+        registerUploadJobHandler();
         registerQuitHandler();
       }
 
@@ -313,6 +313,38 @@ namespace comet
           {Post, Get});
       }
 
+    void WebServices::registerUpdateAliveServantsHandler()
+      {
+        app().registerHandler(
+          "/updateAliveServants",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+              if (!auth.machineAuthenticationisValid()) {
+                COMETLOG("Unauthorized access to /updateAliveServants", LoggerLevel::WARNING);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k401Unauthorized);
+                resp->setBody("Unauthorized");
+                callback(resp);
+                return;
+              }
+
+              
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k302Found); // Set status code to 302 for redirection
+              resp->addHeader("Location", "/servant_summary"); 
+              resp->setBody("Checking status of Servants and then will redirect to Servant summary..."); 
+
+              callback(resp);
+
+              
+              Servant::checkAllServantsAlive(db);
+              
+
+            },
+          {Post, Get});
+      }
+
     void WebServices::registerUploadJobHandler()
       {
         app().registerHandler(
@@ -513,7 +545,7 @@ namespace comet
             {
               handleInvalidMethod(request);
               if (!auth.machineAuthenticationisValid()) {
-                COMETLOG("Unauthorized access to /job_summary", LoggerLevel::WARNING);
+                COMETLOG("Unauthorized access to /servant_summary", LoggerLevel::WARNING);
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k401Unauthorized);
                 resp->setBody("Unauthorized");
@@ -756,9 +788,8 @@ namespace comet
 
     void WebServices::run()
       {
-       
         app().setDocumentRoot("static");
-        
+
         m_serverThread = std::make_unique<std::thread>([this]
           {
             COMETLOG(std::string("Server running on localhost:") + to_string(aServant.getPort())

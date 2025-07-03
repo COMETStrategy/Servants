@@ -26,6 +26,9 @@ namespace comet
         ~WebServices();
 
         void registerResetRunningJobsHandler();
+
+        void registerUpdateAliveServantsHandler();
+
         void registerMockRunJobsHandler();
 
         void shutdown();

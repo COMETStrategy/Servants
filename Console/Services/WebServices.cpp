@@ -714,18 +714,12 @@ namespace comet
 
     std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath) const
       {
-        return R"(
-          <!DOCTYPE html>
-          <html>
-          )" + getHTMLHeader(targetPath) + R"(
-          <body>
-          <div style="margin: 1cm;">
-          )" + body + R"(
-          </div>
-          </body>
-          )" + getHTMLFooter() + R"(
-          </html>
-          )";
+        return "<!DOCTYPE html>"
+        "<html>"
+        + getHTMLHeader(targetPath)
+        + "<body>" + body + "</body>"
+        +  getHTMLFooter()
+        + "</html>";
       }
 
     std::string WebServices::getHTMLHeader(const std::string &targetPath) const
@@ -750,15 +744,16 @@ namespace comet
         std::string linksHTML;
         for (const auto &link: links) {
           std::string style = (link.href == targetPath)
-                                ? "style='color:#4DB0DD; font-weight: bold; margin-right: 10px'"
+                                ? "style='font-weight: bold; margin-right: 10px'"
                                 : "";
           linksHTML += "<a href='" + link.href + "' class='system_link' " + style + " style='margin-right: 10px;'>" +
               link.
               name + "</a> ";
         }
 
+        std::string datetimestring = std::to_string(std::time(nullptr));
         return R"(
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/css/styles.css?v=)" + datetimestring + R"(">
     <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
     <header>
         <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>

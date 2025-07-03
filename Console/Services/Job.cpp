@@ -271,7 +271,7 @@ namespace comet
         }
 
         // Generate the table
-        html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;'>";
+        html += "<table style='border: none; border-collapse: separate; border-spacing: 1px 0;'>";
         html += "<tr><th>Last Update</th><th>Group Name</th><th>Case Number</th><th>Servant</th><th>Status</th>"
             "<th>Progress</th><th>NPV</th><th>Life</th><th>Case Name</th><th>Creator Name</th><th>Creator Machine</th>"
             "<th>Creator Email</th><th>Input File Name</th><th>ID</th></tr>";

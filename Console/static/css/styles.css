@@ -1,29 +1,8 @@
 /* CSS Document */
-@import url(//fonts.googleapis.com/css?family=Source+Sans+Pro:400,600|Oswald);
-
-
-a {
-
-    color:  #002b5a;
-    text-decoration:none;
-
-}
-
-a:hover {
-
-    color: #4DB0DD;
-
-}
-
-header > a {
-
-    color:  graytext; 
-    text-decoration:none;
-
-
-}
-
 body{
+    background-color: #121212;
+    color:white;
+
     background-size: cover;
     background-repeat:  no-repeat;
     padding: 0;
@@ -32,6 +11,71 @@ body{
     height: 100vh !important;
     display: flex;
     flex-direction: column;
+
+    margin-block-start: 25px;
+    margin-block-end: 25px;
+    margin-inline-start: 25px;
+    margin-inline-end: 25px;
+
+    padding-left: 50px;
+    padding-right: 50px;
+}
+
+.even {
+    background-color:#202020
+}
+    
+.odd {
+    background-color:#404040
+}
+
+
+a {
+    color:antiquewhite;
+    text-decoration:none;
+}
+
+header > a {
+
+    color: white;
+    text-decoration: none;
+
+}
+a:hover {
+    color:deepskyblue;
+}
+
+
+h1 {
+    color:lightskyblue;
+    font-size:  xx-large;
+    background-color: #202020;
+    vertical-align:middle;
+    width: 100%;
+
+}
+
+h2 {
+    color:#002b5a;
+    text-align:left;
+}
+
+h20 {
+    color:white;
+    background-color: red;
+    font-size:  xx-large;
+    font-weight: bold;
+    text-align:left;
+}
+
+h3 {
+    color:#4DB0DD;
+    text-align:left;
+}
+
+h4 {
+    color:#4DB0DD;
+    text-align:left;
 }
 
 dl {
@@ -51,14 +95,9 @@ dt h2 {
 
 footer {
     background-color:  #002b5a;
-    padding-left: 50px;
-    padding-right: 50px;
 }
 
 header {
-    background-color:  #002b5a;
-    padding-left: 50px;
-    padding-right: 50px;
 }
 
 header>a {
@@ -106,35 +145,6 @@ input:disabled {
 }
 
 
-h1 {
-    color:white;
-    font-size:  xx-large;
-    background-color: #002b5a;
-    vertical-align:middle;
-}
-
-h2 {
-    color:#002b5a;
-    text-align:left;
-}
-
-h20 {
-    color:white;
-    background-color: red;
-    font-size:  xx-large;
-    font-weight: bold;
-    text-align:left;
-}
-
-h3 {
-    color:#4DB0DD;
-    text-align:left;
-}
-
-h4 {
-    color:#4DB0DD;
-    text-align:left;
-}
 
 p.quote {
     color:white;
@@ -160,8 +170,9 @@ svg {
 
 table {
     /* width: 100%; */
-    color: #002b5a;
+    /* color: #002b5a; */
 }
+
 td {
     text-align:left;
     vertical-align:  top;
@@ -170,6 +181,7 @@ td {
 th {
     text-align:left;
     vertical-align:  top;
+    background-color: #002b5a;
 }
 
 .heading_title {
@@ -202,19 +214,13 @@ td .number_small[disabled]{
     text-align:right;
     width:100px;
     color: #333;
-    border: #FFF solid thin;
-}
-
-.even
-{
-    background-color: #eee;
+    border: #000 solid thin;
 }
 
 tr .list_heading
 {
-    background-color: #4DB0DD;
-    color: white;
-    border: 5px solid red; 
+    color: green;
+    border: 5px solid cadetblue;
 }
 
 .BankDescription
@@ -222,7 +228,7 @@ tr .list_heading
     color: #777;
 }
 
-.currency  
+.currency
 {
     text-align: right;
 }
@@ -303,23 +309,20 @@ tr .list_heading
     text-align:right;
 }
 
-.odd
-{
-    background-color: aliceblue;
-}
+
 
 .user_message
 {
-    background-color: white; 
+    background-color: white;
 }
 
-.socialmedia 
+.socialmedia
 {
     color: white;
     text-align: right;
 }
 
-.headerText 
+.headerText
 {
     color: white;
     text-align: right;
@@ -388,7 +391,7 @@ tr .list_heading
 .z_format_number_right
 {
     text-align: right;
-    float: right; 
+    float: right;
 
 }
 
@@ -541,7 +544,7 @@ tr .list_heading
 }
 
 
-.z_quickfeedback 
+.z_quickfeedback
 {
     color: #002b5a;
     background-color: white;
@@ -631,12 +634,12 @@ tr .list_heading
 }
 
 
-.comment 
+.comment
 {
     color: darkgray;
     margin-top: 20px;
     margin-left: 0px;
-    padding: 20px; 
+    padding: 20px;
 
 }
 
@@ -646,7 +649,7 @@ tr .list_heading
     color: white;
 }
 
-.borderless_button 
+.borderless_button
 {
     background: inherit;
     width: auto;
@@ -803,9 +806,7 @@ StdCopyButton
     position: relative;
     /* padding: 100px 30px 45px 30px;  */
     text-transform: none;
-    font: bold 14px 'Source Sans Pro';
     color: #fff;
-    text-transform: uppercase;
     background: transparent;
     -webkit-transition: all 0.35s ease;
     transition: all 0.35s ease;
@@ -816,7 +817,7 @@ StdCopyButton
     line-height: 30px;
     display: inline-block;
     min-width: 0px;
-    
+
     border: none;
 
 }

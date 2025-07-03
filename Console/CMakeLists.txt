@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
 
-
 include(FetchContent)
 
 # Fetch Drogon
@@ -46,6 +45,22 @@ file(GLOB SERVICES_SRC Services/*.cpp  Services/*.h)
 # Find and link libcurl
 find_package(CURL REQUIRED)
 
+file(GLOB_RECURSE STATIC_FILES ${CMAKE_SOURCE_DIR}/static/*)
+
+add_custom_command(
+        OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/static
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static
+        DEPENDS ${STATIC_FILES}
+        COMMENT "Copying static files to runtime directory"
+)
+
+add_custom_target(copy_static_files ALL
+        DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static
+        COMMENT "Copying static files to runtime directory"
+)
+
 # Main executable
 add_executable(servant-console main.cpp ${SERVICES_SRC}
         Services/Servant.cpp
@@ -66,13 +81,3 @@ add_executable(servant-console-tests GTests/LoggerTest.cpp ${SERVICES_SRC}
 target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon sqlite3 CURL::libcurl)
 target_include_directories(servant-console-tests PRIVATE Services)
 add_test(NAME servant-console-tests COMMAND servant-console-tests)
-
-# Copy the static directory to the build directory
-add_custom_command(
-        TARGET servant-console POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/static
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static
-)
-
-install(DIRECTORY static/ DESTINATION ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})

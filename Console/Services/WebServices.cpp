@@ -143,7 +143,7 @@ namespace comet
               auto resp = HttpResponse::newHttpResponse();
               std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
               if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
-              resp->setBody(setHTMLBody(responseBody, "/"));
+              resp->setBody(setHTMLBody(responseBody, "/", "COMET Servant Home"));
               COMETLOG("COMET Servant Home: alive!", LoggerLevel::INFO);
               callback(resp);
             },
@@ -531,7 +531,7 @@ namespace comet
               std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, "/job_summary"));
+              resp->setBody(setHTMLBody(report, "/job_summary", "Job Summary"));
               callback(resp);
             },
           {Get});
@@ -557,7 +557,7 @@ namespace comet
               std::string report = Servant::servantSummaryHtmlReport(db);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, "/servant_summary"));
+              resp->setBody(setHTMLBody(report, "/servant_summary", "Servant Summary"));
               callback(resp);
             },
           {Get});
@@ -692,7 +692,7 @@ namespace comet
               m_running = false;
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody("Server is shutting down...", "/"));
+              resp->setBody(setHTMLBody("Server is shutting down...", "/", "Quit COMET Servant"));
               callback(resp);
 
               app().quit();
@@ -712,17 +712,17 @@ namespace comet
         COMETLOG(std::string("WebServices::handleRequest() - Request: ") + request, LoggerLevel::INFO);
       }
 
-    std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath) const
+    std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath, const std::string &title) const
       {
         return "<!DOCTYPE html>"
         "<html>"
-        + getHTMLHeader(targetPath)
+        + getHTMLHeader(targetPath, title)
         + "<body>" + body + "</body>"
         +  getHTMLFooter()
         + "</html>";
       }
 
-    std::string WebServices::getHTMLHeader(const std::string &targetPath) const
+    std::string WebServices::getHTMLHeader(const std::string &targetPath, const std::string &title) const
       {
         struct Link
           {
@@ -743,10 +743,10 @@ namespace comet
 
         std::string linksHTML;
         for (const auto &link: links) {
-          std::string style = (link.href == targetPath)
-                                ? "style='font-weight: bold; margin-right: 10px'"
-                                : "";
-          linksHTML += "<a href='" + link.href + "' class='system_link' " + style + " style='margin-right: 10px;'>" +
+          std::string style = (link.href.contains(targetPath))
+                                ? " class='menu_link_highlight' "
+                                : " class='menu_link' ";
+          linksHTML += "<a href='" + link.href + "' " + style + " >" +
               link.
               name + "</a> ";
         }
@@ -757,8 +757,8 @@ namespace comet
     <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
     <header>
         <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
-        <span class='heading_title'>COMET Servants</span>
-        <h1>Welcome to COMET Servants</h1>
+        <span class='heading_title'>)" + title + R"(</span>
+        <h1>)" + title + R"(</h1>
         )" + linksHTML + R"(
     </header>
     )";

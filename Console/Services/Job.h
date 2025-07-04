@@ -78,7 +78,7 @@ namespace comet
 
         static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::__wrap_iter<std::map<std::string, std::string> *> servant);
 
-        static std::string getJobId(const std::map<std::string, std::string> &jobMap);
+        static std::string getJobProcessId(const std::map<std::string, std::string> &jobMap);
 
         static int mockRunJobs(const Database & db);
 

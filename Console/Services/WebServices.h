@@ -34,8 +34,8 @@ namespace comet
         void shutdown();
 
         void handleRequest(const std::string& request);
-        std::string setHTMLBody(const std::string& body, const std::string &targetPath) const;
-        std::string getHTMLHeader(const std::string &targetPath) const;
+        std::string setHTMLBody(const std::string& body, const std::string &targetPath, const std::string &title) const;
+        std::string getHTMLHeader(const std::string &targetPath, const std::string &title) const;
         std::string getHTMLFooter() const;
 
         void run();

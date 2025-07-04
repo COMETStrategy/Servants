@@ -24,7 +24,7 @@ body{
 .even {
     background-color:#202020
 }
-    
+
 .odd {
     background-color:#404040
 }
@@ -36,10 +36,8 @@ a {
 }
 
 header > a {
-
     color: white;
     text-decoration: none;
-
 }
 a:hover {
     color:deepskyblue;
@@ -49,7 +47,6 @@ a:hover {
 h1 {
     color:lightskyblue;
     font-size:  xx-large;
-    background-color: #202020;
     vertical-align:middle;
     width: 100%;
 
@@ -100,19 +97,7 @@ footer {
 header {
 }
 
-header>a {
-    display: inline-block;
-    margin-right: 10px;
-    min-width: 150px;
-    text-align: center;
-    height: 30px;
-    line-height: 30px;
-    color: #002b5a;
-    background: white;
-    padding-left: 10px;
-    padding-right: 10px;
-    margin-bottom: 10px;
-}
+
 
 div#pagebody {
     padding-left: 50px;
@@ -802,7 +787,7 @@ StdCopyButton
     width:  580px;
 }
 
-.system_link{
+.menu_link{
     position: relative;
     /* padding: 100px 30px 45px 30px;  */
     text-transform: none;
@@ -810,7 +795,6 @@ StdCopyButton
     background: transparent;
     -webkit-transition: all 0.35s ease;
     transition: all 0.35s ease;
-
     text-decoration: none;
     cursor: auto;
     box-sizing: border-box;
@@ -821,8 +805,13 @@ StdCopyButton
     border: none;
 
 }
+.menu_link_highlight{
+    @extend .menu_link;
+    color:darkcyan;
+    font-weight:bolder
+}
 
-.system_link:hover{
+.menu:hover{
     color: #ffffff;
     background: #3188bb;
     -webkit-transition: all 1.35s ease;

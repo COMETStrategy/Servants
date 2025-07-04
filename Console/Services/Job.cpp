@@ -124,34 +124,35 @@ namespace comet
     bool Job::createNewJobsTable(Database &db)
       {
         std::string query = R"(CREATE TABLE IF NOT EXISTS jobs (
-                        LastUpdate DATETIME NOT NULL,
-                        GroupName VARCHAR(1000) NOT NULL,
-                        CaseNumber TEXT NOT NULL,
-                        Status TINYINT NOT NULL,
-                        CaseName VARCHAR(1000) NOT NULL,
-                        Id VARCHAR(100) NOT NULL,
-                        Servant VARCHAR(100),
-                        IterationsComplete INT,
-                        Ranking DOUBLE,
-                        Life DOUBLE,
-                        RunTimeMin DOUBLE,
-                        RunProgress VARCHAR(2000) NOT NULL,
-                        CreatorName VARCHAR(100) NOT NULL,
-                        CreatorMachine VARCHAR(100) NOT NULL,
-                        CreatorXEmail VARCHAR(100) NOT NULL,
-                        CreatorXCode VARCHAR(100) NOT NULL,
-                        peopleId INT NOT NULL,
-                        projectId INT NOT NULL,
-                        InputFileName VARCHAR(100) NOT NULL,
-                        EngineVersion TEXT NOT NULL,
-                        EngineDirectory VARCHAR(1000) NOT NULL,
-                        PhaseFileLocation TEXT,
-                        WorkingDirectory VARCHAR(1000) NOT NULL,
-                        CaseBody TEXT NOT NULL,
-                        Id_temp INTEGER PRIMARY KEY AUTOINCREMENT,
-                        UNIQUE (GroupName, CaseNumber, projectId)
-                        );
-                        CREATE INDEX IF NOT EXISTS idx_Id ON jobs (Id);
+                                LastUpdate DATETIME NOT NULL
+                              , GroupName VARCHAR(1000) NOT NULL
+                              , CaseNumber TEXT NOT NULL
+                              , Status TINYINT NOT NULL
+                              , CaseName VARCHAR(1000) NOT NULL
+                              , Servant VARCHAR(100)
+                              , IterationsComplete INT
+                              , Ranking DOUBLE
+                              , Life DOUBLE
+                              , RunTimeMin DOUBLE
+                              , RunProgress VARCHAR(2000) NOT NULL
+                              , CreatorName VARCHAR(100) NOT NULL
+                              , CreatorMachine VARCHAR(100) NOT NULL
+                              , CreatorXEmail VARCHAR(100) NOT NULL
+                              , CreatorXCode VARCHAR(100) NOT NULL
+                              , peopleId INT NOT NULL
+                              , projectId INT NOT NULL
+                              , InputFileName VARCHAR(100) NOT NULL
+                              , EngineVersion TEXT NOT NULL
+                              , EngineDirectory VARCHAR(1000) NOT NULL
+                              , PhaseFileLocation TEXT
+                              , WorkingDirectory VARCHAR(1000) NOT NULL
+                              , ProcessId VARCHAR(100)
+                              , CaseBody TEXT NOT NULL
+                              , UNIQUE(GroupName, CaseNumber, projectId)
+                            );
+
+                        
+                        CREATE INDEX IF NOT EXISTS idx_ProcessId ON jobs (ProcessId);
                         CREATE INDEX IF NOT EXISTS idx_GroupNameOnly ON jobs (GroupName);
                         CREATE INDEX IF NOT EXISTS idx_Node ON jobs (Servant);
                         CREATE INDEX IF NOT EXISTS idx_projectId ON jobs (projectId);
@@ -183,29 +184,32 @@ namespace comet
         std::string baseUrl = "/job_summary";
 
         // Generate links for filters
-        std::string filterLinks = "Filter: ";
+        std::string filterLinks = "Filters: ";
         std::vector<std::string> filters = {"All", "Queued", "Active", "Failed", "Complete"};
+        std::string separator = "";
         for (const auto &aFilter: filters) {
           auto f = aFilter;
           std::transform(f.begin(), f.end(), f.begin(), ::tolower);
+          filterLinks += separator;
           if (f == filter) {
             filterLinks += "<span class='highlightbutton'>" + aFilter + "</span>";
           } else {
             filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
           }
-          if (f != filters.back()) {
-            filterLinks += ", ";
-          }
+          
+          separator = ", ";
         }
 
         // Generate links for sorting options
-        std::string sortLinks = "Order: ";
+        std::string sortLinks = "Order by: ";
         std::vector<std::string> sorts = {"Status", "Date", "NPV", "Case", "Creator", "Servant"};
+        separator = "";
         for (const auto &s: sorts) {
           std::string sortCaseAdjusted = s;
           std::string sortLowerCase = s;
           std::transform(sortLowerCase.begin(), sortLowerCase.end(), sortLowerCase.begin(), ::tolower);
 
+          sortLinks += separator;
           sortLinks += "<a href='" + baseUrl;
           sortLinks += "?filter=" + filter;
 
@@ -224,11 +228,10 @@ namespace comet
           }
           sortLinks += "</a>";
 
-          sortLinks += ", ";
+          separator = ", ";
         }
 
         // Add filter and sort links to the HTML
-        html += "<h1>Job Summary</h1>";
         html += "<h4>" + filterLinks + "</h4>";
         html += "<h4>" + sortLinks + "</h4>";
 
@@ -274,7 +277,7 @@ namespace comet
         html += "<table style='border: none; border-collapse: separate; border-spacing: 1px 0;'>";
         html += "<tr><th>Last Update</th><th>Group Name</th><th>Case Number</th><th>Servant</th><th>Status</th>"
             "<th>Progress</th><th>NPV</th><th>Life</th><th>Case Name</th><th>Creator Name</th><th>Creator Machine</th>"
-            "<th>Creator Email</th><th>Input File Name</th><th>ID</th></tr>";
+            "<th>Creator Email</th><th>Input File Name</th><th>ProcessID</th></tr>";
 
         int rowIndex = 0;
         for (const auto &row: results) {
@@ -295,7 +298,7 @@ namespace comet
           html += "<td>" + row.at("CreatorMachine") + "</td>";
           html += "<td>" + row.at("CreatorXEmail") + "</td>";
           html += "<td>" + row.at("InputFileName") + "</td>";
-          html += "<td>" + row.at("Id") + "</td>";
+          html += "<td>" + row.at("ProcessId") + "</td>";
           html += "</tr>";
           rowIndex++;
         }
@@ -331,7 +334,7 @@ namespace comet
         json["Servant"] = servant.getIpAddress();
         json["LastUpdate"] = "datetime('now')"; // This will be updated by the database
         json["RunProgress"] = "Job started on this servant.";
-        json["Id"] = std::to_string(processId);
+        json["ProcessId"] = std::to_string(processId);
         // Update the job in the manager
         if (servant.getIpAddress() == getPrivateIPAddress()) {
           auto res = Job::runningProcessUpdate(db, json);
@@ -390,7 +393,7 @@ namespace comet
                       + "  Status = " + to_string(json["Status"]) + " "
                       + ", Servant = " + to_string(json["Servant"]) + " "
                       + ", LastUpdate = datetime('now') "
-                      + ", Id = " + to_string(json["Id"]) + " "
+                      + ", ProcessId = " + to_string(json["ProcessId"]) + " "
                       + ", RunProgress = " + to_string(json["RunProgress"]) + " "
                      "WHERE CaseNumber = " + to_string(json["CaseNumber"]) + " "
                      "AND GroupName = " + to_string(json["GroupName"]) + ";";
@@ -422,9 +425,9 @@ namespace comet
         }
       }
 
-    std::string Job::getJobId(const std::map<std::string, std::string> &jobMap)
+    std::string Job::getJobProcessId(const std::map<std::string, std::string> &jobMap)
       {
-        std::vector<std::string> keys = {"Id", "GroupName", "CaseNumber", "CaseName", "CreatorName", "CreatorMachine"};
+        std::vector<std::string> keys = {"ProcessId", "GroupName", "CaseNumber", "CaseName", "CreatorName", "CreatorMachine"};
         // Join all these firlds if they exist
         std::string result = "";
         for (const auto &key: keys) {
@@ -448,7 +451,7 @@ namespace comet
         auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
 
         auto queryQueued = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Queued)) +
-                           ", Servant = NULL, Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now') "
+                           ", Servant = NULL, Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now'), ProcessId='' "
                            +
                            "WHERE  CaseNumber  = 20.000011 or CaseNumber  = 20.000025 or CaseNumber  = 20.00025 ;";
         rowsImpacted += db.updateQuery("Reset Queued Jobs", queryQueued, false);
@@ -499,16 +502,16 @@ namespace comet
         }
 
         result =
-            R"(Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n)";
+            R"(Group\tCase#\tCase Name\tIteration\tNPV\tLife\tProcessId\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n)";
 
         for (const auto &row: results) {
           auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
           std::string lookupkey = "";
-          // Get the following Group\tCase#\tCase Name\tIteration\tNPV\tLife\tID\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n
+          // Get the following Group\tCase#\tCase Name\tIteration\tNPV\tLife\tProcessId\tStatus\tProgress\tRun Time\tUpdated\tServant\tCreator\tEngine\tWorking Directory\n
           try {
             std::vector<std::string> keys = {
               "GroupName", "CaseNumber", "CaseName", "IterationsComplete", "Ranking",
-              "Life", "Id", "Status", "RunProgress", "RunTimeMin", "LastUpdate",
+              "Life", "ProcessId", "Status", "RunProgress", "RunTimeMin", "LastUpdate",
               "Servant", "CreatorName", "EngineVersion", "WorkingDirectory"
             };
 

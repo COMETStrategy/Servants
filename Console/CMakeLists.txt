@@ -70,6 +70,9 @@ add_executable(servant-console main.cpp ${SERVICES_SRC}
 target_include_directories(servant-console PRIVATE Services)
 target_link_libraries(servant-console PRIVATE drogon sqlite3 CURL::libcurl)
 
+# Ensure copy_static_files runs before servant-console
+add_dependencies(servant-console copy_static_files)
+
 # Unit tests
 enable_testing()
 file(GLOB SERVICES_SRC Services/*.cpp) # Include all .cpp files in the Services folder

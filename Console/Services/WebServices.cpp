@@ -744,8 +744,8 @@ namespace comet
         std::string linksHTML;
         for (const auto &link: links) {
           std::string style = (link.href.contains(targetPath))
-                                ? " class='menu_link_highlight' "
-                                : " class='menu_link' ";
+                                ? " class='highlight' "
+                                : " ";
           linksHTML += "<a href='" + link.href + "' " + style + " >" +
               link.
               name + "</a> ";
@@ -757,7 +757,6 @@ namespace comet
     <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
     <header>
         <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
-        <span class='heading_title'>)" + title + R"(</span>
         <h1>)" + title + R"(</h1>
         )" + linksHTML + R"(
     </header>

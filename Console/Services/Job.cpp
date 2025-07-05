@@ -184,7 +184,7 @@ namespace comet
         std::string baseUrl = "/job_summary";
 
         // Generate links for filters
-        std::string filterLinks = "Filters: ";
+        std::string filterLinks = "Filter by: ";
         std::vector<std::string> filters = {"All", "Queued", "Active", "Failed", "Complete"};
         std::string separator = "";
         for (const auto &aFilter: filters) {
@@ -192,12 +192,12 @@ namespace comet
           std::transform(f.begin(), f.end(), f.begin(), ::tolower);
           filterLinks += separator;
           if (f == filter) {
-            filterLinks += "<span class='highlightbutton'>" + aFilter + "</span>";
+            filterLinks += "<a class='highlight' href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
           } else {
             filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
           }
           
-          separator = ", ";
+          separator = " ";
         }
 
         // Generate links for sorting options
@@ -221,14 +221,14 @@ namespace comet
           sortLinks += "&sort=" + sortCaseAdjusted + "' ";
 
           if (sortLowerCase == sort) {
-            sortLinks += " class='highlightbutton'";
+            sortLinks += " class='highlight'";
             sortLinks += ">" + s + " (" + sortDescAsc + ")";
           } else {
             sortLinks += ">" + s;
           }
           sortLinks += "</a>";
 
-          separator = ", ";
+          separator = " ";
         }
 
         // Add filter and sort links to the HTML

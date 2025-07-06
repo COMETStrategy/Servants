@@ -50,6 +50,7 @@ namespace comet
           aServant.setUnusedCores(stoi(results[0].at("unusedCores")));
           aServant.setActiveCores(stoi(results[0].at("activeCores")));
           aServant.setManagerIpAddress(results[0].at("managerIpAddress"));
+          aServant.setEngineFolder(results[0].at("engineFolder"));
           aServant.setEmail(results[0].at("email"));
           aServant.setCode(results[0].at("code"));
           aServant.setPort(stoi(results[0].at("port")));;
@@ -96,6 +97,7 @@ namespace comet
         registerJobStatusDatabaseUpdateHandler();
         registerMockRunJobsHandler();
         registerResetRunningJobsHandler();
+        registerServantSettingsHandler();
         registerServantStatusHandler();
         registerServantSummaryHandler();
         registerStatusHandler();
@@ -142,7 +144,7 @@ namespace comet
               // GET response
               auto resp = HttpResponse::newHttpResponse();
               std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
-              if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
+
               resp->setBody(setHTMLBody(responseBody, "/authentication", "Servant Home"));
               COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
               callback(resp);
@@ -165,13 +167,25 @@ namespace comet
               const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
               if (!isAuthenticated) {
                 COMETLOG("Invalid authentication parameters", LoggerLevel::CRITICAL);
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k302Found);
+                resp->addHeader("Location", "/authentication");
+                COMETLOG(
+                  std::string("Authentication ") + ((isAuthenticated) ? "successful ✅" : "failed ❌") + " for email: " +
+                  aServant
+                  .getEmail() +
+                  ". Redirecting to /",
+                  LoggerLevel::INFO);
+                callback(resp);
+                return;
               }
 
               aServant.updateServantSettings(db);
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found);
-              resp->addHeader("Location", "/authentication");
+              resp->addHeader("Location", "/servant_settings");
               COMETLOG(
                 std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " +
                 aServant
@@ -199,6 +213,7 @@ namespace comet
               auto priority = request->getParameter("priority");
               if (priority.empty()) priority = "0";
               auto managerIpAddress = request->getParameter("managerIpAddress");
+              auto engineFolder = request->getParameter("engineFolder");
               auto alive = request->getParameter("alive");
               if (alive.empty()) alive = "0";
 
@@ -207,6 +222,7 @@ namespace comet
               aServant.setActiveCores(std::stoi(activeCores));
               aServant.setPriority(std::stod(priority));
               aServant.setManagerIpAddress(managerIpAddress);
+              aServant.setEngineFolder(engineFolder);
               aServant.setAlive(std::stoi(alive));
 
               if (!db.insertRecord(
@@ -214,6 +230,7 @@ namespace comet
                 ", unusedCores = '" + unusedCores + +"' "
                 ", activeCores = '" + activeCores + +"' "
                 ", managerIpAddress = '" + managerIpAddress + "' "
+                ", engineFolder = '" + engineFolder + "' "
                 ", lastUpdateTime = DATETIME('now') "
                 "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
                 COMETLOG("Failed to update Settings table with configuration information: ",
@@ -221,7 +238,7 @@ namespace comet
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Location", "/authentication");
+                resp->addHeader("Location", "/servant_summary");
                 resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
                 callback(resp);
                 return;
@@ -231,7 +248,7 @@ namespace comet
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found);
-              resp->addHeader("Location", "/authentication");
+              resp->addHeader("Location", "/servant_settings");
               COMETLOG("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
               callback(resp);
             },
@@ -517,8 +534,8 @@ namespace comet
               if (!auth.machineAuthenticationisValid()) {
                 COMETLOG("Unauthorized access to /", LoggerLevel::WARNING);
                 auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k401Unauthorized);
-                resp->setBody("Unauthorized");
+                resp->setStatusCode(k302Found);
+                resp->addHeader("Location", "/authentication");
                 callback(resp);
                 return;
               }
@@ -561,6 +578,60 @@ namespace comet
           {Get});
       }
 
+    void WebServices::registerServantSettingsHandler()
+      {
+        app().registerHandler(
+          "/servant_settings",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              if (request->method() == drogon::Post) {
+                // Handle POST request
+                auto json = request->getJsonObject();
+                if (!json) {
+                  COMETLOG("Invalid JSON payload", LoggerLevel::WARNING);
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k400BadRequest);
+                  resp->setBody(R"({"ErrorMessage":"Invalid JSON payload"})");
+                  callback(resp);
+                  return;
+                }
+
+                try {
+                  aServant.setTotalCores((*json)["totalCores"].asInt());
+                  aServant.setUnusedCores((*json)["unusedCores"].asInt());
+                  aServant.setActiveCores((*json)["activeCores"].asInt());
+                  aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
+                  aServant.setEngineFolder((*json)["engineFolder"].asString());
+                  aServant.setPriority((*json)["priority"].asDouble());
+                  aServant.updateServantSettings(db);
+
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k200OK);
+                  resp->setBody(R"({"status":"Servant settings updated successfully"})");
+                  COMETLOG("Servant settings updated successfully", LoggerLevel::INFO);
+                  callback(resp);
+                } catch (const std::exception &e) {
+                  COMETLOG(std::string("Error updating servant settings: ") + e.what(), LoggerLevel::CRITICAL);
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody(R"({"ErrorMessage":"Failed to update servant settings"})");
+                  callback(resp);
+                }
+                return;
+              }
+
+              // Handle GET request
+              auto responseBody = aServant.HtmlServantSettingsForm();
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setBody(setHTMLBody(responseBody, "/servant_settings", "Servant Settings"));
+              COMETLOG("Servant settings page served", LoggerLevel::INFO);
+              callback(resp);
+            },
+          {Get, Post});
+      }
+
     void WebServices::registerServantStatusHandler()
       {
         app().registerHandler(
@@ -583,6 +654,7 @@ namespace comet
                 aServant.setUnusedCores((*json)["unusedCores"].asInt());
                 aServant.setActiveCores((*json)["activeCores"].asInt());
                 aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
+                aServant.setEngineFolder((*json)["engineFolder"].asString());
                 aServant.setIpAddress((*json)["ipAddress"].asString());
                 aServant.setVersion((*json)["ServantVersion"].asString());
                 aServant.setEmail((*json)["email"].asString());
@@ -701,7 +773,9 @@ namespace comet
                   app().quit();
                 }).detach();
 
-              COMETLOG("WebServices::quit() - Shutting down server in 1s to allow serving the images in the callback page.", LoggerLevel::INFO);
+              COMETLOG(
+                "WebServices::quit() - Shutting down server in 1s to allow serving the images in the callback page.",
+                LoggerLevel::INFO);
             },
           {Get});
       }
@@ -729,32 +803,38 @@ namespace comet
       }
 
     std::string WebServices::getHTMLHeader(const std::string &targetPath, const std::string &title) const
-    {
+      {
         struct Link
-        {
+          {
             std::string name;
             std::string href;
-        };
-    
+          };
+
         std::vector<Link> links = {
-            {"Job Summary", "/"},
-            {"Servant Summary", "/servant_summary"},
-            {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
-            {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
-            {"Settings", "/authentication"},
-            {"Quit", "/quit"}
+
+          {"Quit", "/quit"},
+          {"Authentication", "/authentication"},
+          {"Settings", "/servant_settings"},
+          {"Servant Summary", "/servant_summary"},
+          {"Job Summary", "/"},
+          {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
+          {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
         };
-    
-        std::string linksHTML;
-        for (const auto &link : links)
-        {
-            std::string style = (link.href == targetPath) ? " class='highlight' " : " ";
-            linksHTML += "<a href='" + link.href + "' " + style + " >" + link.name + "</a> ";
+
+        // Delete the first 4 if the servant is not valid
+        if (!auth.machineAuthenticationisValid() && links.size() >= 5) {
+          links.erase(links.end() - 5, links.end());
         }
-    
+
+        std::string linksHTML;
+        for (const auto &link: links) {
+          std::string style = (link.href == targetPath) ? " class='highlight' " : " ";
+          linksHTML += "<a href='" + link.href + "' " + style + " >" + link.name + "</a> ";
+        }
+
         if (targetPath == "/quit")
-            linksHTML = "";
-    
+          linksHTML = "";
+
         std::string datetimestring = std::to_string(std::time(nullptr));
         return R"(
         <head>
@@ -768,7 +848,7 @@ namespace comet
             )" + linksHTML + R"(
         </header>
         )";
-    }
+      }
 
     std::string WebServices::getHTMLFooter() const
       {

@@ -29,6 +29,7 @@ namespace comet
         managerIpAddress = ""; // Default empty manager IP address
         ipAddress = getPrivateIPAddress();
         alive = true;
+        engineFolder = "";
       }
 
 
@@ -106,12 +107,13 @@ namespace comet
         if (db.updateQuery("Update Servants", query, false) == 0) {
           // do an insert a new record
           query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
-                  "version, email, code, port, priority, totalCores, unusedCores, activeCores, managerIpAddress, alive) "
+                  "version, email, code, port, priority, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder, alive) "
                   "VALUES ('" + ipAddress + "', 0, DATETIME('now'), DATETIME('now'), '1.0', '" + email + "', '" +
                   code + "', " + std::to_string(port) + "', " + std::to_string(priority) + ", " +
                   std::to_string(totalCores) + ", " +
                   std::to_string(unusedCores) + ", " +
-                  std::to_string(activeCores) + ",'" + managerIpAddress + "'," + std::to_string(alive) + ", );";
+                  std::to_string(activeCores) + ",'" + managerIpAddress + "','" + engineFolder + "'," +
+                  std::to_string(alive) + ", );";
           if (!db.insertRecord(query, false)) {
             COMETLOG("Failed to update Servants table with servant settings.", LoggerLevel::CRITICAL);
             return;
@@ -174,27 +176,28 @@ namespace comet
           html += "<p>❌ Invalid authentication settings, update the email and code below.</p>";
         }
 
+        std::string leftColumnStyles = " style='text-align: left;' ";
 
         html += "<form method=\"post\" action=\"/authenticate\">"
             "<table>"
             "<tr>"
-            "<td><label for=\"email\">Email:</label></td>"
-            "<td><input type=\"text\" id=\"email\" name=\"email\" value=\"" + email + "\" size=\"50\"></td>"
+            "<td " + leftColumnStyles + "><label for=\"email\">Email:</label></td>"
+            "<td><input type=\"text\" id=\"email\" name=\"email\" value=\"" + email + "\" ></td>"
             "</tr>"
             "<tr>"
-            "<td><label for=\"code\">Code:</label></td>"
-            "<td><input type=\"text\" id=\"code\" name=\"code\" value=\"" + code + "\" size=\"50\"></td>"
+            "<td " + leftColumnStyles + "><label for=\"code\">Code:</label></td>"
+            "<td><input type=\"text\" id=\"code\" name=\"code\" value=\"" + code + "\" ></td>"
             "</tr>"
 
             "<tr>"
-            "<td><label for=\"ipAddress\">Servant IP Address:</label></td>"
+            "<td " + leftColumnStyles + "><label for=\"ipAddress\">Servant IP Address:</label></td>"
             "<td><input type=\"hidden\" id=\"ipAddress\" name=\"ipAddress\" value=\"" + ipAddress + "\">"
-            "<div style=\"border: none; background-color: #f0f0f0;\">" + ipAddress + "</div></td>"
+            "<div class=number>" + ipAddress + "</div></td>"
             "</tr>"
             "<tr>"
-            "<td><label for=\"ip\">Reference IP Addresses:</label></td>"
+            "<td " + leftColumnStyles + "><label for=\"ip\">Reference IP Addresses:</label></td>"
             "<td><input type=\"text\" id=\"ip\" name=\"ip\" value=\"" + ip +
-            "\" readonly style=\"border: none; background-color: #f0f0f0;\" size=\"50\"></td>"
+            "\" readonly></td>"
             "</tr>"
             "<td><input type=\"submit\" value=\"Update Authentication Settings\" class=\"ui primary button\"></td>"
             "<td></td>"
@@ -213,44 +216,50 @@ namespace comet
         unusedCores = std::max(0, unusedCores); // Example value, replace with actual COMETLOGic to get reserved cores
 
         std::string html = "";
-        html += "<h1>Servant Settings</h1>"
-            ""
-            "<form method='post' action='/configuration'>"
+        std::string leftColumnStyles = " style='text-align: left;' ";
+        html += "<form method='post' action='/configuration'>"
             "<table>"
             "<tr>"
-            "<td><label for='totalCores'>Total Cores:</label></td>"
-            "<td style='text-align: right;'><input type='text' id='totalCores' name='totalCores' value='" +
-            std::to_string(totalCores) +
-            "' readonly style='border: none; background-color: #f0f0f0;'></td>"
-            "</tr>"
-            "<tr>"
-            "<td><label for='reservedCores'>Unused Cores:</label></td>"
-            "<td style='text-align: right;'><input type='number' id='reservedCores' name='unusedCores' value='"
-            +
-            std::to_string(unusedCores) + "'></td>"
-            "</tr>"
-            "<tr>"
-            "<td><label for='activeCores'>Active Cores:</label></td>"
+            "<td " + leftColumnStyles + "><label for='activeCores'>Active Cores:</label></td>"
             "<td style='text-align: right;'><input type='text' id='activeCores' name='activeCores' value='" +
             std::to_string(activeCores) +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
-            "<td><label for='priority'>Priority (higher number for higher priority):</label></td>"
+            "<td " + leftColumnStyles + "><label for='totalCores'>Total Cores:</label></td>"
+            "<td style='text-align: right;'><input type='text' id='totalCores' name='totalCores' value='" +
+            std::to_string(totalCores) +
+            "' readonly style='border: none; background-color: #f0f0f0;'></td>"
+            "</tr>"
+            "<tr>"
+            "<td " + leftColumnStyles + "><label for='reservedCores'>Unused Cores:</label></td>"
+            "<td style='text-align: right;'><input type='number' id='reservedCores' name='unusedCores' value='"
+            +
+            std::to_string(unusedCores) + "'></td>"
+            "</tr>"
+            "<tr>"
+            "<td " + leftColumnStyles +
+            "><label for='priority'>Priority (higher number for higher priority):</label></td>"
             "<td style='text-align: right;'><input type='text' id='priority' name='priority' value='" +
             std::to_string(priority) +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>" "<tr>"
-            "<td><label for='alive'>Alive/Enabled (1 = alive, 0 = not alive):</label></td>"
+            "<td " + leftColumnStyles + "><label for='alive'>Enabled/Active (1 = enabled, 0 = not active):</label></td>"
             "<td style='text-align: right;'><input type='checkbox' id='alive' name='alive' value='1' " +
             (std::to_string(alive) == "1" ? "checked" : "") +
             " style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
-            "<td><label for='managerIpAddress'>Servant Manager Name/IP Address: <br>"
+            "<td " + leftColumnStyles + "><label for='managerIpAddress'>Servant Manager Name/IP Address: <br>"
             "(Leave empty of this is the manager)</label></td>"
             "<td style='text-align: right;'><input type='text' id='managerIpAddress' name='managerIpAddress' value='"
             + managerIpAddress +
+            "'  style='border: none; background-color: #f0f0f0;'></td>"
+            "</tr>"
+            "<tr>"
+            "<td " + leftColumnStyles + "><label for='engineFolder'>Engine folder:</label></td>"
+            "<td style='text-align: right;'><input type='text' id='engineFolder' name='engineFolder' value='"
+            + engineFolder +
             "'  style='border: none; background-color: #f0f0f0;'></td>"
             "</tr>"
             "<tr>"
@@ -280,6 +289,7 @@ namespace comet
                     , `unusedCores` int NOT NULL
                     , `activeCores` int NOT NULL
                     , `managerIpAddress` varchar(250) NOT NULL
+                    , `engineFolder` varchar(1000) 
                     , alive bool not null
                     , PRIMARY KEY(`ipAddress`, `projectId`)
                     );)";
@@ -291,6 +301,11 @@ namespace comet
     void Servant::setAuthentication(Authentication *authState)
       {
         auth = authState;
+      }
+
+    void Servant::setEngineFolder(const std::string &newFolder)
+      {
+        engineFolder = newFolder;
       }
 
     std::string Servant::servantSummaryHtmlReport(Database &db)
@@ -312,11 +327,15 @@ namespace comet
         html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;'>";
         html +=
             "<tr><th>Alive</th><th>Last Update</th><th>IP Address</th><th>Priority</th><th>Total Cores</th><th>Unused Cores</th>"
-            "<th>Active Cores</th><th>Manager IP</th></tr>";
+            "<th>Active Cores</th><th>Manager IP</th><th>Engine Folder</th></tr>";
 
         int rowIndex = 0;
         for (const auto &row: results) {
           std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
+          std::string eFolder = "";
+          if (row.find("engineFolder") != row.end()) {
+            eFolder = std::string(row.at("engineFolder"));
+          }
           html += "<tr class='" + rowClass + "'>";
           html += "<td>" + row.at("alive") + "</td>";
           html += "<td>" + row.at("lastUpdateTime") + "</td>";
@@ -326,13 +345,14 @@ namespace comet
           html += "<td>" + row.at("unusedCores") + "</td>";
           html += "<td>" + row.at("activeCores") + "</td>";
           html += "<td>" + row.at("managerIpAddress") + "</td>";
+          html += "<td>" + eFolder + "</td>";
           html += "</tr>";
           rowIndex++;
         }
         html += "</table>";
 
         html += "<p></p><h2>Options for Servants</h2>"
-            "<span id=message class='success'><button onclick=\"writeMessage(); location.href='/updateAliveServants'\" class='highlightbutton'>Update Alive Servants</button>"
+            "<span id=message ><button onclick=\"writeMessage(); location.href='/updateAliveServants'\" >Update Alive Servants</button>"
             "</span>"
             "<script>function writeMessage() {document.getElementById('message').textContent = 'Please wait, contacting Servants...';}</script>"
             "";
@@ -350,6 +370,7 @@ namespace comet
         jsonData["unusedCores"] = unusedCores;
         jsonData["activeCores"] = activeCores;
         jsonData["managerIpAddress"] = managerIpAddress;
+        jsonData["engineFolder"] = engineFolder;
         jsonData["version"] = version;
         jsonData["email"] = email;
         jsonData["code"] = code;
@@ -414,11 +435,12 @@ namespace comet
     void Servant::updateDatabase(Database &db)
       {
         if (!db.insertRecord(
-          "INSERT INTO Servants (ipAddress, projectId, registrationTime, lastUpdateTime, version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress) "
+          "INSERT INTO Servants (ipAddress, projectId, registrationTime, lastUpdateTime, version, email"
+          ", code, port, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder) "
           "VALUES ('" + ipAddress + "', '" + std::to_string(projectId) + "', DATETIME('now'), DATETIME('now'), '" +
           version + "', '" + email + "', '" + code + "', '" + std::to_string(port) + "', '" +
           std::to_string(totalCores) + "', '" + std::to_string(unusedCores) + "', '" + std::to_string(activeCores) + "'"
-          ", '" + managerIpAddress + "' )", false
+          ", '" + managerIpAddress + "' , '" + engineFolder + "' )", false
         )) {
           // Just update the record but not the registration time
           if (db.updateQuery("Update the Servant table",
@@ -430,6 +452,7 @@ namespace comet
                              ", activeCores = '" + std::to_string(activeCores) + "' "
                              ", version = '" + version + "' "
                              ", managerIpAddress = '" + managerIpAddress + "' "
+                             ", engineFolder = '" + engineFolder + "' "
                              ", alive = " + std::to_string(alive) + " "
                              "WHERE ipAddress = '" + ipAddress + "' and projectId = '" + std::to_string(
                                projectId) + "';") == 0) {

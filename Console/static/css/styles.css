@@ -1,13 +1,16 @@
 /* CSS Document */
 :root {
     --stdColor: white;
-    --stdHighlightColor: #4DB0DD;
+    --stdHighlightColor: #3A91B0;
     --stdAltHighlightColor: cyan;
     --stdBackgroundColor: #121212;
-    --stdTableHeaderColor: #4DB0DD;
-    --stdTableHeaderBackgroundColor: #0B0B45; /* #002b5a; */
-    --stdEvenBackgroundColor: #202020;
-    --stdOddBackgroundColor: #404040;
+    --stdBackgroundHighlightColor: #000033;
+    --stdTableHeaderColor: white;
+    --stdTableHeaderBackgroundColor: #202020; /* #002b5a; */
+    --stdLightGray: #202020;
+    --stdMidGray: #404040;
+    --stdDarkGray: #606060;
+    --stdMargin: 25px;
 }
 
 body{
@@ -18,21 +21,22 @@ body{
     display: flex;
     flex-direction: column;
 
-    margin-block-start: 25px;
-    margin-block-end: 25px;
-    margin-inline-start: 25px;
-    margin-inline-end: 25px;
+    margin-block-start: var(--stdMargin);
+    margin-block-end: var(--stdMargin);
+    margin-inline-start: var(--stdMargin);
+    margin-inline-end: var(--stdMargin);
 
-    padding-left: 50px;
-    padding-right: 50px;
+    padding-left: 0px;
+    padding-right: 0px;
+    outline: var(--stdMargin) solid var(--stdBackgroundHighlightColor);
 }
 
 .even {
-    background-color:var(--stdEvenBackgroundColor)
+    background-color:var(--stdMidGray)
 }
 
 .odd {
-    background-color:var(--stdOddBackgroundColor)
+    background-color:var(--stdDarkGray)
 }
 
 
@@ -100,53 +104,58 @@ dt h2 {
 }
 
 footer {
-    background-color:  #002b5a;
+    background-color:  var(--stdBackgroundHighlightColor);
 }
 
 header {
+    background-color:  var(--stdBackgroundHighlightColor);
 }
 
-
-
-div#pagebody {
-    padding-left: 50px;
-    padding-right: 50px;
-}
-
-div#pagefooter {
-    width: 100%;
-    min-height: 60px;   /* Height of the footer */
-    margin-top: auto;
-}
-
-div#local-developer {
-    height: 7px;
-    background: #a91300;
-}
 
 
 input {
-    color: #002b5a;
+    color: var(--stdBackgroundColor);
     font-size:large;
-    background-color:  inherit;
+    background-color:  var(--stdColor);
+    width: 50ch;
+    text-align:right;
 }
 
-input:disabled {
-    color: gray;
+input:disabled, input:read-only {
+    color: var(--stdColor);
+    background-color:  var(--stdBackgroundColor);
     font-size:large;
     border-style:  none;
-    background-color:  inherit;
 }
 
+input[type="submit"] {
+    color: var(--stdColor);
+    background-color:  var(--stdHighlightColor);
+    font-size:large;
+    width: auto;
+}
 
+input[type="submit"]:hover {
+    color:  var(--stdAltHighlightColor);
+}
+
+button {
+    color: var(--stdColor);
+    background-color:  var(--stdHighlightColor);
+    font-size:large;
+    width: auto;
+    border: none;
+}
+
+button:hover {
+    color:  var(--stdAltHighlightColor);
+ }
 
 p.quote {
     color:white;
     text-align:right;
     vertical-align: central;
     font-size: small;
-
-
 }
 
 p {
@@ -163,8 +172,6 @@ svg {
 }
 
 table {
-    /* width: 100%; */
-    /* color: #002b5a; */
 }
 
 td {

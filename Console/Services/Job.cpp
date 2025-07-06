@@ -232,8 +232,8 @@ namespace comet
         }
 
         // Add filter and sort links to the HTML
-        html += "<h4>" + filterLinks + "</h4>";
-        html += "<h4>" + sortLinks + "</h4>";
+        html += "<p>" + filterLinks + "<br>";
+        html += "" + sortLinks + "</p>";
 
         // Get the job summary from the database
         std::string selection = "SELECT * FROM jobs ";

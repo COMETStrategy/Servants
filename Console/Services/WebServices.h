@@ -77,6 +77,8 @@ namespace comet
 
         void registerServantSummaryHandler();
 
+        void registerServantSettingsHandler();
+
         void registerServantStatusHandler();
         void registerStatusHandler();
         void registerStatusJobsHandler();

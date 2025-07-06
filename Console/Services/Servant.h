@@ -26,6 +26,7 @@ namespace comet
         std::string ipAddress;
         std::string managerIpAddress;
         std::string version;
+        std::string engineFolder;
         int projectId;
         double priority;
         Authentication *auth;
@@ -52,6 +53,8 @@ namespace comet
         int getUnusedCores() const{return unusedCores;}
         int getActiveCores() const { return activeCores; }
         std::string getCode() {return code;}
+
+        void setEngineFolder(const std::string & newFolder);
 
         static std::string servantSummaryHtmlReport(Database &db);;
         std::string getEmail() {return email;};

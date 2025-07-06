@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ title }}</title> IN VIEWS
+    <title>{{ title }}</title>
+    In Static
 </head>
 <body>
     <h1>{{ message }}</h1>

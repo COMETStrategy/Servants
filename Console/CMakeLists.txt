@@ -61,6 +61,27 @@ add_custom_target(copy_static_files ALL
         COMMENT "Copying static files to runtime directory"
 )
 
+
+
+file(GLOB_RECURSE VIEW_FILES ${CMAKE_SOURCE_DIR}/views/*)
+
+add_custom_command(
+        OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static/views
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_SOURCE_DIR}/views
+        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static/views
+        DEPENDS ${VIEW_FILES}
+        COMMENT "Copying view files to runtime directory"
+)
+
+add_custom_target(copy_view_files ALL
+        DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/views
+        COMMENT "Copying view files to runtime directory"
+)
+
+
+
+
 # Main executable
 add_executable(servant-console main.cpp ${SERVICES_SRC}
         Services/Servant.cpp
@@ -70,7 +91,7 @@ add_executable(servant-console main.cpp ${SERVICES_SRC}
 target_include_directories(servant-console PRIVATE Services)
 target_link_libraries(servant-console PRIVATE drogon sqlite3 CURL::libcurl)
 
-# Ensure copy_static_files runs before servant-console
+# Ensure copy_static_files and copy_view_files runs before servant-console
 add_dependencies(servant-console copy_static_files)
 
 # Unit tests

@@ -329,18 +329,16 @@ namespace comet
                 return;
               }
 
-              
+
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found); // Set status code to 302 for redirection
-              resp->addHeader("Location", "/servant_summary"); 
-              resp->setBody("Checking status of Servants and then will redirect to Servant summary..."); 
+              resp->addHeader("Location", "/servant_summary");
+              resp->setBody("Checking status of Servants and then will redirect to Servant summary...");
 
               callback(resp);
 
-              
-              Servant::checkAllServantsAlive(db);
-              
 
+              Servant::checkAllServantsAlive(db);
             },
           {Post, Get});
       }
@@ -691,11 +689,16 @@ namespace comet
               handleInvalidMethod(request);
               m_running = false;
 
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody("Server is shutting down...", "/", "Quit COMET Servant"));
+              // auto resp = HttpResponse::newHttpResponse();
+              // resp->setBody(setHTMLBody("Server is shutting down...", "/", "Quit COMET Servant"));
+
+              HttpViewData data;
+              data["title"] = "Shut Down Servant";
+              data["message"] = "COMET Servant is shutting down...";
+              auto resp = HttpResponse::newHttpViewResponse("message.csp", data);
               callback(resp);
 
-              app().quit();
+              //app().quit();
               COMETLOG("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUGGING);
             },
           {Get});
@@ -712,14 +715,15 @@ namespace comet
         COMETLOG(std::string("WebServices::handleRequest() - Request: ") + request, LoggerLevel::INFO);
       }
 
-    std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath, const std::string &title) const
+    std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath,
+                                         const std::string &title) const
       {
         return "<!DOCTYPE html>"
-        "<html>"
-        + getHTMLHeader(targetPath, title)
-        + "<body>" + body + "</body>"
-        +  getHTMLFooter()
-        + "</html>";
+               "<html>"
+               + getHTMLHeader(targetPath, title)
+               + "<body>" + body + "</body>"
+               + getHTMLFooter()
+               + "</html>";
       }
 
     std::string WebServices::getHTMLHeader(const std::string &targetPath, const std::string &title) const
@@ -783,6 +787,8 @@ namespace comet
     void WebServices::run()
       {
         app().setDocumentRoot("static");
+        //drogon::app().setViewPath("views");
+        app().enableDynamicViewsLoading({"./views"});
 
         m_serverThread = std::make_unique<std::thread>([this]
           {

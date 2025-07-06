@@ -26,8 +26,7 @@ body{
     margin-inline-start: var(--stdMargin);
     margin-inline-end: var(--stdMargin);
 
-    padding-left: 0px;
-    padding-right: 0px;
+    width: auto;
     outline: var(--stdMargin) solid var(--stdBackgroundHighlightColor);
 }
 
@@ -62,8 +61,6 @@ h1 {
     color:var(--stdHighlightColor);
     font-size:  xx-large;
     vertical-align:middle;
-    width: 100%;
-
 }
 
 h2 {
@@ -172,6 +169,8 @@ svg {
 }
 
 table {
+    table-layout: auto;
+    width: auto;
 }
 
 td {
@@ -203,7 +202,6 @@ td .rightAlign {
 
 td .number_small[disabled]{
     text-align:right;
-    width:100px;
     color: #333;
     border: #000 solid thin;
 }

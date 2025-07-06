@@ -145,7 +145,7 @@ namespace comet
               auto resp = HttpResponse::newHttpResponse();
               std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
 
-              resp->setBody(setHTMLBody(responseBody, "/authentication", "Servant Home"));
+              resp->setBody(setHTMLBody(responseBody, "/authentication", "Servant Authentication"));
               COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
               callback(resp);
             },
@@ -546,7 +546,7 @@ namespace comet
               std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, "/", "Servant Home"));
+              resp->setBody(setHTMLBody(report, "/", "Job Summary"));
               callback(resp);
             },
           {Get});
@@ -814,7 +814,7 @@ namespace comet
 
           {"Quit", "/quit"},
           {"Authentication", "/authentication"},
-          {"Settings", "/servant_settings"},
+          {"Servant Settings", "/servant_settings"},
           {"Servant Summary", "/servant_summary"},
           {"Job Summary", "/"},
           {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
@@ -846,6 +846,7 @@ namespace comet
             <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
             <h1>)" + title + R"(</h1>
             )" + linksHTML + R"(
+            <p></p>
         </header>
         )";
       }

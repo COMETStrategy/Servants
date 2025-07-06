@@ -167,7 +167,7 @@ namespace comet
         std::string ip_public = getPublicIPAddressFromWeb();
         std::string ip_private = getPrivateIPAddress();
         std::string ip = ip_public + " (public), " + ip_private + " (private/local)";
-        std::string html = "<h1>Authentication Settings</h1>";
+        std::string html = "";
         ipAddress = ip_private;
         auto isValid = auth.valid(email, code, ipAddress);
         if (isValid) {
@@ -313,8 +313,6 @@ namespace comet
         std::string html = "";
 
         // Add filter and sort links to the HTML
-        html += "<h1>Servant Summary</h1>";
-
         auto query = "SELECT * FROM Servants ORDER BY LastUpdateTime DESC LIMIT 500;";
         auto results = db.getQueryResults(query);
 
@@ -324,7 +322,7 @@ namespace comet
         }
 
         // Generate the table
-        html += "<table style='border: none; border-collapse: separate; border-spacing: 10px 0;'>";
+        html += "<table>";
         html +=
             "<tr><th>Alive</th><th>Last Update</th><th>IP Address</th><th>Priority</th><th>Total Cores</th><th>Unused Cores</th>"
             "<th>Active Cores</th><th>Manager IP</th><th>Engine Folder</th></tr>";

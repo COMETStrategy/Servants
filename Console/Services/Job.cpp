@@ -181,7 +181,7 @@ namespace comet
         if (sort != rawSort) sortDescAsc = "ASC";
 
         // Generate the base URL
-        std::string baseUrl = "/job_summary";
+        std::string baseUrl = "/";
 
         // Generate links for filters
         std::string filterLinks = "Filter by: ";

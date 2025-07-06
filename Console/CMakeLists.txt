@@ -62,26 +62,6 @@ add_custom_target(copy_static_files ALL
 )
 
 
-
-file(GLOB_RECURSE VIEW_FILES ${CMAKE_SOURCE_DIR}/views/*)
-
-add_custom_command(
-        OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static/views
-        COMMAND ${CMAKE_COMMAND} -E copy_directory
-        ${CMAKE_SOURCE_DIR}/views
-        ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/static/views
-        DEPENDS ${VIEW_FILES}
-        COMMENT "Copying view files to runtime directory"
-)
-
-add_custom_target(copy_view_files ALL
-        DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/views
-        COMMENT "Copying view files to runtime directory"
-)
-
-
-
-
 # Main executable
 add_executable(servant-console main.cpp ${SERVICES_SRC}
         Services/Servant.cpp

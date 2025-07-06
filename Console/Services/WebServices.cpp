@@ -88,12 +88,12 @@ namespace comet
       {
         COMETLOG("WebServices::initialize()", LoggerLevel::DEBUGGING);
 
-        registerRootHandler();
+        registerRootJobSummaryHandler();
         registerAuthenticateHandler();
         registerConfigurationHandler();
+        registerRootAuthenticationHandler();
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
-        registerJobSummaryHandler();
         registerMockRunJobsHandler();
         registerResetRunningJobsHandler();
         registerServantStatusHandler();
@@ -112,10 +112,10 @@ namespace comet
         COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::INFO);
       }
 
-    void WebServices::registerRootHandler()
+    void WebServices::registerRootAuthenticationHandler()
       {
         app().registerHandler(
-          "/",
+          "/authentication",
           [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
               handleInvalidMethod(request);
@@ -143,8 +143,8 @@ namespace comet
               auto resp = HttpResponse::newHttpResponse();
               std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
               if (auth.machineAuthenticationisValid()) responseBody += aServant.HtmlServantSettingsForm();
-              resp->setBody(setHTMLBody(responseBody, "/", "COMET Servant Home"));
-              COMETLOG("COMET Servant Home: alive!", LoggerLevel::INFO);
+              resp->setBody(setHTMLBody(responseBody, "/authentication", "Servant Home"));
+              COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
               callback(resp);
             },
           {Get, Post});
@@ -171,7 +171,7 @@ namespace comet
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found);
-              resp->addHeader("Location", "/");
+              resp->addHeader("Location", "/authentication");
               COMETLOG(
                 std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " +
                 aServant
@@ -221,7 +221,7 @@ namespace comet
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Location", "/");
+                resp->addHeader("Location", "/authentication");
                 resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
                 callback(resp);
                 return;
@@ -231,7 +231,7 @@ namespace comet
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found);
-              resp->addHeader("Location", "/");
+              resp->addHeader("Location", "/authentication");
               COMETLOG("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
               callback(resp);
             },
@@ -258,7 +258,7 @@ namespace comet
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k302Found); // Set status code to 302 for redirection
-                resp->addHeader("Location", "/Job_summary"); // Redirect to /Job_summary
+                resp->addHeader("Location", "/"); // Redirect to /Job_summary
                 callback(resp);
 
                 COMETLOG("Successfully executed mock run jobs", LoggerLevel::INFO);
@@ -298,7 +298,7 @@ namespace comet
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k302Found); // Set status code to 302 for redirection
-                resp->addHeader("Location", "/Job_summary"); // Redirect to /Job_summary
+                resp->addHeader("Location", "/"); // Redirect to /Job_summary
                 callback(resp);
 
                 COMETLOG("Successfully reset running jobs to queued", LoggerLevel::INFO);
@@ -507,15 +507,15 @@ namespace comet
           {Post});
       }
 
-    void WebServices::registerJobSummaryHandler()
+    void WebServices::registerRootJobSummaryHandler()
       {
         app().registerHandler(
-          "/job_summary",
+          "/",
           [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
               handleInvalidMethod(request);
               if (!auth.machineAuthenticationisValid()) {
-                COMETLOG("Unauthorized access to /job_summary", LoggerLevel::WARNING);
+                COMETLOG("Unauthorized access to /", LoggerLevel::WARNING);
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k401Unauthorized);
                 resp->setBody("Unauthorized");
@@ -529,7 +529,7 @@ namespace comet
               std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, "/job_summary", "Job Summary"));
+              resp->setBody(setHTMLBody(report, "/", "Servant Home"));
               callback(resp);
             },
           {Get});
@@ -689,17 +689,19 @@ namespace comet
               handleInvalidMethod(request);
               m_running = false;
 
-              // auto resp = HttpResponse::newHttpResponse();
-              // resp->setBody(setHTMLBody("Server is shutting down...", "/", "Quit COMET Servant"));
-
-              HttpViewData data;
-              data["title"] = "Shut Down Servant";
-              data["message"] = "COMET Servant is shutting down...";
-              auto resp = HttpResponse::newHttpViewResponse("message.csp", data);
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setBody(setHTMLBody("COMET Server shut down.", "/quit", "Servant Shutdown"));
               callback(resp);
 
-              //app().quit();
-              COMETLOG("WebServices::quit() - Shutting down server...", LoggerLevel::DEBUGGING);
+              // Wait 5 seconds and then quit the application  on a separate thread
+              std::thread([this]()
+                {
+                  std::this_thread::sleep_for(std::chrono::seconds(1));
+                  COMETLOG("WebServices::quit() - Shutting down server now.", LoggerLevel::INFO);
+                  app().quit();
+                }).detach();
+
+              COMETLOG("WebServices::quit() - Shutting down server in 1s to allow serving the images in the callback page.", LoggerLevel::INFO);
             },
           {Get});
       }
@@ -727,45 +729,46 @@ namespace comet
       }
 
     std::string WebServices::getHTMLHeader(const std::string &targetPath, const std::string &title) const
-      {
+    {
         struct Link
-          {
+        {
             std::string name;
             std::string href;
-          };
-
-        std::vector<Link> links = {
-          //{"Public", "https://www.cometstrategy.com/"},
-          //{"Support", "https://support.cometstrategy.com/?site=support&page=dashboard"},
-          {"Job Summary", "/job_summary?sort=date&filter=all"},
-          {"Servant Summary", "/servant_summary"},
-          {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
-          {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
-          {"Settings", "/"},
-          {"Quit", "/quit"}
         };
-
+    
+        std::vector<Link> links = {
+            {"Job Summary", "/"},
+            {"Servant Summary", "/servant_summary"},
+            {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
+            {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
+            {"Settings", "/authentication"},
+            {"Quit", "/quit"}
+        };
+    
         std::string linksHTML;
-        for (const auto &link: links) {
-          std::string style = (link.href.contains(targetPath))
-                                ? " class='highlight' "
-                                : " ";
-          linksHTML += "<a href='" + link.href + "' " + style + " >" +
-              link.
-              name + "</a> ";
+        for (const auto &link : links)
+        {
+            std::string style = (link.href == targetPath) ? " class='highlight' " : " ";
+            linksHTML += "<a href='" + link.href + "' " + style + " >" + link.name + "</a> ";
         }
-
+    
+        if (targetPath == "/quit")
+            linksHTML = "";
+    
         std::string datetimestring = std::to_string(std::time(nullptr));
         return R"(
-    <link rel="stylesheet" href="/css/styles.css?v=)" + datetimestring + R"(">
-    <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
-    <header>
-        <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
-        <h1>)" + title + R"(</h1>
-        )" + linksHTML + R"(
-    </header>
-    )";
-      }
+        <head>
+            <title>)" + title + R"(</title>
+            <link rel="stylesheet" href="/css/styles.css?v=)" + datetimestring + R"(">
+            <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
+        </head>
+        <header>
+            <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
+            <h1>)" + title + R"(</h1>
+            )" + linksHTML + R"(
+        </header>
+        )";
+    }
 
     std::string WebServices::getHTMLFooter() const
       {
@@ -788,7 +791,7 @@ namespace comet
       {
         app().setDocumentRoot("static");
         //drogon::app().setViewPath("views");
-        app().enableDynamicViewsLoading({"./views"});
+        //app().enableDynamicViewsLoading({""});
 
         m_serverThread = std::make_unique<std::thread>([this]
           {

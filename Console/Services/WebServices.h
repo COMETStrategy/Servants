@@ -66,11 +66,11 @@ namespace comet
         void initializeHandlers();
         static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
       private:
-        void registerRootHandler();
+        void registerRootAuthenticationHandler();
         void registerAuthenticateHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
-        void registerJobSummaryHandler();
+        void registerRootJobSummaryHandler();
         void registerJobStartHandler();
 
         void registerJobStatusDatabaseUpdateHandler();

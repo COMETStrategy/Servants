@@ -56,6 +56,8 @@ namespace comet
 
         void setEngineFolder(const std::string & newFolder);
 
+        std::string getEngineFolder();
+
         static std::string servantSummaryHtmlReport(Database &db);;
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}

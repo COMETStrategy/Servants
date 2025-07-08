@@ -6,6 +6,8 @@
 #include <string>
 #include <stdexcept>
 #include <nlohmann/json.hpp>
+#include <fcntl.h>
+#include <thread>
 
 
 #include "Job.h"
@@ -107,7 +109,7 @@ namespace comet
       {
         auto Id = comet::generateTimestamp(); // Member function to generate timestamp
         auto query = std::string("") + "REPLACE INTO jobs (GroupName, CaseNumber, projectId, LastUpdate, "
-                     "CaseName, ID, CreatorName, CreatorXEmail, CreatorXCode, CreatorMachine, peopleId, "
+                     "CaseName, ProcessId, CreatorName, CreatorXEmail, CreatorXCode, CreatorMachine, peopleId, "
                      "InputFileName, EngineVersion, EngineDirectory, PhaseFileLocation, WorkingDirectory, "
                      "Status, RunProgress, Servant, Ranking, Life, IterationsComplete, RunTimeMin, CaseBody) "
                      "VALUES ('" + title + "', " + caseNumber + ", " + std::to_string(projectRefValue) +
@@ -192,11 +194,12 @@ namespace comet
           std::transform(f.begin(), f.end(), f.begin(), ::tolower);
           filterLinks += separator;
           if (f == filter) {
-            filterLinks += "<a class='highlight' href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
+            filterLinks += "<a class='highlight' href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter +
+                "</a>";
           } else {
             filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
           }
-          
+
           separator = " ";
         }
 
@@ -277,7 +280,7 @@ namespace comet
         html += "<table style='border: none; border-collapse: separate; border-spacing: 1px 0;'>";
         html += "<tr><th>Last Update</th><th>Group Name</th><th>Case Number</th><th>Servant</th><th>Status</th>"
             "<th>Progress</th><th>NPV</th><th>Life</th><th>Case Name</th><th>Creator Name</th><th>Creator Machine</th>"
-            "<th>Creator Email</th><th>Input File Name</th><th>ProcessID</th></tr>";
+            "<th>Creator Email</th><th>Input File Name</th><th>ProcessID</th><th>Working Directory</th></tr>";
 
         int rowIndex = 0;
         for (const auto &row: results) {
@@ -299,6 +302,7 @@ namespace comet
           html += "<td>" + row.at("CreatorXEmail") + "</td>";
           html += "<td>" + row.at("InputFileName") + "</td>";
           html += "<td>" + row.at("ProcessId") + "</td>";
+          html += "<td>" + row.at("WorkingDirectory") + "</td>";
           html += "</tr>";
           rowIndex++;
         }
@@ -312,35 +316,35 @@ namespace comet
         return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
       }
 
-    bool Job::startJob(Database &db, nlohmann::json &job)
+    bool Job::startJob(Database &db, std::map<std::string, std::string> &job,
+                       std::map<std::string, std::string> &servant)
       {
-        auto servant = WebServices::getServant();
-        COMETLOG("🏃Job:Starting job " + to_string(job["GroupName"]) + " " + to_string(job["CaseNumber"])
+        COMETLOG("🏃Job:Starting job " + job["GroupName"] + " " + job["CaseNumber"]
                  + " on this servant. ", comet::INFO);
-        auto executableEngine = to_string(job["EngineVersion"]);
-        auto workingDirectory = to_string(job["WorkingDirectory"]);
-        auto inputFileName = to_string(job["InputFileName"]);
+        std::string executableEngine = servant["engineFolder"] + job["EngineVersion"];
+        auto workingDirectory = job["WorkingDirectory"];;
+        auto inputFileName = job["InputFileName"];;
         // run executable;
         COMETLOG("Job: Executing job with Engine: " + executableEngine + " in directory: " + workingDirectory +
                  " with input file: " + inputFileName, comet::DEBUGGING);
-        int processId = Job::runExecutable(executableEngine, workingDirectory, inputFileName);
+        int processId = runExecutable(job, servant);
         COMETLOG("Process ID: " + std::to_string(processId), comet::INFO);
-        
+
         // Update job on manager
         nlohmann::json json;
-        json["GroupName"] = job["GroupName"];
-        json["CaseNumber"] = job["CaseNumber"];
+        json["GroupName"] = job["GroupName"];;
+        json["CaseNumber"] = job["CaseNumber"];;
         json["Status"] = int(JobStatus::Running);
-        json["Servant"] = servant.getIpAddress();
+        json["Servant"] = servant["ipAddress"];
         json["LastUpdate"] = "datetime('now')"; // This will be updated by the database
         json["RunProgress"] = "Job started on this servant.";
         json["ProcessId"] = std::to_string(processId);
         // Update the job in the manager
-        if (servant.getIpAddress() == getPrivateIPAddress()) {
+        if (servant["ipAddress"] == getPrivateIPAddress()) {
           auto res = Job::runningProcessUpdate(db, json);
           COMETLOG("Updated this job status:, updated " + std::to_string(res) + " record", comet::DEBUGGING);
         } else {
-          auto url = "http://" + servant.getIpAddress() + ":" + std::to_string(servant.getPort()) + "/job/status/database/update";
+          auto url = "http://" + servant["ipAddress"] + ":" + servant["port"] + "/job/status/database/update";
           auto result = Curl::postJson(url, json);
           COMETLOG("Updated manager job status: " + result.body, comet::DEBUGGING);
         }
@@ -349,52 +353,92 @@ namespace comet
         return true;
       }
 
-    int Job::runExecutable(const std::string &executableEngine, const std::string &workingDirectory, const std::string &inputFileName) {
-        try {
-          // Make directory if it doesnt exist
-          if (!std::filesystem::exists(workingDirectory)) {
-            COMETLOG("Creating working directory: " + workingDirectory, comet::DEBUGGING);
-            std::filesystem::create_directories(workingDirectory);
-          } else {
-            COMETLOG("Working directory already exists: " + workingDirectory, comet::DEBUGGING);
-          }
-          // Change the current working directory
-          std::filesystem::current_path(workingDirectory);
 
-          // Fork a new process
-          pid_t pid = fork();
-          if (pid == -1) {
-            COMETLOG("Failed to fork process", comet::CRITICAL);
-            throw std::runtime_error("Failed to fork process");
-          }
+    int Job::runExecutable(std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant) {
+    try {
+        auto workDirectory = job["WorkingDirectory"];
+        auto engineFileName = servant["engineFolder"] + job["EngineVersion"];
+        auto inputFileName = job["InputFileName"];
 
-          if (pid == 0) {
-            // Child process: Execute the command
-            std::string executablePath = "./" + executableEngine;
-            execl(executablePath.c_str(), executableEngine.c_str(), inputFileName.c_str(), nullptr);
-
-            // If execl fails
-            COMETLOG("Failed to execute: " + executablePath, comet::CRITICAL);
-            _exit(EXIT_FAILURE);
-          }
-
-          // Parent process: Return the process ID
-          return pid;
-        } catch (const std::exception &e) {
-          COMETLOG("Exception in runExecutable: " + std::string(e.what()), comet::CRITICAL);
-          return -1; // Indicate failure
+        if (!std::filesystem::exists(workDirectory)) {
+            COMETLOG("Creating working directory: " + workDirectory, comet::DEBUGGING);
+            std::filesystem::create_directories(workDirectory);
+        } else {
+            COMETLOG("Working directory already exists: " + workDirectory, comet::DEBUGGING);
         }
-    }
 
+        std::promise<int> pidPromise;
+        auto pidFuture = pidPromise.get_future();
+
+        std::thread([&pidPromise, workDirectory, engineFileName, inputFileName, &servant, &job]() {
+            try {
+                pid_t pid = fork();
+                if (pid == -1) {
+                    COMETLOG("Failed to fork process", comet::CRITICAL);
+                    pidPromise.set_value(-1);
+                    return;
+                }
+
+                if (pid == 0) {
+                    // Redirect stdout and stderr to /dev/null
+                    int devNull = open("/dev/null", O_WRONLY);
+                    if (devNull != -1) {
+                        dup2(devNull, STDOUT_FILENO);
+                        dup2(devNull, STDERR_FILENO);
+                        close(devNull);
+                    }
+
+                    std::string executablePath = servant.at("engineFolder") + engineFileName;
+
+                    execl(
+                        engineFileName.c_str(),
+                        engineFileName.c_str(),
+                        (workDirectory + inputFileName).c_str(),
+                        "--hub-progress-url", (servant["managerIpAddress"]+":"+servant["port"]).c_str(),
+                        "--output-dir", (workDirectory + "/").c_str(),
+                        "--phase-dir", (job.at("PhaseFileLocation") + "/").c_str(),
+                        "--email", job.at("CreatorXEmail").c_str(),
+                        "--code", job.at("CreatorXCode").c_str(),
+                        "--case-number", job.at("CaseNumber").c_str(),
+                        "--lowercase-phase-file-paths", "false",
+                        nullptr
+                    );
+
+                    COMETLOG("Execute Failure: " + executablePath, comet::CRITICAL);
+                    _exit(EXIT_FAILURE);
+                }
+
+                pidPromise.set_value(pid);
+
+                // Wait for the child process to complete
+                int status;
+                waitpid(pid, &status, 0);
+                if (WIFEXITED(status)) {
+                    COMETLOG("Child process [" + std::to_string(pid) + "] completed with exit code: " + std::to_string(WEXITSTATUS(status)), comet::INFO);
+                } else if (WIFSIGNALED(status)) {
+                    COMETLOG("Child process [" + std::to_string(pid) + "] terminated by signal: " + std::to_string(WTERMSIG(status)), comet::CRITICAL);
+                }
+            } catch (const std::exception &e) {
+                COMETLOG("Exception in thread: " + std::string(e.what()), comet::CRITICAL);
+                pidPromise.set_value(-1);
+            }
+        }).detach();
+
+        return pidFuture.get();
+    } catch (const std::exception &e) {
+        COMETLOG("Exception in runExecutable: " + std::string(e.what()), comet::CRITICAL);
+        return -1;
+    }
+}
+    
     bool Job::runningProcessUpdate(Database &db, nlohmann::json &json)
       {
-                
         auto query = std::string("UPDATE jobs SET ")
-                      + "  Status = " + to_string(json["Status"]) + " "
-                      + ", Servant = " + to_string(json["Servant"]) + " "
-                      + ", LastUpdate = datetime('now') "
-                      + ", ProcessId = " + to_string(json["ProcessId"]) + " "
-                      + ", RunProgress = " + to_string(json["RunProgress"]) + " "
+                     + "  Status = " + to_string(json["Status"]) + " "
+                     + ", Servant = " + to_string(json["Servant"]) + " "
+                     + ", LastUpdate = datetime('now') "
+                     + ", ProcessId = " + to_string(json["ProcessId"]) + " "
+                     + ", RunProgress = " + to_string(json["RunProgress"]) + " "
                      "WHERE CaseNumber = " + to_string(json["CaseNumber"]) + " "
                      "AND GroupName = " + to_string(json["GroupName"]) + ";";
         auto rowsImpacted = db.updateQuery("Update Job Status", query, false);
@@ -403,23 +447,23 @@ namespace comet
       }
 
     void Job::startJobOnServant(Database &db, std::map<std::string, std::string> &job,
-                                std::__wrap_iter<std::map<std::string, std::string> *> servant)
+                                std::map<std::string, std::string> &servant)
       {
         COMETLOG("Job: Start job " + job.at("GroupName") + " " + job.at("CaseNumber")
-                 + " on servant: " + servant->at("ipAddress") + ":" + servant->at("port"), comet::INFO);
+                 + " on servant: " + servant["ipAddress"] + ":" + servant["port"], comet::INFO);
         //
-        
-        nlohmann::json jsonData;
-        // loop through add all the job map of strings and add to jsonData;
-        for (const auto [label, value]: job) {
-          jsonData[label] = value;
-        }
-        
-        if (servant->at("ipAddress") == getPrivateIPAddress()) {
-          Job::startJob(db, jsonData);
-        } else {
 
-          auto url = "http://" + servant->at("ipAddress") + ":" + servant->at("port") + "/job/start";
+
+        if (servant["ipAddress"] == getPrivateIPAddress()) {
+          auto engineFolder = servant["engineFolder"];
+          startJob(db, job, servant);
+        } else {
+          nlohmann::json jsonData;
+          // loop through add all the job map of strings and add to jsonData;
+          for (const auto [label, value]: job) {
+            jsonData[label] = value;
+          }
+          auto url = "http://" + servant["ipAddress"] + ":" + servant["port"] + "/job/start";
           std::list<std::string> headers;
           Curl::postJson(url, jsonData, headers);
         }
@@ -427,7 +471,9 @@ namespace comet
 
     std::string Job::getJobProcessId(const std::map<std::string, std::string> &jobMap)
       {
-        std::vector<std::string> keys = {"ProcessId", "GroupName", "CaseNumber", "CaseName", "CreatorName", "CreatorMachine"};
+        std::vector<std::string> keys = {
+          "ProcessId", "GroupName", "CaseNumber", "CaseName", "CreatorName", "CreatorMachine"
+        };
         // Join all these firlds if they exist
         std::string result = "";
         for (const auto &key: keys) {

@@ -444,17 +444,20 @@ namespace comet
               }
 
               try {
-                nlohmann::json jobData;
-                for (const auto &key: job->getMemberNames()) {
-                  jobData[key] = (*job)[key].asString(); // Adjust type conversion as needed
-                }
-                bool jobStarted = Job::startJob(db, jobData);
+                // nlohmann::json jobData;
+                // for (const auto &key: job->getMemberNames()) {
+                //   jobData[key] = (*job)[key].asString(); // Adjust type conversion as needed
+                // }
+                // std::string engineFolder = aServant.getEngineFolder();
+                // bool jobStarted = Job::startJob(db, jobData, engineFolder);
+                auto jobsStarted =  Scheduler::startJobsOnBestServants(db);
+                
 
-                if (jobStarted) {
+                if (jobsStarted > 0) {
                   auto resp = HttpResponse::newHttpResponse();
                   resp->setStatusCode(k200OK);
-                  resp->setBody(R"({"status":"Job started successfully"})");
-                  COMETLOG("Job started successfully ", LoggerLevel::INFO);
+                  resp->setBody(R"({"status":"Job started )" + to_string(jobsStarted) + R"(" successfully"})");
+                  COMETLOG( "🏃" + to_string(jobsStarted) + " jobs started.", LoggerLevel::INFO);
                   callback(resp);
                 } else {
                   auto resp = HttpResponse::newHttpResponse();

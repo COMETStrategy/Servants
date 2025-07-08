@@ -7,6 +7,7 @@
 #include <string>
 #include <nlohmann/json.hpp>
 
+#include "Servant.h"
 #include "drogon/HttpRequest.h"
 
 namespace comet
@@ -70,24 +71,17 @@ namespace comet
         std::string getFullReplaceQueryString() const;
         std::string description();
 
-        static bool startJob(Database &db, nlohmann::json &job);
-
-        static int runExecutable(const std::string &executableEngine, const std::string &workingDirectory, const std::string &inputFileName);
-
-        static bool runningProcessUpdate(Database &db, nlohmann::json &json);
-
-        static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::__wrap_iter<std::map<std::string, std::string> *> servant);
-
-        static std::string getJobProcessId(const std::map<std::string, std::string> &jobMap);
-
-        static int mockRunJobs(const Database & db);
-
-        static int resetRunningJobs(Database &db);
-        bool updateAllInLocalDatabase(Database &db) const;
-
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
-
         static bool createNewJobsTable(Database &db);
+        static bool runningProcessUpdate(Database &db, nlohmann::json &json);
+        static std::string getJobProcessId(const std::map<std::string, std::string> &jobMap);
+        static int mockRunJobs(const Database & db);
+        static int resetRunningJobs(Database &db);
+        
+        static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
+        static bool startJob(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
+        static int runExecutable(std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
+        bool updateAllInLocalDatabase(Database &db) const;
         static std::string jobStatusDescription(JobStatus aStatus);
         static std::string jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter);
       };

@@ -308,6 +308,11 @@ namespace comet
         engineFolder = newFolder;
       }
 
+    std::string Servant::getEngineFolder()
+      {
+        return engineFolder;
+      }
+
     std::string Servant::servantSummaryHtmlReport(Database &db)
       {
         std::string html = "";
@@ -392,10 +397,8 @@ namespace comet
         if (managerIpAddress.empty()) {
           COMETLOG("Manager updated: " + ipAddress + " ✅",
                    LoggerLevel::INFO);
-        } else {
-          auto url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/status";
-
-          auto response = Curl::postJson(url, jsonData);
+        } else 
+        {
           if (response.isError()) {
             if (!response.body.empty())
               COMETLOG("Failed to update Servant status (manager), body: " + response.body, LoggerLevel::CRITICAL);

@@ -93,6 +93,7 @@ namespace comet
         registerAuthenticateHandler();
         registerConfigurationHandler();
         registerRootAuthenticationHandler();
+        registerJobProgressHandler();
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
         registerMockRunJobsHandler();
@@ -554,6 +555,80 @@ namespace comet
             },
           {Get});
       }
+
+    void WebServices::registerJobProgressHandler() {
+        app().registerHandler(
+          "/job/progress",
+                 [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback) {
+                handleInvalidMethod(request);
+    
+                auto json = request->getJsonObject();
+                if (!json ||
+                    !json->isMember("CaseNumber") ||
+                    !json->isMember("GroupName") ||
+                    !json->isMember("RunProgress") ||
+                    !json->isMember("Ranking") ||
+                    !json->isMember("Life") ||
+                    !json->isMember("IterationsComplete") ||
+                    !json->isMember("UpdateAt") ||
+                    !json->isMember("Status")) {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k400BadRequest);
+                    resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
+                    callback(resp);
+                    return;
+                }
+    
+                try {
+                    std::string caseNumber = (*json)["CaseNumber"].asString();
+                    std::string groupName = (*json)["GroupName"].asString();
+                    std::string runProgress = (*json)["RunProgress"].asString();
+                    double ranking = std::stod((*json)["Ranking"].asString());
+                    double life = std::stod((*json)["Life"].asString());
+                    int iterationsComplete = std::stoi((*json)["IterationsComplete"].asString());
+                    std::string updateAt = (*json)["UpdateAt"].asString();
+                    int status = std::stoi((*json)["Status"].asString());
+    
+                    // Update the job progress in the database
+                    bool updateSuccess = db.insertRecord(
+                        "UPDATE jobs SET "                        
+                        "RunProgress = '" + runProgress + "', "
+                        "Ranking = " + std::to_string(ranking) + ", "
+                        "Life = " + std::to_string(life) + ", "
+                        "IterationsComplete = " + std::to_string(iterationsComplete) + ", "
+                        "LastUpdate = '" + updateAt + "', "
+                        "Status = " + std::to_string(status) + " "
+                        "WHERE CaseNumber = '" + caseNumber + "' AND " + "GroupName = '" + groupName + "' "
+                    );
+    
+                    if (updateSuccess) {
+                        Json::Value responseJson;
+                        responseJson["ErrorMessage"] = "";
+                        responseJson["Status"] = "Job progress updated successfully";
+                        responseJson["CaseNumber"] = caseNumber;
+    
+                        auto resp = HttpResponse::newHttpJsonResponse(responseJson);
+                        callback(resp);
+                        COMETLOG("Job progress updated successfully for CaseNumber: " + caseNumber, LoggerLevel::INFO);
+                    } else {
+                        auto resp = HttpResponse::newHttpResponse();
+                        resp->setStatusCode(k500InternalServerError);
+                        resp->setBody(R"({"ErrorMessage":"Failed to update job progress in database"})");
+                        callback(resp);
+                        COMETLOG("Failed to update job progress for CaseNumber: " + caseNumber, LoggerLevel::CRITICAL);
+                    }
+                } catch (const std::exception &e) {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k500InternalServerError);
+                    resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                    callback(resp);
+                    COMETLOG(std::string("Exception occurred while updating job progress: ") + e.what(), LoggerLevel::CRITICAL);
+                }
+            }
+        , {Post});
+    }
+
+
 
     void WebServices::registerServantSummaryHandler()
       {

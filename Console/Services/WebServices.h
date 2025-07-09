@@ -47,6 +47,7 @@ namespace comet
         bool uploadJob(const drogon::HttpRequestPtr &request);
         bool createNewDatabase();
 
+
         static Servant &getServant()
           {
             return aServant;
@@ -71,8 +72,9 @@ namespace comet
         void registerConfigurationHandler();
         void registerUploadJobHandler();
         void registerRootJobSummaryHandler();
+        
+        void registerJobProgressHandler();
         void registerJobStartHandler();
-
         void registerJobStatusDatabaseUpdateHandler();
 
         void registerServantSummaryHandler();

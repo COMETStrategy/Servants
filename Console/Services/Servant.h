@@ -65,7 +65,7 @@ namespace comet
         double getPriority() const {return priority;};
         std::string getManagerIpAddress() {return managerIpAddress;};;
         
-        bool isManager() {return managerIpAddress.empty();}
+        bool isManager();
 
         std::string HtmlAuthenticationSettingsForm(Authentication &auth);
         std::string HtmlServantSettingsForm();

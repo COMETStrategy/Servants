@@ -33,7 +33,7 @@ namespace comet
         auto servents = Servant::getAvailableServants(db);
         if (servents.size() == 0) return 0;
 
-        auto jobs = db.getQueryResults("SELECT * FROM jobs WHERE status = 0 ORDER BY lastUpdate ASC;");
+        auto jobs = db.getQueryResults("SELECT * FROM jobs WHERE status <= " + std::to_string(int(JobStatus::Queued)) + " ORDER BY lastUpdate ASC;");
         if (jobs.empty()) {
           COMETLOG("No jobs available to start.", LoggerLevel::INFO);
           return 0;

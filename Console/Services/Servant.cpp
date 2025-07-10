@@ -157,10 +157,15 @@ namespace comet
                                "';";
             auto result = db.updateQuery("Update Servant Alive Status", updateQuery, false);
           }
-          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::WARNING);
+          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::INFO);
         }
       }
 
+
+    bool Servant::isManager()
+      {
+        return managerIpAddress != getManagerIpAddress();
+      }
 
     std::string Servant::HtmlAuthenticationSettingsForm(Authentication &auth)
       {

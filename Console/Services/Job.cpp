@@ -323,10 +323,17 @@ namespace comet
                  + " on this servant. ", comet::INFO);
         std::string executableEngine = servant["engineFolder"] + job["EngineVersion"];
         auto workingDirectory = job["WorkingDirectory"];;
+        // Make sure the working directory exists
+        if (!std::filesystem::exists(workingDirectory)) {
+          COMETLOG("Creating working directory: " + workingDirectory, comet::INFO);
+          std::filesystem::create_directories(workingDirectory);
+        } else {
+          COMETLOG("Working directory already exists: " + workingDirectory, comet::INFO);
+        }
         auto inputFileName = job["InputFileName"];;
         // run executable;
         COMETLOG("Job: Executing job with Engine: " + executableEngine + " in directory: " + workingDirectory +
-                 " with input file: " + inputFileName, comet::DEBUGGING);
+                 " with input file: " + inputFileName, comet::INFO);
         int processId = runExecutable(job, servant);
         COMETLOG("Process ID: " + std::to_string(processId), comet::INFO);
 
@@ -394,7 +401,7 @@ namespace comet
                         engineFileName.c_str(),
                         engineFileName.c_str(),
                         (workDirectory + inputFileName).c_str(),
-                        "--hub-progress-url", (servant["managerIpAddress"]+":"+servant["port"]).c_str(),
+                        "--hub-progress-url", (servant["managerIpAddress"]+":"+servant["port"]+"/job/progress").c_str(),
                         "--output-dir", (workDirectory + "/").c_str(),
                         "--phase-dir", (job.at("PhaseFileLocation") + "/").c_str(),
                         "--email", job.at("CreatorXEmail").c_str(),
@@ -513,7 +520,7 @@ namespace comet
         auto query = "UPDATE Jobs set Status = " + std::to_string(int(JobStatus::Queued)) +
                      ", Servant = NULL, Ranking = NULL, Life = NULL, IterationsComplete = NULL, RunTimeMin = NULL, RunProgress = '', LastUpdate = datetime('now') "
                      +
-                     "WHERE  Status  = " + std::to_string(int(JobStatus::Running)) + " ;";
+                     "WHERE  CaseNumber = 20.000005 OR CaseNumber = 20.000011 OR CaseNumber = 20.000025  OR CaseNumber = 20.000025 ;";
         auto rowsImpacted = db.updateQuery("Reset Running Jobs", query, false);
         if (rowsImpacted == 0) {
           COMETLOG("No running jobs reset", comet::CRITICAL);
@@ -536,6 +543,37 @@ namespace comet
         return true;
       }
 
+    
+    bool Job::updateJobProgress(
+        const std::string &caseNumber,
+        const std::string &groupName,
+        const std::string &runProgress,
+        double ranking,
+        double life,
+        int iterationsComplete,
+        const std::string &updateAt,
+        int status,
+        Database &db) 
+      {
+        try {
+          // Update the job progress in the database
+          auto query = "UPDATE jobs SET "
+              "RunProgress = '" + runProgress + "', "
+              "Ranking = " + std::to_string(ranking) + ", "
+              "Life = " + std::to_string(life) + ", "
+              "IterationsComplete = " + std::to_string(iterationsComplete) + ", "
+              "LastUpdate = '" + updateAt + "', "
+              "Status = " + std::to_string(status) + " "
+              "WHERE CaseNumber = '" + caseNumber + "' AND GroupName = '" + groupName + "'";
+          
+          bool updateSuccess = db.insertRecord(query);
+
+          return updateSuccess;
+        } catch (const std::exception &e) {
+          COMETLOG("Exception occurred while updating job progress: " + std::string(e.what()), LoggerLevel::CRITICAL);
+          return false;
+        }
+      }
 
     std::string Job::getAllJobStatuses(Database &db, std::string &GroupName)
       {
@@ -597,6 +635,7 @@ namespace comet
       {
         // Convert JobStatus to string description
         switch (aStatus) {
+          case Initialised: return "Initialised";
           case Queued: return "Queued";
           case Allocated: return "Allocated";
           case Running: return "Running";

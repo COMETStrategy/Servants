@@ -16,6 +16,7 @@ namespace comet
 
     enum JobStatus
       {
+        Initialised,
         Queued,
         Allocated,
         Running,
@@ -23,9 +24,11 @@ namespace comet
         Completed,
         Unknown = -1
       };
+    
 
     // Array with JobStatus descriptions
     static const char *JobStatusDescriptions[] = {
+      "Initialised",
       "Queued",
       "Allocated",
       "Running",
@@ -82,6 +85,13 @@ namespace comet
         static bool startJob(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
         static int runExecutable(std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
         bool updateAllInLocalDatabase(Database &db) const;
+
+        static bool updateJobProgress(const std::string &caseNumber, const std::string &groupName,
+                               const std::string &runProgress,
+                               double ranking, double life, int iterationsComplete, const std::string &updateAt,
+                               int status,
+                               Database &db);
+
         static std::string jobStatusDescription(JobStatus aStatus);
         static std::string jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter);
       };

@@ -95,6 +95,8 @@ namespace comet
         registerAuthenticateHandler();
         registerConfigurationHandler();
         registerRootAuthenticationHandler();
+        registerJobSelectedDeleteHandler();
+        registerJobSelectedResetHandler();
         registerJobProgressHandler();
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
@@ -418,6 +420,75 @@ namespace comet
           {Post});
       }
 
+    void WebServices::registerJobSelectedDeleteHandler()
+      {
+        app().registerHandler(
+          "/jobs/selected_delete",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+              }
+
+              try {
+                auto jobs = (*json)["jobs"];
+                Job::deleteJobs(db, jobs);
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setBody(R"({"Status":"Jobs deleted successfully"})");
+                callback(resp);
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+              }
+            },
+          {Post});
+      }
+
+    void WebServices::registerJobSelectedResetHandler()
+      {
+        app().registerHandler(
+          "/jobs/selected_restart",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+      
+              auto json = request->getJsonObject();
+              if (!json) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+              }
+              auto jobs = (*json)["jobs"];
+
+              try {
+                Job::restartJobs(db, jobs);
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setBody(R"({"Status":"Jobs reset successfully"})");
+                callback(resp);
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+              }
+            },
+          {Post});
+      }
 
     void WebServices::registerJobStartHandler()
       {
@@ -552,7 +623,7 @@ namespace comet
               auto sort = request->getParameter("sort");
               auto filter = request->getParameter("filter");
 
-              std::string report = Job::jobSummaryHtmlReport(db, sort, filter);
+              std::string report = Job::htmlJobSummaryReport(db, sort, filter);
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setBody(setHTMLBody(report, "/", "Job Summary"));
@@ -572,20 +643,20 @@ namespace comet
 
               auto json = nlohmann::json::parse(body, nullptr, false);
               if (!json.is_object()
-                || !json.contains("CaseNumber")
-                || !json.contains("GroupName")
-                || !json.contains("RunProgress")
-                || !json.contains("Ranking")
-                || !json.contains("Life")
-                || !json.contains("IterationsComplete")
-                || !json.contains("UpdateAt")
-                || !json.contains("Status")
-                ) {
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k400BadRequest);
-                  resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
-                  callback(resp);
-                  return;
+                  || !json.contains("CaseNumber")
+                  || !json.contains("GroupName")
+                  || !json.contains("RunProgress")
+                  || !json.contains("Ranking")
+                  || !json.contains("Life")
+                  || !json.contains("IterationsComplete")
+                  || !json.contains("UpdateAt")
+                  || !json.contains("Status")
+              ) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
+                callback(resp);
+                return;
               }
 
               try {
@@ -942,13 +1013,13 @@ namespace comet
       {
         return "<!DOCTYPE html>"
                "<html>"
-               + getHTMLHeader(targetPath, title)
+               + htmlHeader(targetPath, title)
                + "<body>" + body + "</body>"
-               + getHTMLFooter()
+               + htmlFooter()
                + "</html>";
       }
 
-    std::string WebServices::getHTMLHeader(const std::string &targetPath, const std::string &title) const
+    std::string WebServices::htmlHeader(const std::string &targetPath, const std::string &title) const
       {
         struct Link
           {
@@ -988,6 +1059,7 @@ namespace comet
             <title>)" + title + R"(</title>
             <link rel="stylesheet" href="/css/styles.css?v=)" + datetimestring + R"(">
             <link rel='shortcut icon' type='image/png' href='/media/COMET_Icon.png'>
+            <script src="/js/general.js"></script>
         </head>
         <header>
             <img src='/media/COMET_DarkBG.svg' alt='1' height='60'>
@@ -998,7 +1070,7 @@ namespace comet
         )";
       }
 
-    std::string WebServices::getHTMLFooter() const
+    std::string WebServices::htmlFooter() const
       {
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);

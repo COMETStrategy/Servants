@@ -35,8 +35,8 @@ namespace comet
 
         void handleRequest(const std::string& request);
         std::string setHTMLBody(const std::string& body, const std::string &targetPath, const std::string &title) const;
-        std::string getHTMLHeader(const std::string &targetPath, const std::string &title) const;
-        std::string getHTMLFooter() const;
+        std::string htmlHeader(const std::string &targetPath, const std::string &title) const;
+        std::string htmlFooter() const;
 
         void run();
         void join();
@@ -71,9 +71,12 @@ namespace comet
         void registerAuthenticateHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
+        
         void registerRootJobSummaryHandler();
         
         void registerJobProgressHandler();
+        void registerJobSelectedDeleteHandler();
+        void registerJobSelectedResetHandler();
         void registerJobStartHandler();
         void registerJobStatusDatabaseUpdateHandler();
 

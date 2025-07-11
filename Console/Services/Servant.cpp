@@ -17,6 +17,8 @@
 
 namespace comet
   {
+    Servant *Servant::thisServant = nullptr;
+
     Servant::Servant()
       {
         totalCores = std::thread::hardware_concurrency();
@@ -30,6 +32,7 @@ namespace comet
         ipAddress = getPrivateIPAddress();
         alive = true;
         engineFolder = "";
+        thisServant = this;
       }
 
 
@@ -318,6 +321,12 @@ namespace comet
         return engineFolder;
       }
 
+    void Servant::decrementActiveProcessCount()
+      {
+        db.updateQuery("Update Servant State",
+                      "UPDATE servants SET activeCores = activeCores - 1 WHERE ipAddress = '" + thisServant->ipAddress + "' ;");
+      }
+
     std::string Servant::servantSummaryHtmlReport(Database &db)
       {
         std::string html = "";
@@ -372,6 +381,11 @@ namespace comet
       {
         // Post to the manager IP address
         auto url = "http://" + ipAddress + ":" + std::to_string(port) + "/servant/status";
+        std::string servantLocation = "Local";
+        if (!managerIpAddress.empty()) {
+          url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/status";
+          servantLocation = "Manager";
+        }
         nlohmann::json jsonData;
         jsonData["ipAddress"] = getPrivateIPAddress();
         jsonData["totalCores"] = totalCores;
@@ -386,36 +400,20 @@ namespace comet
         jsonData["priority"] = priority;
         jsonData["alive"] = alive;
         jsonData["projectId"] = 0; // Replace with actual project ID if needed
+        // Only update the local is it is not also the maanager
+        COMETLOG("Servant is updating " + servantLocation + " status.", LoggerLevel::DEBUGGING);
         auto response = Curl::postJson(url, jsonData);
         if (response.isError()) {
           if (!response.body.empty())
-            COMETLOG("Failed to update Servant status (local), body: " + response.body, LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servant status (" + servantLocation + "), body: " + response.body, LoggerLevel::CRITICAL);
           else
-            COMETLOG("Failed to update Servant status (local), curl: " + response.curlError, LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servant status (" + servantLocation + "), curl: " + response.curlError, LoggerLevel::CRITICAL);
           return false;
         } else {
-          COMETLOG("Servant status updated successfully (local): " + ipAddress + " ✅",
+          COMETLOG("Servant status updated successfully (" + servantLocation + "): " + ipAddress + " ✅",
                    LoggerLevel::DEBUGGING);
         }
 
-        // Update the manager servant
-        if (managerIpAddress.empty()) {
-          COMETLOG("Manager updated: " + ipAddress + " ✅",
-                   LoggerLevel::INFO);
-        } else 
-        {
-          if (response.isError()) {
-            if (!response.body.empty())
-              COMETLOG("Failed to update Servant status (manager), body: " + response.body, LoggerLevel::CRITICAL);
-            else
-              COMETLOG("Failed to update Servant status (manager), curl: " + response.curlError,
-                     LoggerLevel::CRITICAL);
-            return false;
-          } else {
-            COMETLOG("Updated Servant Manager at: " + managerIpAddress + " ✅",
-                     LoggerLevel::INFO);
-          }
-        }
 
         return true;
       }

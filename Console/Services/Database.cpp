@@ -75,6 +75,21 @@ namespace comet
       }
 
 
+    int Database::deleteQuery(const std::string &description, const std::string &queryText, bool logErrors) const
+      {
+        char *errMsg;
+        if (sqlite3_exec(m_db, queryText.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
+          if (logErrors) COMETLOG("Failed to update: " + description + std::string(errMsg),
+                             LoggerLevel::CRITICAL);
+          sqlite3_free(errMsg);
+          throw std::runtime_error("Failed to delete record into Settings table: " + std::string(errMsg));
+        } else {
+          if (logErrors) COMETLOG("Record updated into Settings table successfully.", LoggerLevel::DEBUGGING);
+        }
+        return sqlite3_changes(m_db);
+
+      }
+    
     int Database::updateQuery(const std::string &description, const std::string &queryText, bool logErrors) const
       {
         char *errMsg;

@@ -74,6 +74,10 @@ namespace comet
         std::string getFullReplaceQueryString() const;
         std::string description();
 
+        static void deleteJobs(const Database & db, Json::Value & jobs);
+
+        static void restartJobs(const Database & db, Json::Value & jobs);
+
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
         static bool createNewJobsTable(Database &db);
         static bool runningProcessUpdate(Database &db, nlohmann::json &json);
@@ -93,7 +97,7 @@ namespace comet
                                Database &db);
 
         static std::string jobStatusDescription(JobStatus aStatus);
-        static std::string jobSummaryHtmlReport(Database &db, std::string &sort, std::string &filter);
+        static std::string htmlJobSummaryReport(Database &db, std::string &sort, std::string &filter);
       };
   };
 #endif //JOB_H

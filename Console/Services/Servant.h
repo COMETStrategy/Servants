@@ -31,6 +31,8 @@ namespace comet
         double priority;
         Authentication *auth;
         bool alive;
+      public:
+        static Servant *thisServant;
         
       public:
         void setTotalCores(int total_cores);
@@ -58,6 +60,7 @@ namespace comet
 
         std::string getEngineFolder();
 
+        static void decrementActiveProcessCount();
         static std::string servantSummaryHtmlReport(Database &db);;
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}

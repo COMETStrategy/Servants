@@ -24,6 +24,7 @@ namespace comet
         ~Scheduler();
 
         static int startJobsOnBestServants(Database &db);
+        static Database *db;
       };
 
 

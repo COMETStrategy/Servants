@@ -3,6 +3,7 @@
     --stdColor: white;
     --stdHighlightColor: #3A91B0;
     --stdAltHighlightColor: cyan;
+    --stdAltWarningColor: orange;
     --stdBackgroundColor: #121212;
     --stdBackgroundHighlightColor: #000033;
     --stdTableHeaderColor: white;
@@ -29,6 +30,7 @@ body{
     width: auto;
     outline: var(--stdMargin) solid var(--stdBackgroundHighlightColor);
 }
+
 
 .even {
     background-color:var(--stdMidGray)
@@ -142,6 +144,12 @@ button {
     font-size:large;
     width: auto;
     border: none;
+}
+
+input[type="checkbox"] {
+    width: 1.5em;
+    height: 1.5em;
+    vertical-align: middle;
 }
 
 button:hover {
@@ -278,7 +286,6 @@ tr .list_heading
 
 .warning
 {
-    background-color: var(--stdAltHighlightColor);
-    color: white;
+    color: var(--stdAltWarningColor);
     margin: 0;
 }

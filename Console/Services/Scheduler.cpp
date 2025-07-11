@@ -12,6 +12,8 @@
 
 namespace comet
   {
+    Database *Scheduler::db = nullptr;
+    
     Scheduler::Scheduler()
       {
       }
@@ -26,14 +28,15 @@ namespace comet
         jobs.clear();
       }
 
-    int Scheduler::startJobsOnBestServants(Database &db)
+    int Scheduler::startJobsOnBestServants(Database &aDatabase)
       {
+        db = &aDatabase; // Set the static db pointer to the provided database
         int numberOfJobsStarted = 0;
 
-        auto servents = Servant::getAvailableServants(db);
+        auto servents = Servant::getAvailableServants(*db);
         if (servents.size() == 0) return 0;
 
-        auto jobs = db.getQueryResults("SELECT * FROM jobs WHERE status <= " + std::to_string(int(JobStatus::Queued)) + " ORDER BY lastUpdate ASC;");
+        auto jobs = db->getQueryResults("SELECT * FROM jobs WHERE status <= " + std::to_string(int(JobStatus::Queued)) + " ORDER BY lastUpdate ASC;");
         if (jobs.empty()) {
           COMETLOG("No jobs available to start.", LoggerLevel::INFO);
           return 0;
@@ -67,11 +70,13 @@ namespace comet
               std::string("Scheduler: Starting job '") + job.at("GroupName") + ":" + job.at("CaseNumber") + "' on servant '" +
               servant->at("ipAddress") + "'",
               LoggerLevel::DEBUGGING); // Update the job status to Running
-              db.updateQuery("Update Job Status",
-                           "UPDATE jobs SET status = " + std::to_string(JobStatus::Allocated) + ", servant = '" + servant->at("ipAddress") +
-                           "' WHERE caseNumber = '" + job.at("CaseNumber") + "' and GroupName = '" + job.at(
-                             "GroupName") + "';");
-            Job::startJobOnServant( db, job, *servant);
+            db->updateQuery("Update Job Status",
+                         "UPDATE jobs SET status = " + std::to_string(JobStatus::Allocated) + ", servant = '" + servant->at("ipAddress") +
+                         "' WHERE caseNumber = '" + job.at("CaseNumber") + "' and GroupName = '" + job.at(
+                         "GroupName") + "';");
+            db->updateQuery("Update Servant State",
+                         "UPDATE servants SET activeCores = activeCores+1 WHERE ipAddress = '" + servant->at("ipAddress") + "' ;");
+            Job::startJobOnServant( *db, job, *servant);
             
             numberOfJobsStarted++;
             availableCores--;

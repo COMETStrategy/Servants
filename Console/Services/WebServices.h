@@ -71,7 +71,9 @@ namespace comet
         void registerAuthenticateHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
-        
+
+        void registerJobProcessUpdateHandler();
+
         void registerRootJobSummaryHandler();
         
         void registerJobProgressHandler();

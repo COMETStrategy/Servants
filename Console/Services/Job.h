@@ -24,7 +24,7 @@ namespace comet
         Completed,
         Unknown = -1
       };
-    
+
 
     // Array with JobStatus descriptions
     static const char *JobStatusDescriptions[] = {
@@ -60,47 +60,78 @@ namespace comet
         std::string creatorXCode;
         int peopleRefValue;
         int projectRefValue;
-        
+
         JobStatus status;
 
         // Constructor
       public:
-        Job(const drogon::HttpRequestPtr &request, JobStatus newStatus, Database & db);
+        Job(const drogon::HttpRequestPtr &request, JobStatus newStatus, Database &db);
 
         JobStatus jobStatus() const;
+
         bool validJobStatus() const;
+
         JobStatus setJobStatus(JobStatus newStatus);
+
         std::string getFullReplaceQueryString() const;
+
         std::string description();
 
-        static void processUpdateError(const Database & db, const std::string & processId, const std::string & message);
 
-        static void deleteJobs(const Database & db, Json::Value & jobs);
+        static void deleteJobs(const Database &db, Json::Value &jobs);
 
-        static void restartJobs(const Database & db, Json::Value & jobs);
+        static void restartJobs(const Database &db, Json::Value &jobs);
 
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
+
         static bool createNewJobsTable(Database &db);
-        
-        static bool processUpdateRunning(Database &db, nlohmann::json &json);
+
+        static bool processUpdateRunning(Database &db
+                                         , const JobStatus &aStatus
+                                         , const std::string &aServant
+                                         , const std::string &aProcessId
+                                         , const std::string &aRunProgress
+                                         , const std::string &aCaseNumber
+                                         , const std::string &aGroupName
+                                         );
+
         static std::string getJobProcessId(const std::map<std::string, std::string> &jobMap);
-        static int mockRunJobs(const Database & db);
+
+        static int mockRunJobs(const Database &db);
+
         static int resetRunningJobs(Database &db);
-        
-        static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
-        static bool startJob(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
-        static int runExecutable(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
+
+        static void startJobOnServant(Database &db, std::map<std::string, std::string> &job,
+                                      std::map<std::string, std::string> &servant);
+
+        static bool startJob(Database &db, std::map<std::string, std::string> &job,
+                             std::map<std::string, std::string> &servant);
+
+        static int runExecutable(Database &db, std::map<std::string, std::string> &job,
+                                 std::map<std::string, std::string> &servant);
+
+        static bool processUpdateRunningToManager(const JobStatus &aStatus, const std::string &aServant,
+                                           const std::string &aProcessId,
+                                           const std::string &aRunProgress, const std::string &aCaseNumber,
+                                           const std::string &aGroupName);
+
         bool updateAllInLocalDatabase(Database &db) const;
 
         static bool updateJobProgress(const std::string &caseNumber, const std::string &groupName,
-                               const std::string &runProgress,
-                               double ranking, double life, int iterationsComplete, const std::string &updateAt,
-                               int status,
-                               Database &db);
+                                      const std::string &runProgress,
+                                      double ranking, double life, int iterationsComplete, const std::string &updateAt,
+                                      int status,
+                                      Database &db);
 
         static std::string jobStatusDescription(JobStatus aStatus);
+
         static std::string htmlJobSummaryReport(Database &db, std::string &sort, std::string &filter);
-        static std::string htmlGenerateFilterLinks(const std::string &baseUrl, const std::string &sort, std::string filter);
-        static std::string htmlGenerateSortLinks(const std::string &baseUrl, const std::string &filter, std::string sort);      };
+
+        static std::string htmlGenerateFilterLinks(const std::string &baseUrl, const std::string &sort,
+                                                   std::string filter);
+
+        static std::string htmlGenerateSortLinks(const std::string &baseUrl, const std::string &filter,
+                                                 std::string sort);
+      };
   };
 #endif //JOB_H

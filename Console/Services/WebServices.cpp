@@ -98,6 +98,7 @@ namespace comet
         registerRootAuthenticationHandler();
         registerJobSelectedDeleteHandler();
         registerJobSelectedRestartHandler();
+        registerJobProcessUpdateHandler();
         registerJobProgressHandler();
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
@@ -121,7 +122,7 @@ namespace comet
         // Get the request body
         //std::string body = std::string(request->getBody());
 
-        COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::INFO);
+        COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::DEBUGGING);
       }
 
     void WebServices::registerRootAuthenticationHandler()
@@ -421,6 +422,74 @@ namespace comet
           {Post});
       }
 
+    void WebServices::registerJobProcessUpdateHandler()
+{
+    app().registerHandler(
+        "/job/process_update",
+        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+        {
+            handleInvalidMethod(request);
+
+            auto json = request->getJsonObject();
+            if (!json || 
+                !json->isMember("GroupName") || 
+                !json->isMember("CaseNumber") || 
+                !json->isMember("Status") || 
+                !json->isMember("Servant") || 
+                !json->isMember("RunProgress") || 
+                !json->isMember("ProcessId"))
+            {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
+                callback(resp);
+                return;
+            }
+
+            try
+            {
+              JobStatus status = static_cast<JobStatus>(json->get("Status", 0).asInt());
+               std::string servant = json->get("Servant", "").asString();
+               std::string processId = json->get("ProcessId", "").asString();
+               std::string runProgress = json->get("RunProgress", "").asString();
+               std::string caseNumber = json->get("CaseNumber", "").asString();
+               std::string groupName = json->get("GroupName", "").asString();
+
+               bool updateSuccess = Job::processUpdateRunning(db, status, servant, processId, runProgress, caseNumber, groupName);
+
+                if (updateSuccess)
+                {
+                  Json::Value responseJson;
+                  responseJson["ErrorMessage"] = "";
+                  responseJson["Status"] = "Job process updated successfully";
+                  responseJson["CaseNumber"] = caseNumber;
+
+                  auto resp = HttpResponse::newHttpJsonResponse(responseJson);
+                    callback(resp);
+                    COMETLOG("Job process updated successfully for CaseNumber: " + caseNumber, LoggerLevel::INFO);
+                }
+                else
+                {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k500InternalServerError);
+                    resp->setBody(R"({"ErrorMessage":"Failed to update job process in database"})");
+                    callback(resp);
+                    COMETLOG("Failed to update job process for CaseNumber: " + caseNumber, LoggerLevel::CRITICAL);
+                }
+            }
+            catch (const std::exception &e)
+            {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+                COMETLOG(std::string("Exception occurred while updating job process: ") + e.what(), LoggerLevel::CRITICAL);
+            }
+        },
+        {Post});
+}
+    
+
     void WebServices::registerJobSelectedDeleteHandler()
       {
         app().registerHandler(
@@ -643,6 +712,7 @@ namespace comet
             {
               handleInvalidMethod(request);
               std::string body = std::string(request->body());
+              //COMETLOG("Job progress: " + body, LoggerLevel::INFO);
 
               auto json = nlohmann::json::parse(body, nullptr, false);
               if (!json.is_object()
@@ -663,10 +733,14 @@ namespace comet
               }
 
               try {
-                double caseNo = json["CaseNumber"].get<double>();
-                std::ostringstream stream;
-                stream << std::fixed << std::setprecision(6) << caseNo;
-                std::string caseNumber = stream.str();
+                double caseN = json["CaseNumber"].get<double>();
+                // Convert to a 6 decimal string
+                std::string caseNumber = std::to_string(caseN);
+                caseNumber = caseNumber.substr(0, caseNumber.find('.') + 7); // Keep 6 decimal places
+                if (caseNumber.length() < 6) {
+                  caseNumber.insert(0, 6 - caseNumber.length(), '0'); // Pad with zeros if less than 6 characters
+                }
+                
                 std::string groupName = json["GroupName"].get<std::string>();
                 std::string runProgress = json["RunProgress"].get<std::string>();
                 double ranking = json["Ranking"].get<double>();
@@ -686,6 +760,9 @@ namespace comet
                   updateAt,
                   status,
                   db);
+                if (status == JobStatus::Failed || status == JobStatus::Completed) {
+                  Servant::initialiseAllServantActiveCores(db);
+                }
 
                 if (updateSuccess) {
                   nlohmann::json responseJson = {

@@ -9,10 +9,13 @@
 #include "Database.h"
 
 #include <map>
+#include <mutex>
 
 #include "utilities.h"
 #include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
+
+std::mutex dbMutex;
 
 #define CREATE_TABLE_SETTINGS_QUERY R"(CREATE TABLE IF NOT EXISTS settings
                                       (createdDate TEXT
@@ -92,6 +95,8 @@ namespace comet
     
     int Database::updateQuery(const std::string &description, const std::string &queryText, bool logErrors) const
       {
+        std::lock_guard<std::mutex> lock(dbMutex); // Ensure thread-safe access
+
         char *errMsg;
         if (sqlite3_exec(m_db, queryText.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
           if (logErrors) COMETLOG("Failed to update: " + description + std::string(errMsg),

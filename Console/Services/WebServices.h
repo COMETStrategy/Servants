@@ -76,7 +76,7 @@ namespace comet
         
         void registerJobProgressHandler();
         void registerJobSelectedDeleteHandler();
-        void registerJobSelectedResetHandler();
+        void registerJobSelectedRestartHandler();
         void registerJobStartHandler();
         void registerJobStatusDatabaseUpdateHandler();
 

@@ -60,7 +60,9 @@ namespace comet
 
         std::string getEngineFolder();
 
-        static void decrementActiveProcessCount();
+        static void initialiseAllServantActiveCores(const Database & db);
+
+        static void decrementActiveProcessCount(Database &db, int decrementAmount);
         static std::string servantSummaryHtmlReport(Database &db);;
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}

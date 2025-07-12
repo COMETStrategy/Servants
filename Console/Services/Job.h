@@ -60,8 +60,7 @@ namespace comet
         std::string creatorXCode;
         int peopleRefValue;
         int projectRefValue;
-
-
+        
         JobStatus status;
 
         // Constructor
@@ -74,20 +73,23 @@ namespace comet
         std::string getFullReplaceQueryString() const;
         std::string description();
 
+        static void processUpdateError(const Database & db, const std::string & processId, const std::string & message);
+
         static void deleteJobs(const Database & db, Json::Value & jobs);
 
         static void restartJobs(const Database & db, Json::Value & jobs);
 
         static std::string getAllJobStatuses(Database &db, std::string &GroupName);
         static bool createNewJobsTable(Database &db);
-        static bool runningProcessUpdate(Database &db, nlohmann::json &json);
+        
+        static bool processUpdateRunning(Database &db, nlohmann::json &json);
         static std::string getJobProcessId(const std::map<std::string, std::string> &jobMap);
         static int mockRunJobs(const Database & db);
         static int resetRunningJobs(Database &db);
         
         static void startJobOnServant(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
         static bool startJob(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
-        static int runExecutable(std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
+        static int runExecutable(Database &db, std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant);
         bool updateAllInLocalDatabase(Database &db) const;
 
         static bool updateJobProgress(const std::string &caseNumber, const std::string &groupName,
@@ -98,6 +100,7 @@ namespace comet
 
         static std::string jobStatusDescription(JobStatus aStatus);
         static std::string htmlJobSummaryReport(Database &db, std::string &sort, std::string &filter);
-      };
+        static std::string htmlGenerateFilterLinks(const std::string &baseUrl, const std::string &sort, std::string filter);
+        static std::string htmlGenerateSortLinks(const std::string &baseUrl, const std::string &filter, std::string sort);      };
   };
 #endif //JOB_H

@@ -73,6 +73,7 @@ namespace comet
           aServant.startRoutineStatusUpdates();
 
           Servant::checkAllServantsAlive(db);
+          Servant::initialiseAllServantActiveCores(db);
         } else {
           COMETLOG("No records found in Servant Settings table, authentication required.", LoggerLevel::WARNING);
         }
@@ -96,7 +97,7 @@ namespace comet
         registerConfigurationHandler();
         registerRootAuthenticationHandler();
         registerJobSelectedDeleteHandler();
-        registerJobSelectedResetHandler();
+        registerJobSelectedRestartHandler();
         registerJobProgressHandler();
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
@@ -440,6 +441,7 @@ namespace comet
               try {
                 auto jobs = (*json)["jobs"];
                 Job::deleteJobs(db, jobs);
+                Servant::initialiseAllServantActiveCores(db);
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k200OK);
@@ -455,7 +457,7 @@ namespace comet
           {Post});
       }
 
-    void WebServices::registerJobSelectedResetHandler()
+    void WebServices::registerJobSelectedRestartHandler()
       {
         app().registerHandler(
           "/jobs/selected_restart",
@@ -475,6 +477,7 @@ namespace comet
 
               try {
                 Job::restartJobs(db, jobs);
+                Servant::initialiseAllServantActiveCores(db);
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k200OK);

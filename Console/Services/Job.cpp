@@ -166,29 +166,16 @@ namespace comet
         return true;
       }
 
-    std::string Job::htmlJobSummaryReport(Database &db, std::string &sort, std::string &filter)
+    std::string Job::htmlGenerateFilterLinks(const std::string &baseUrl, const std::string &sort, std::string filter)
       {
-        std::string html = "";
-
-
-        // Save original sort and order
-        if (sort.empty()) sort = "date";
         if (filter.empty()) filter = "all";
-        auto rawSort = sort;
         auto rawFilter = filter;
-        std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
         std::transform(filter.begin(), filter.end(), filter.begin(), ::tolower);
 
-        std::string sortDescAsc = "DESC";
-        if (sort != rawSort) sortDescAsc = "ASC";
-
-        // Generate the base URL
-        std::string baseUrl = "/";
-
-        // Generate links for filters
         std::string filterLinks = "Filter by: ";
         std::vector<std::string> filters = {"All", "Queued", "Active", "Failed", "Complete"};
         std::string separator = "";
+
         for (const auto &aFilter: filters) {
           auto f = aFilter;
           std::transform(f.begin(), f.end(), f.begin(), ::tolower);
@@ -199,14 +186,24 @@ namespace comet
           } else {
             filterLinks += "<a href='" + baseUrl + "?sort=" + sort + "&filter=" + f + "'>" + aFilter + "</a>";
           }
-
           separator = " ";
         }
 
-        // Generate links for sorting options
+        return filterLinks;
+      }
+
+    std::string Job::htmlGenerateSortLinks(const std::string &baseUrl, const std::string &filter, std::string sort)
+      {
+        if (sort.empty()) sort = "date";
+        auto rawSort = sort;
+        std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
+
+        std::string sortDescAsc = (sort[0] != std::tolower(sort[0])) ? "ASC" : "DESC";
+
         std::string sortLinks = "Order by: ";
         std::vector<std::string> sorts = {"Status", "Date", "NPV", "Case", "Creator", "Servant"};
-        separator = "";
+        std::string separator = "";
+
         for (const auto &s: sorts) {
           std::string sortCaseAdjusted = s;
           std::string sortLowerCase = s;
@@ -234,9 +231,17 @@ namespace comet
           separator = " ";
         }
 
+        return sortLinks;
+      }
+
+    std::string Job::htmlJobSummaryReport(Database &db, std::string &sort, std::string &filter)
+      {
+        std::string html = "";
+
         // Add filter and sort links to the HTML
-        html += "<p>" + filterLinks + "<br>";
-        html += "" + sortLinks + "</p>";
+        std::string baseUrl = "/";
+        html += "<p>" + htmlGenerateFilterLinks(baseUrl, sort, filter) + "<br>";
+        html += "" + htmlGenerateSortLinks(baseUrl, sort, filter) + "</p>";
 
         // Get the job summary from the database
         std::string selection = "SELECT * FROM jobs ";
@@ -257,7 +262,7 @@ namespace comet
           whereClause = " WHERE Status IN (" + std::to_string(JobStatus::Initialised) + ", " + std::to_string(
                           JobStatus::Failed) + ") ";
         }
-
+        std::string sortDescAsc = (sort[0] != std::tolower(sort[0])) ? "ASC" : "DESC";
         std::string orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
         if (sort == "status") {
           orderBy = " ORDER BY Status " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
@@ -303,8 +308,11 @@ namespace comet
           html += "<tr class='" + rowClass + "'>";
           // Add a checkbox for selection with the id CaseNumber and a custom attribute with the GroupName
           std::string checkbox = "<input type='checkbox' name='selectedjobs' checked "
-                                 "' data-casenumber='" + row.at("CaseNumber") + "' data-groupname='" + row.at(
-                                   "GroupName") + "'>";
+                                 " data-casenumber='" + row.at("CaseNumber") + "'"
+                                 " data-groupname='" + row.at("GroupName") + "'"
+                                 " data-processid='" + row.at("ProcessId") + "'"
+                                 " data-servant='" + row.at("Servant") + "'"
+                                 ">";
           html += "<td>" + checkbox + "</td>";
           html += "<td>" + row.at("LastUpdate") + "</td>";
           html += "<td>" + row.at("GroupName") + "</td>";
@@ -335,6 +343,14 @@ namespace comet
         return jobStatusDescription(status) + " : " + title + " #" + caseNumber + " (" + caseName + ") ";
       }
 
+    void Job::processUpdateError(const Database &db, const std::string &processId, const std::string &message)
+      {
+        // if (!activeServant.empty()) {
+        //   COMETLOG("No active servant to update job status.", comet::ERROR);
+        //   return;
+        // }
+      }
+
     void Job::deleteJobs(const Database &db, Json::Value &jobs)
       {
         std::string whereclause = "";
@@ -349,7 +365,7 @@ namespace comet
           whereclause += "(CaseNumber = " + caseNumber + " AND GroupName = '" + groupName + "')";
         }
         std::string query = "DELETE FROM jobs " + whereclause + ";";
-        auto numberDeleted =db.deleteQuery("Delete jobs from database", query);
+        auto numberDeleted = db.deleteQuery("Delete jobs from database", query);
         COMETLOG("Number deleted: " + std::to_string(numberDeleted), comet::INFO);
       }
 
@@ -370,7 +386,7 @@ namespace comet
                             + " RunProgress='', Ranking = null, life = NULL, IterationsComplete = NULL, Servant = NULL "
                             + whereclause + ";";
         auto numberUpdated = db.updateQuery("Restart jobs update", query);
-        COMETLOG("Number updated: " + std::to_string(numberUpdated), comet::INFO);
+        COMETLOG("Number of jobs updated to restart: " + std::to_string(numberUpdated), comet::INFO);
       }
 
     bool Job::startJob(Database &db, std::map<std::string, std::string> &job,
@@ -391,8 +407,8 @@ namespace comet
         // run executable;
         COMETLOG("Job: Executing job with Engine: " + executableEngine + " in directory: " + workingDirectory +
                  " with input file: " + inputFileName, comet::INFO);
-        int processId = runExecutable(job, servant);
-        COMETLOG("Process ID: " + std::to_string(processId), comet::INFO);
+        int processId = runExecutable(db, job, servant);
+        COMETLOG("Process ID: " + std::to_string(processId) + " Case Number: " + job["CaseNumber"], comet::INFO);
 
         // Update job on manager
         nlohmann::json json;
@@ -405,7 +421,7 @@ namespace comet
         json["ProcessId"] = std::to_string(processId);
         // Update the job in the manager
         if (servant["ipAddress"] == getPrivateIPAddress()) {
-          auto res = Job::runningProcessUpdate(db, json);
+          auto res = Job::processUpdateRunning(db, json);
           COMETLOG("Updated this job status:, updated " + std::to_string(res) + " record", comet::DEBUGGING);
         } else {
           auto url = "http://" + servant["ipAddress"] + ":" + servant["port"] + "/job/status/database/update";
@@ -418,7 +434,8 @@ namespace comet
       }
 
 
-    int Job::runExecutable(std::map<std::string, std::string> &job, std::map<std::string, std::string> &servant)
+    int Job::runExecutable(Database &db, std::map<std::string, std::string> &job,
+                           std::map<std::string, std::string> &servant)
       {
         try {
           auto workDirectory = job["WorkingDirectory"];
@@ -435,9 +452,17 @@ namespace comet
           std::promise<int> pidPromise;
           auto pidFuture = pidPromise.get_future();
 
-          std::thread([&pidPromise, workDirectory, engineFileName, inputFileName, &servant, &job]()
+          auto fullEnginePath = servant["engineFolder"] + "/" + job["EngineVersion"];
+          
+          std::string savedCaseNumber = (job.find("CaseNumber") != job.end())? job["CaseNumber"]: "No case number"; // Save the CaseNumber when the job starts
+
+          std::thread([&pidPromise, workDirectory, fullEnginePath, inputFileName, &servant, &job, &db, &savedCaseNumber]()
             {
               try {
+                auto caseNumberString = job["CaseNumber"];
+                auto groupNumberString = job["GroupNumber"];
+                auto sevantString = servant["ipAddress"];
+                
                 pid_t pid = fork();
                 if (pid == -1) {
                   COMETLOG("Failed to fork process", comet::CRITICAL);
@@ -453,15 +478,15 @@ namespace comet
                     dup2(devNull, STDERR_FILENO);
                     close(devNull);
                   }
+                  
 
-                  std::string executablePath = servant.at("engineFolder") + engineFileName;
-
+                  std::string managerIpAddress = (managerIpAddress.empty())? servant["ipAddress"]: servant["managerIpAddress"];
                   execl(
-                    engineFileName.c_str(),
-                    engineFileName.c_str(),
+                    fullEnginePath.c_str(),
+                    fullEnginePath.c_str(),
                     (workDirectory + inputFileName).c_str(),
                     "--hub-progress-url",
-                    (servant["managerIpAddress"] + ":" + servant["port"] + "/job/progress").c_str(),
+                    (managerIpAddress + ":" + servant["port"] + "/job/progress").c_str(),
                     "--output-dir", (workDirectory + "/").c_str(),
                     "--phase-dir", (job.at("PhaseFileLocation") + "/").c_str(),
                     "--email", job.at("CreatorXEmail").c_str(),
@@ -471,40 +496,47 @@ namespace comet
                     nullptr
                   );
 
-                  COMETLOG("Execute Failure: " + executablePath, comet::CRITICAL);
+                  COMETLOG("Execute Failure: " + fullEnginePath, comet::CRITICAL);
                   _exit(EXIT_FAILURE);
                 }
 
                 pidPromise.set_value(pid);
-
                 // Wait for the child process to complete
                 int status;
                 waitpid(pid, &status, 0);
+                COMETLOG("Job number completed caseNumberString:" + caseNumberString + " with process ID: " + std::to_string(pid), comet::INFO);
+
+                //Servant::decrementActiveProcessCount(db, 1);
                 if (WIFEXITED(status)) {
-                  // One less active process
-                  Servant::decrementActiveProcessCount();
-                  COMETLOG(
-                    "Child process [" + std::to_string(pid) + "] completed with exit code: " + std::to_string(
-                      WEXITSTATUS(status)), comet::INFO);
+                   COMETLOG(
+                    "Child process [" + std::to_string(pid) + "] "
+                    + " Case Number: " + caseNumberString
+                    + " completed "
+                    + "with exit code: " + std::to_string(WEXITSTATUS(status))
+                    , comet::INFO);
                 } else if (WIFSIGNALED(status)) {
                   COMETLOG(
-                    "Child process [" + std::to_string(pid) + "] terminated by signal: " + std::to_string(WTERMSIG(
-                      status)), comet::CRITICAL);
+                    "Child process [" + std::to_string(pid) + "] "
+                    + " Case Number: " + caseNumberString
+                    + " terminated"
+                    + " by signal: " + std::to_string(WTERMSIG(status)), comet::CRITICAL);
+                  Job::processUpdateError(db, std::to_string(pid), "Terminated by signal: " + std::to_string(WTERMSIG(status)));
                 }
               } catch (const std::exception &e) {
                 COMETLOG("Exception in thread: " + std::string(e.what()), comet::CRITICAL);
                 pidPromise.set_value(-1);
               }
             }).detach();
-
+          Servant::initialiseAllServantActiveCores(db);
           return pidFuture.get();
         } catch (const std::exception &e) {
           COMETLOG("Exception in runExecutable: " + std::string(e.what()), comet::CRITICAL);
+          Servant::initialiseAllServantActiveCores(db);
           return -1;
         }
       }
 
-    bool Job::runningProcessUpdate(Database &db, nlohmann::json &json)
+    bool Job::processUpdateRunning(Database &db, nlohmann::json &json)
       {
         auto query = std::string("UPDATE jobs SET ")
                      + "  Status = " + to_string(json["Status"]) + " "

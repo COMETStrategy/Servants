@@ -1,4 +1,6 @@
 // This script handles resetting and clearing selected jobs
+
+let askConfirm = false;
 document.addEventListener('DOMContentLoaded', function () {
     // Function to get selected jobs
     function getSelectedJobs() {
@@ -43,7 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedJobs = getSelectedJobs();
         if (selectedJobs.length > 0) {
             // Confirmation before restart
-            if (confirm(`Are you sure you want to reset (stop running and sets to "Queued" status) the ${selectedJobs.length} selected jobs? This action cannot be undone.`)) {
+            if (!askConfirm || confirm(`Are you sure you want to reset (stop running and sets to "Queued" status) the ${selectedJobs.length} selected jobs? This action cannot be undone.`)) {
                 sendPostRequest('/jobs/selected_restart', {jobs: selectedJobs})
                     .then(() => {
                         location.reload(); // Refresh the page after restart
@@ -59,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const selectedJobs = getSelectedJobs();
         if (selectedJobs.length > 0) {
             // confirmation before deletion
-            if (confirm(`Are you sure you want to DELETE (Stops running, removes from the database, files are left in place) the ${selectedJobs.length} selected jobs? This action cannot be undone.`)) {
+            if (!askConfirm || confirm(`Are you sure you want to DELETE (Stops running, removes from the database, files are left in place) the ${selectedJobs.length} selected jobs? This action cannot be undone.`)) {
                 sendPostRequest('/jobs/selected_delete', {jobs: selectedJobs})
                     .then(() => {
                         location.reload(); // Refresh the page after deletion

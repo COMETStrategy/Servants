@@ -13,6 +13,7 @@
 #include "Servant.h"
 
 #include "Database.h"
+#include "Job.h"
 #include "drogon/LocalHostFilter.h"
 
 namespace comet
@@ -160,7 +161,7 @@ namespace comet
                                "';";
             auto result = db.updateQuery("Update Servant Alive Status", updateQuery, false);
           }
-          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::INFO);
+          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::DEBUGGING);
         }
       }
 
@@ -321,10 +322,35 @@ namespace comet
         return engineFolder;
       }
 
-    void Servant::decrementActiveProcessCount()
+    void Servant::initialiseAllServantActiveCores(const Database &db)
+      {
+        // use the jobs table where the count of the JobStatus::running status in each servant to initialise the servant activeCores
+        auto query1 = "SELECT COUNT(*) as activeCores FROM jobs "
+                      "WHERE status = " + std::to_string(int(JobStatus::Running)) +
+                      " GROUP BY Servant ORDER By Servant;";
+        auto query2 = "UPDATE servants SET activeCores = ("
+                      "SELECT COUNT(*) FROM jobs "
+                      "WHERE status = " + std::to_string(int(JobStatus::Running)) + " "
+                      "AND jobs.Servant = servants.ipAddress"
+                      ") WHERE EXISTS ("
+                      "SELECT 1 FROM jobs "
+                      "WHERE status = " + std::to_string(int(JobStatus::Running)) + " "
+                      "AND jobs.Servant = servants.ipAddress"
+                      ");";
+        auto query = "UPDATE servants SET activeCores = IFNULL("
+                     "(SELECT COUNT(*) FROM jobs "
+                     "WHERE jobs.Servant = servants.ipAddress "
+                     "AND status = " + std::to_string(int(JobStatus::Running)) + "), 0)"
+                     ";";
+        auto result = db.updateQuery("Initialise Active Cores", query,true);
+        COMETLOG("Initialise Active Cores for "+std::to_string(result) + " servants.", LoggerLevel::INFO);
+      }
+
+    void Servant::decrementActiveProcessCount(Database &db, int decrementAmount)
       {
         db.updateQuery("Update Servant State",
-                      "UPDATE servants SET activeCores = activeCores - 1 WHERE ipAddress = '" + thisServant->ipAddress + "' ;");
+                       "UPDATE servants SET activeCores = activeCores - " + std::to_string(decrementAmount) +
+                       " WHERE ipAddress = '" + thisServant->ipAddress + "' ;");
       }
 
     std::string Servant::servantSummaryHtmlReport(Database &db)
@@ -405,9 +431,11 @@ namespace comet
         auto response = Curl::postJson(url, jsonData);
         if (response.isError()) {
           if (!response.body.empty())
-            COMETLOG("Failed to update Servant status (" + servantLocation + "), body: " + response.body, LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servant status (" + servantLocation + "), body: " + response.body,
+                   LoggerLevel::CRITICAL);
           else
-            COMETLOG("Failed to update Servant status (" + servantLocation + "), curl: " + response.curlError, LoggerLevel::CRITICAL);
+            COMETLOG("Failed to update Servant status (" + servantLocation + "), curl: " + response.curlError,
+                   LoggerLevel::CRITICAL);
           return false;
         } else {
           COMETLOG("Servant status updated successfully (" + servantLocation + "): " + ipAddress + " ✅",

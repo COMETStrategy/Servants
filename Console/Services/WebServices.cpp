@@ -30,6 +30,7 @@ namespace comet
     WebServices::WebServices(const std::string &dbFilename)
       : db(dbFilename)
       {
+        autoStartJobs = true;
         configurationFilePath = getFullFilenameAndDirectory(dbFilename);
 
         createNewDatabase();
@@ -97,6 +98,7 @@ namespace comet
         registerConfigurationHandler();
         registerRootAuthenticationHandler();
         registerJobSelectedDeleteHandler();
+        registerJobSelectedStopHandler();
         registerJobSelectedRestartHandler();
         registerJobProcessUpdateHandler();
         registerJobProgressHandler();
@@ -423,72 +425,103 @@ namespace comet
       }
 
     void WebServices::registerJobProcessUpdateHandler()
-{
-    app().registerHandler(
-        "/job/process_update",
-        [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-        {
-            handleInvalidMethod(request);
-
-            auto json = request->getJsonObject();
-            if (!json || 
-                !json->isMember("GroupName") || 
-                !json->isMember("CaseNumber") || 
-                !json->isMember("Status") || 
-                !json->isMember("Servant") || 
-                !json->isMember("RunProgress") || 
-                !json->isMember("ProcessId"))
+      {
+        app().registerHandler(
+          "/job/process_update",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
+              handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json ||
+                  !json->isMember("GroupName") ||
+                  !json->isMember("CaseNumber") ||
+                  !json->isMember("Status") ||
+                  !json->isMember("Servant") ||
+                  !json->isMember("RunProgress") ||
+                  !json->isMember("ProcessId")) {
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
                 callback(resp);
                 return;
-            }
+              }
 
-            try
-            {
-              JobStatus status = static_cast<JobStatus>(json->get("Status", 0).asInt());
-               std::string servant = json->get("Servant", "").asString();
-               std::string processId = json->get("ProcessId", "").asString();
-               std::string runProgress = json->get("RunProgress", "").asString();
-               std::string caseNumber = json->get("CaseNumber", "").asString();
-               std::string groupName = json->get("GroupName", "").asString();
+              try {
+                JobStatus status = static_cast<JobStatus>(json->get("Status", 0).asInt());
+                std::string servant = json->get("Servant", "").asString();
+                std::string processId = json->get("ProcessId", "").asString();
+                std::string runProgress = json->get("RunProgress", "").asString();
+                std::string caseNumber = json->get("CaseNumber", "").asString();
+                std::string groupName = json->get("GroupName", "").asString();
 
-               bool updateSuccess = Job::processUpdateRunning(db, status, servant, processId, runProgress, caseNumber, groupName);
+                bool updateSuccess = Job::processUpdateRunning(db, status, servant, processId, runProgress, caseNumber,
+                                                               groupName);
 
-                if (updateSuccess)
-                {
+                if (updateSuccess) {
                   Json::Value responseJson;
                   responseJson["ErrorMessage"] = "";
                   responseJson["Status"] = "Job process updated successfully";
                   responseJson["CaseNumber"] = caseNumber;
 
                   auto resp = HttpResponse::newHttpJsonResponse(responseJson);
-                    callback(resp);
-                    COMETLOG("Job process updated successfully for CaseNumber: " + caseNumber, LoggerLevel::INFO);
+                  callback(resp);
+                  COMETLOG("Job process updated successfully for CaseNumber: " + caseNumber, LoggerLevel::INFO);
+                } else {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody(R"({"ErrorMessage":"Failed to update job process in database"})");
+                  callback(resp);
+                  COMETLOG("Failed to update job process for CaseNumber: " + caseNumber, LoggerLevel::CRITICAL);
                 }
-                else
-                {
-                    auto resp = HttpResponse::newHttpResponse();
-                    resp->setStatusCode(k500InternalServerError);
-                    resp->setBody(R"({"ErrorMessage":"Failed to update job process in database"})");
-                    callback(resp);
-                    COMETLOG("Failed to update job process for CaseNumber: " + caseNumber, LoggerLevel::CRITICAL);
-                }
-            }
-            catch (const std::exception &e)
-            {
+              } catch (const std::exception &e) {
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k500InternalServerError);
                 resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
                 callback(resp);
-                COMETLOG(std::string("Exception occurred while updating job process: ") + e.what(), LoggerLevel::CRITICAL);
-            }
-        },
-        {Post});
-}
-    
+                COMETLOG(std::string("Exception occurred while updating job process: ") + e.what(),
+                         LoggerLevel::CRITICAL);
+              }
+            },
+          {Post});
+      }
+
+    void WebServices::registerJobSelectedStopHandler()
+      {
+        app().registerHandler(
+          "/jobs/selected_stop",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json || !json->isMember("jobs")) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+              }
+
+              try {
+                autoStartJobs = false;
+                auto jobs = (*json)["jobs"];
+                Servant::stopSelectedProcesses(db, jobs);
+                Servant::initialiseAllServantActiveCores(db);
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setBody(R"({"Status":"Jobs stopped successfully"})");
+                callback(resp);
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+              }
+            },
+          {Post});
+      }
 
     void WebServices::registerJobSelectedDeleteHandler()
       {
@@ -508,6 +541,7 @@ namespace comet
               }
 
               try {
+                autoStartJobs = false;
                 auto jobs = (*json)["jobs"];
                 Job::deleteJobs(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
@@ -533,7 +567,7 @@ namespace comet
           [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
               handleInvalidMethod(request);
-      
+
               auto json = request->getJsonObject();
               if (!json) {
                 auto resp = HttpResponse::newHttpResponse();
@@ -545,6 +579,8 @@ namespace comet
               auto jobs = (*json)["jobs"];
 
               try {
+                autoStartJobs = false;
+                Servant::stopSelectedProcesses(db, jobs);
                 Job::restartJobs(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
 
@@ -740,7 +776,7 @@ namespace comet
                 if (caseNumber.length() < 6) {
                   caseNumber.insert(0, 6 - caseNumber.length(), '0'); // Pad with zeros if less than 6 characters
                 }
-                
+
                 std::string groupName = json["GroupName"].get<std::string>();
                 std::string runProgress = json["RunProgress"].get<std::string>();
                 double ranking = json["Ranking"].get<double>();
@@ -762,6 +798,7 @@ namespace comet
                   db);
                 if (status == JobStatus::Failed || status == JobStatus::Completed) {
                   Servant::initialiseAllServantActiveCores(db);
+                  Scheduler::startJobsOnBestServants(db);
                 }
 
                 if (updateSuccess) {
@@ -846,14 +883,16 @@ namespace comet
               }
 
               try {
+                autoStartJobs = true;
                 int jobsStarted = Scheduler::startJobsOnBestServants(db);
 
                 if (jobsStarted > 0) {
                   auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k200OK);
-                  resp->setBody(setHTMLBody("Queued jobs started: " + std::to_string(jobsStarted), "/run_queued/",
-                                            "Run Queued Jobs"));
-                  COMETLOG("🏃 " + std::to_string(jobsStarted) + " queued jobs started.", LoggerLevel::INFO);
+                  resp->setStatusCode(k302Found); // Redirect status code
+                  resp->addHeader("Location", "/?sort=&filter=active"); // Redirect to the desired page
+                  COMETLOG(
+                    "🏃 " + std::to_string(jobsStarted) + " queued jobs started. Redirecting to /?sort=&filter=active",
+                    LoggerLevel::INFO);
                   callback(resp);
                 } else {
                   auto resp = HttpResponse::newHttpResponse();

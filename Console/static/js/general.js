@@ -8,7 +8,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('input[name="selectedjobs"]:checked').forEach(checkbox => {
             selectedJobs.push({
                 caseNumber: checkbox.getAttribute('data-casenumber'),
-                groupName: checkbox.getAttribute('data-groupname')
+                groupName: checkbox.getAttribute('data-groupname'),
+                processId: checkbox.getAttribute('data-processid'),
+                servant: checkbox.getAttribute('data-servant'),
             });
         });
         return selectedJobs;
@@ -63,6 +65,22 @@ document.addEventListener('DOMContentLoaded', function () {
             // confirmation before deletion
             if (!askConfirm || confirm(`Are you sure you want to DELETE (Stops running, removes from the database, files are left in place) the ${selectedJobs.length} selected jobs? This action cannot be undone.`)) {
                 sendPostRequest('/jobs/selected_delete', {jobs: selectedJobs})
+                    .then(() => {
+                        location.reload(); // Refresh the page after deletion
+                    });
+            }
+        } else {
+            alert('No jobs selected for clear.');
+        }
+    });
+
+    // Event listener for Delete button
+    document.getElementById('stopLink').addEventListener('click', function () {
+        const selectedJobs = getSelectedJobs();
+        if (selectedJobs.length > 0) {
+            // confirmation before deletion
+            if (!askConfirm || confirm(`Are you sure you want to DELETE (Stops running, removes from the database, files are left in place) the ${selectedJobs.length} selected jobs? This action cannot be undone.`)) {
+                sendPostRequest('/jobs/selected_stop', {jobs: selectedJobs})
                     .then(() => {
                         location.reload(); // Refresh the page after deletion
                     });

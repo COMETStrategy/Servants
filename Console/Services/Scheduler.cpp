@@ -69,13 +69,13 @@ namespace comet
             COMETLOG(
               std::string("Scheduler: Starting job '") + job.at("GroupName") + ":" + job.at("CaseNumber") +
               "' on servant '" +
-              servant->at("ipAddress") + "'",
+              servant->at("ipAddress")  + "'",
               LoggerLevel::DEBUGGING); // Update the job status to Running
             db->updateQuery("Update Job Status",
                             "UPDATE jobs "
-                            " SET status = " + std::to_string(JobStatus::Allocated) + ", servant = '" + servant->at(
-                              "ipAddress") +
-                            "' WHERE caseNumber = '" + job.at("CaseNumber") + "'"
+                            " SET status = " + std::to_string(JobStatus::Allocated)
+                            + ", servant = '" + servant->at("ipAddress") + "'" 
+                            + " WHERE caseNumber = '" + job.at("CaseNumber") + "'"
                             + " AND  GroupName = '" + job.at("GroupName") + "'"
                             ";");
             db->updateQuery("Update Servant State",

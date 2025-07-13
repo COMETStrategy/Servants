@@ -61,6 +61,7 @@ namespace comet
         std::string configurationFilePath; // Default database path
         static comet::Servant aServant;
         Scheduler scheduler;
+        bool autoStartJobs; // Automatically start jobs on best servants
         
       public:
 
@@ -73,6 +74,8 @@ namespace comet
         void registerUploadJobHandler();
 
         void registerJobProcessUpdateHandler();
+
+        void registerJobSelectedStopHandler();
 
         void registerRootJobSummaryHandler();
         

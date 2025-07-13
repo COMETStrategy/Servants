@@ -322,6 +322,54 @@ namespace comet
         return engineFolder;
       }
 
+    void Servant::stopSelectedProcesses(const Database &db, Json::Value &jobs)
+      { // Build new json list of jobs to stop
+        if (jobs.isNull() || jobs.empty()) {
+          COMETLOG("No jobs to stop.", LoggerLevel::DEBUGGING);
+          return;
+        }
+
+        std::string jobIds = "";
+        for (const auto &job: jobs) {
+          if (job.isMember("processId")) {
+            jobIds += "'" + job["processId"].asString() + "',";
+          }
+        }
+        if (!jobIds.empty()) {
+          jobIds.pop_back(); // Remove the last comma
+        } else {
+          COMETLOG("No valid ProcessId found in jobs.", LoggerLevel::DEBUGGING);
+          return;
+        }
+
+        std::string query = "SELECT Servant, GROUP_CONCAT(ProcessId, ',') AS ProcessIds FROM jobs " 
+                     " WHERE ProcessId IN (" + jobIds + ") GROUP BY Servant ORDER BY Servant, ProcessId;";
+        
+        auto results = db.getQueryResults(query);
+        // Send stop requests to each servant using api /servant/stop_processes
+        for (const auto &row: results) {
+          std::string servantIp = row.at("Servant");
+          std::string processIds = row.at("ProcessIds");
+          if (servantIp == getPrivateIPAddress()) {
+            // Stop processes locally
+            Job::stopProcessesLocally(processIds);
+          } else {
+            // Send stop request to the servant
+            nlohmann::json jsonData;
+            jsonData["processIds"] = processIds;
+            auto url = "http://" + servantIp + "/servant/stop_processes";
+            auto response = Curl::postJson(url, jsonData);
+            if (response.isError()) {
+              COMETLOG("Failed to stop processes on servant " + servantIp + ": " + response.body,
+                       LoggerLevel::CRITICAL);
+            } else {
+              COMETLOG("Successfully sent stop request to servant " + servantIp, LoggerLevel::DEBUGGING);
+            }
+          }
+        }
+        
+      }
+
     void Servant::initialiseAllServantActiveCores(const Database &db)
       {
         // use the jobs table where the count of the JobStatus::running status in each servant to initialise the servant activeCores

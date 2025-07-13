@@ -77,6 +77,8 @@ namespace comet
 
         std::string description();
 
+        static void stopProcessesLocally(const std::string & ProcessIds);
+
 
         static void deleteJobs(const Database &db, Json::Value &jobs);
 

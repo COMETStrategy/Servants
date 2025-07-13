@@ -7,6 +7,12 @@
 #include <string>
 #include <map>
 
+
+namespace Json
+  {
+    class Value;
+  }
+
 namespace comet
   {
     class Authentication;
@@ -59,6 +65,8 @@ namespace comet
         void setEngineFolder(const std::string & newFolder);
 
         std::string getEngineFolder();
+
+        static void stopSelectedProcesses(const Database & db, Json::Value & jobs);
 
         static void initialiseAllServantActiveCores(const Database & db);
 

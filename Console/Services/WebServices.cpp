@@ -406,6 +406,7 @@ namespace comet
               }
 
               if (uploadJob(request)) {
+                autoStartJobs = true;
                 auto newJobsStarted = Scheduler::startJobsOnBestServants(db);
                 auto resp = HttpResponse::newHttpResponse();
                 // Start the job if possible
@@ -629,12 +630,7 @@ namespace comet
               }
 
               try {
-                // nlohmann::json jobData;
-                // for (const auto &key: job->getMemberNames()) {
-                //   jobData[key] = (*job)[key].asString(); // Adjust type conversion as needed
-                // }
-                // std::string engineFolder = aServant.getEngineFolder();
-                // bool jobStarted = Job::startJob(db, jobData, engineFolder);
+                autoStartJobs = true;
                 auto jobsStarted = Scheduler::startJobsOnBestServants(db);
 
 
@@ -734,7 +730,7 @@ namespace comet
               std::string report = Job::htmlJobSummaryReport(db, sort, filter);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, "/", "Job Summary"));
+              resp->setBody(setHTMLBody(report, request->path() + "?" + request->query(), "Job Summary"));
               callback(resp);
             },
           {Get});
@@ -798,7 +794,7 @@ namespace comet
                   db);
                 if (status == JobStatus::Failed || status == JobStatus::Completed) {
                   Servant::initialiseAllServantActiveCores(db);
-                  Scheduler::startJobsOnBestServants(db);
+                  if (autoStartJobs) Scheduler::startJobsOnBestServants(db);
                 }
 
                 if (updateSuccess) {
@@ -889,9 +885,9 @@ namespace comet
                 if (jobsStarted > 0) {
                   auto resp = HttpResponse::newHttpResponse();
                   resp->setStatusCode(k302Found); // Redirect status code
-                  resp->addHeader("Location", "/?sort=&filter=active"); // Redirect to the desired page
+                  resp->addHeader("Location", "/?filter=active"); // Redirect to the desired page
                   COMETLOG(
-                    "🏃 " + std::to_string(jobsStarted) + " queued jobs started. Redirecting to /?sort=&filter=active",
+                    "🏃 " + std::to_string(jobsStarted) + " queued jobs started. Redirecting to /?filter=active",
                     LoggerLevel::INFO);
                   callback(resp);
                 } else {
@@ -959,7 +955,7 @@ namespace comet
               }
 
               // Handle GET request
-              auto responseBody = aServant.HtmlServantSettingsForm();
+              auto responseBody = aServant.htmlServantSettingsForm();
               auto resp = HttpResponse::newHttpResponse();
               resp->setBody(setHTMLBody(responseBody, "/servant_settings", "Servant Settings"));
               COMETLOG("Servant settings page served", LoggerLevel::INFO);
@@ -1138,7 +1134,7 @@ namespace comet
                + "</html>";
       }
 
-    std::string WebServices::htmlHeader(const std::string &targetPath, const std::string &title) const
+    std::string WebServices::htmlHeader(const std::string &fullTargetPath, const std::string &title) const
       {
         struct Link
           {
@@ -1163,13 +1159,22 @@ namespace comet
           links.erase(links.end() - 5, links.end());
         }
 
+        std::string targetPath = fullTargetPath;
+        size_t queryPos = targetPath.find('?');
+        if (queryPos != std::string::npos) {
+          targetPath = targetPath.substr(0, queryPos);
+        }
+        
+
         std::string linksHTML;
         for (const auto &link: links) {
+          std::string linkPath = link.href;
           std::string style = (link.href == targetPath) ? " class='highlight' " : " ";
-          linksHTML += "<a href='" + link.href + "' " + style + " >" + link.name + "</a> ";
+          if (link.href == targetPath) linkPath = fullTargetPath;
+          linksHTML += "<a href='" + linkPath + "' " + style + " >" + link.name + "</a> ";
         }
 
-        if (targetPath == "/quit")
+        if (fullTargetPath == "/quit")
           linksHTML = "";
 
         std::string datetimestring = std::to_string(std::time(nullptr));

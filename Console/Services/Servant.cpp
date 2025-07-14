@@ -218,7 +218,7 @@ namespace comet
         return html;
       }
 
-    std::string Servant::HtmlServantSettingsForm()
+    std::string Servant::htmlServantSettingsForm()
       {
         totalCores = std::thread::hardware_concurrency();
         // Example value, replace with actual COMETLOGic to get total cores
@@ -231,14 +231,14 @@ namespace comet
             "<tr>"
             "<td " + leftColumnStyles + "><label for='activeCores'>Active Cores:</label></td>"
             "<td style='text-align: right;'><input type='text' id='activeCores' name='activeCores' value='" +
-            std::to_string(activeCores) +
-            "'  style='border: none; background-color: #f0f0f0;'></td>"
+            std::to_string(activeCores) + "'>" +
+            "</td>"
             "</tr>"
             "<tr>"
             "<td " + leftColumnStyles + "><label for='totalCores'>Total Cores:</label></td>"
             "<td style='text-align: right;'><input type='text' id='totalCores' name='totalCores' value='" +
             std::to_string(totalCores) +
-            "' readonly style='border: none; background-color: #f0f0f0;'></td>"
+            "' readonly ></td>"
             "</tr>"
             "<tr>"
             "<td " + leftColumnStyles + "><label for='reservedCores'>Unused Cores:</label></td>"

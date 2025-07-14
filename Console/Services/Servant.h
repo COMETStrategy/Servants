@@ -81,7 +81,7 @@ namespace comet
         bool isManager();
 
         std::string HtmlAuthenticationSettingsForm(Authentication &auth);
-        std::string HtmlServantSettingsForm();
+        std::string htmlServantSettingsForm();
 
         static bool createNewServentsTable(Database &db);
         void updateServantSettings(Database & db);

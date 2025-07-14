@@ -192,13 +192,12 @@ namespace comet
         return filterLinks;
       }
 
-    std::string Job::htmlGenerateSortLinks(const std::string &baseUrl, const std::string &filter, std::string sort)
+    std::string Job::htmlGenerateSortLinks(const std::string &baseUrl, std::string &inputSort, std::string filter)
       {
-        if (sort.empty()) sort = "date";
-        auto rawSort = sort;
-        std::transform(sort.begin(), sort.end(), sort.begin(), ::tolower);
+        if (inputSort.empty()) inputSort = "date";
+        auto inputSortLower = lower(inputSort);
 
-        std::string sortDescAsc = (sort[0] != std::tolower(sort[0])) ? "ASC" : "DESC";
+        std::string sortDescAsc = (inputSort == inputSortLower) ? "DESC" : "ASC";
 
         std::string sortLinks = "Order by: ";
         std::vector<std::string> sorts = {"Status", "Date", "NPV", "Case", "Creator", "Servant"};
@@ -206,21 +205,20 @@ namespace comet
 
         for (const auto &s: sorts) {
           std::string sortCaseAdjusted = s;
-          std::string sortLowerCase = s;
-          std::transform(sortLowerCase.begin(), sortLowerCase.end(), sortLowerCase.begin(), ::tolower);
+          std::string sortLowerCase = lower(s);
 
           sortLinks += separator;
           sortLinks += "<a href='" + baseUrl;
           sortLinks += "?filter=" + filter;
 
           if (sortDescAsc == "DESC") {
-            std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::toupper);
+            sortCaseAdjusted = upper(sortCaseAdjusted);
           } else {
-            std::transform(sortCaseAdjusted.begin(), sortCaseAdjusted.end(), sortCaseAdjusted.begin(), ::tolower);
+            sortCaseAdjusted = lower(sortCaseAdjusted);;
           }
           sortLinks += "&sort=" + sortCaseAdjusted + "' ";
 
-          if (sortLowerCase == sort) {
+          if (sortLowerCase == inputSortLower) {
             sortLinks += " class='highlight'";
             sortLinks += ">" + s + " (" + sortDescAsc + ")";
           } else {
@@ -263,6 +261,7 @@ namespace comet
                           JobStatus::Failed) + ") ";
         }
         std::string sortDescAsc = (sort[0] != std::tolower(sort[0])) ? "ASC" : "DESC";
+        sort = comet::lower(sort);
         std::string orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
         if (sort == "status") {
           orderBy = " ORDER BY Status " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";

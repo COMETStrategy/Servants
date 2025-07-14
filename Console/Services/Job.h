@@ -132,8 +132,8 @@ namespace comet
         static std::string htmlGenerateFilterLinks(const std::string &baseUrl, const std::string &sort,
                                                    std::string filter);
 
-        static std::string htmlGenerateSortLinks(const std::string &baseUrl, const std::string &filter,
-                                                 std::string sort);
+        static std::string htmlGenerateSortLinks(const std::string &baseUrl, std::string &inputSort,
+                                                 std::string filter);
       };
   };
 #endif //JOB_H

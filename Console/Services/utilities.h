@@ -320,6 +320,16 @@ namespace comet
 
         return tokens;
     }
+    inline std::string lower(const std::string &str) {
+        std::string lowerStr = str;
+        std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+        return lowerStr;
+    }
+    inline std::string upper(const std::string &str) {
+        std::string upperStr = str;
+        std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
+        return upperStr;
+    }
     
   }
 

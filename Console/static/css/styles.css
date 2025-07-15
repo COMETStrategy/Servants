@@ -178,7 +178,7 @@ svg {
 
 table {
     table-layout: auto;
-    width: auto;
+    width: max-content;
 }
 
 td {

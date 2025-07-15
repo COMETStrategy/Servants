@@ -90,3 +90,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+function openLocalFile(filePath) {
+    const command = `open "${filePath}"`; // Use `open` for macOS or `explorer` for Windows
+    fetch(`/execute-command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command })
+    }).then(response => {
+        if (!response.ok) {
+            console.error('Failed to open file:'+ filePath);
+            console.error('Command:'+ command);
+        }
+    });
+}

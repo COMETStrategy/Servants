@@ -294,18 +294,13 @@ namespace comet
             "<th>Last Update</th>"
             "<th>Group Name</th>"
             "<th>Case Number</th>"
-            "<th>Servant</th>"
-            "<th>Process ID</th>"
+            "<th>Creator</th>"
             "<th>Status</th>"
             "<th>Progress</th>"
+            "<th>Servant</th>"
             "<th>NPV</th>"
             "<th>Life</th>"
             "<th>Case Name</th>"
-            "<th>Creator Name</th>"
-            "<th>Creator Machine</th>"
-            "<th>Email</th>"
-            "<th>Input File</th>"
-            "<th>Working Directory</th>"
             "</tr>";
         int rowIndex = 0;
         for (const auto &row: results) {
@@ -322,19 +317,30 @@ namespace comet
           html += "<td>" + checkbox + "</td>";
           html += "<td>" + row.at("LastUpdate") + "</td>";
           html += "<td>" + row.at("GroupName") + "</td>";
-          html += "<td>" + row.at("CaseNumber") + "</td>";
+          html += "<td><a href='#' title='Open Working Directory for input file " + row.at("InputFileName") +
+              "' onclick=\"openLocalFile('"
+              + row.at("WorkingDirectory")
+              + "')\">" + row.at("CaseNumber") +
+              "</a></td>";
+          html += "<td><a href='#' "
+              "title='Machine: " + row.at("CreatorMachine") + ", Email: " + row.at("CreatorXEmail") + "'>"
+              + row.at("CreatorName") + "</a></td>";
+          auto title = (row.at("ProcessId").empty()) ? "" : " title='Process: " + row.at("ProcessId") + "'";
+          html += "<td " + title + ">" + Job::jobStatusDescription(aStatus) + "</td>";
+          if (aStatus == JobStatus::Completed || aStatus == JobStatus::Failed) {
+            html += "<td><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('" + row.
+                at("WorkingDirectory") + "S_Display.txt')\">" +
+                row.at("RunProgress") +
+                "</a></td>";
+          } else {
+            html += "<td>" + row.at("RunProgress") + "</td>";
+          }
           html += "<td>" + (row.at("Servant").empty() ? "" : row.at("Servant")) + "</td>";
-          html += "<td>" + row.at("ProcessId") + "</td>";
-          html += "<td>" + Job::jobStatusDescription(aStatus) + "</td>";
-          html += "<td>" + row.at("RunProgress") + "</td>";
+
+
           html += "<td>" + row.at("Ranking") + "</td>";
           html += "<td>" + row.at("Life") + "</td>";
           html += "<td>" + row.at("CaseName") + "</td>";
-          html += "<td>" + row.at("CreatorName") + "</td>";
-          html += "<td>" + row.at("CreatorMachine") + "</td>";
-          html += "<td>" + row.at("CreatorXEmail") + "</td>";
-          html += "<td>" + row.at("InputFileName") + "</td>";
-          html += "<td>" + row.at("WorkingDirectory") + "</td>";
           html += "</tr>";
           rowIndex++;
         }

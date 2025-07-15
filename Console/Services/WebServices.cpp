@@ -96,6 +96,7 @@ namespace comet
         registerRootJobSummaryHandler();
         registerAuthenticateHandler();
         registerConfigurationHandler();
+        registerExecuteCommandHandler();
         registerRootAuthenticationHandler();
         registerJobSelectedDeleteHandler();
         registerJobSelectedStopHandler();
@@ -423,6 +424,54 @@ namespace comet
               }
             },
           {Post});
+      }
+    void WebServices::registerExecuteCommandHandler()
+      {
+        app().registerHandler(
+            "/execute-command",
+            [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+                handleInvalidMethod(request);
+
+                auto json = request->getJsonObject();
+                if (!json || !json->isMember("command"))
+                {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k400BadRequest);
+                    resp->setBody(R"({"ErrorMessage":"Invalid or missing command in JSON payload"})");
+                    callback(resp);
+                    return;
+                }
+
+                std::string command = (*json)["command"].asString();
+
+                try
+                {
+                    int result = system(command.c_str());
+                    if (result == 0)
+                    {
+                        auto resp = HttpResponse::newHttpResponse();
+                        resp->setStatusCode(k200OK);
+                        resp->setBody(R"({"Status":"Command executed successfully"})");
+                        callback(resp);
+                    }
+                    else
+                    {
+                        auto resp = HttpResponse::newHttpResponse();
+                        resp->setStatusCode(k500InternalServerError);
+                        resp->setBody(R"({"ErrorMessage":"Failed to execute command"})");
+                        callback(resp);
+                    }
+                }
+                catch (const std::exception &e)
+                {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k500InternalServerError);
+                    resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                    callback(resp);
+                }
+            },
+            {Post});
       }
 
     void WebServices::registerJobProcessUpdateHandler()

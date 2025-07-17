@@ -385,7 +385,7 @@ namespace comet
             int processId = std::stoi(pid);
             if (processId > 0) {
               // Use the system command to kill the process
-              std::string command = "kill -" + std::to_string(SIGTERM) + " " + std::to_string(processId);
+              std::string command = "kill -" + std::to_string(SIGTERM) + " " + std::to_string(processId) + " 2>/dev/null";
               int result = system(command.c_str());
               if (result == 0) {
                 COMETLOG("Successfully stopped process ID: " + pid, LoggerLevel::INFO);

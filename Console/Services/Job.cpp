@@ -236,10 +236,6 @@ namespace comet
       {
         std::string html = "";
 
-        // Add filter and sort links to the HTML
-        std::string baseUrl = "/";
-        html += "<p>" + htmlGenerateFilterLinks(baseUrl, sort, filter) + "<br>";
-        html += "" + htmlGenerateSortLinks(baseUrl, sort, filter) + "</p>";
 
         // Get the job summary from the database
         std::string selection = "SELECT * FROM jobs ";
@@ -261,19 +257,19 @@ namespace comet
                           JobStatus::Failed) + ") ";
         }
         std::string sortDescAsc = (sort[0] != std::tolower(sort[0])) ? "ASC" : "DESC";
-        sort = comet::lower(sort);
+        std::string sortOrder= comet::lower(sort);
         std::string orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
-        if (sort == "status") {
+        if (sortOrder == "status") {
           orderBy = " ORDER BY Status " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
-        } else if (sort == "date") {
+        } else if (sortOrder == "date") {
           orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
-        } else if (sort == "npv") {
+        } else if (sortOrder == "npv") {
           orderBy = " ORDER BY Ranking " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
-        } else if (sort == "creator") {
+        } else if (sortOrder == "creator") {
           orderBy = " ORDER BY CreatorName " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
-        } else if (sort == "servant") {
+        } else if (sortOrder == "servant") {
           orderBy = " ORDER BY servant " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
-        } else if (sort == "case") {
+        } else if (sortOrder == "case") {
           orderBy = " ORDER BY CaseNumber " + sortDescAsc + " ";
         }
         auto query = selection + whereClause + orderBy + " LIMIT 500;";
@@ -281,70 +277,93 @@ namespace comet
 
         if (results.empty()) {
           html += "<p>No jobs found.</p>";
-          return html;
+          //return html;
         }
-
-        // Generate the table
-        html += "<table style='border: none; border-collapse: separate; border-spacing: 1px 0;'>";
-        html += "<tr>"
-            "<th><a href='#' id='stopLink' class='highlight'>Stop</a>"
-            "<br><a href='#' id='restartLink' class='highlight'>Restart</a>"
-            "<br><a href='#' id='deleteLink' class='highlight'>Delete</a>"
-            "</th>"
-            "<th>Last Update</th>"
-            "<th>Group Name</th>"
-            "<th>Case Number</th>"
-            "<th>Creator</th>"
-            "<th>Status</th>"
-            "<th>Progress</th>"
-            "<th>Servant</th>"
-            "<th>NPV</th>"
-            "<th>Life</th>"
-            "<th>Case Name</th>"
-            "</tr>";
-        int rowIndex = 0;
-        for (const auto &row: results) {
-          std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
-          auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
-          html += "<tr class='" + rowClass + "'>";
-          // Add a checkbox for selection with the id CaseNumber and a custom attribute with the GroupName
-          std::string checkbox = "<input type='checkbox' name='selectedjobs' checked "
-                                 " data-casenumber='" + row.at("CaseNumber") + "'"
-                                 " data-groupname='" + row.at("GroupName") + "'"
-                                 " data-processid='" + row.at("ProcessId") + "'"
-                                 " data-servant='" + row.at("Servant") + "'"
-                                 ">";
-          html += "<td>" + checkbox + "</td>";
-          html += "<td>" + row.at("LastUpdate") + "</td>";
-          html += "<td>" + row.at("GroupName") + "</td>";
-          html += "<td><a href='#' title='Open Working Directory for input file " + row.at("InputFileName") +
-              "' onclick=\"openLocalFile('"
-              + row.at("WorkingDirectory")
-              + "')\">" + row.at("CaseNumber") +
-              "</a></td>";
-          html += "<td><a href='#' "
-              "title='Machine: " + row.at("CreatorMachine") + ", Email: " + row.at("CreatorXEmail") + "'>"
-              + row.at("CreatorName") + "</a></td>";
-          auto title = (row.at("ProcessId").empty()) ? "" : " title='Process: " + row.at("ProcessId") + "'";
-          html += "<td " + title + ">" + Job::jobStatusDescription(aStatus) + "</td>";
-          if (aStatus == JobStatus::Completed || aStatus == JobStatus::Failed) {
-            html += "<td><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('" + row.
-                at("WorkingDirectory") + "S_Display.txt')\">" +
-                row.at("RunProgress") +
+        else {
+          // Generate the table
+          html += "<table style='border: none; border-collapse: separate; border-spacing: 1px 0;'>";
+          html += "<tr>"
+              "<th>" "<input type='checkbox' id='toggleAll' onchange='toggleLinks()' />" "</th>"
+              "<th>Last Update</th>"
+              "<th>Group Name</th>"
+              "<th>Case Number</th>"
+              "<th>Creator</th>"
+              "<th>Status</th>"
+              "<th>Progress</th>"
+              "<th>Servant</th>"
+              "<th>NPV</th>"
+              "<th>Life</th>"
+              "</tr>";
+          int rowIndex = 0;
+          for (const auto &row: results) {
+            std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
+            auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
+            html += "<tr class='" + rowClass + "'>";
+            // Add a checkbox for selection with the id CaseNumber and a custom attribute with the GroupName
+            std::string checkbox = "<input type='checkbox' name='selectedjobs' unchecked "
+                                   " data-casenumber='" + row.at("CaseNumber") + "'"
+                                   " data-groupname='" + row.at("GroupName") + "'"
+                                   " data-processid='" + row.at("ProcessId") + "'"
+                                   " data-servant='" + row.at("Servant") + "'"
+                                   ">";
+            html += "<td>" + checkbox + "</td>";
+            html += "<td>" + row.at("LastUpdate") + "</td>";
+            html += "<td>" + row.at("GroupName") + "</td>";
+            html += "<td><a href='#' title='Open Working Directory for input file " + row.at("InputFileName") +
+                "' onclick=\"openLocalFile('"
+                + row.at("WorkingDirectory")
+                + "')\">" + row.at("CaseNumber") +
                 "</a></td>";
-          } else {
-            html += "<td>" + row.at("RunProgress") + "</td>";
+            html += "<td><span "
+                "title='Machine: " + row.at("CreatorMachine") + ", Email: " + row.at("CreatorXEmail") + "'>"
+                + row.at("CreatorName") + "</span></td>";
+            auto title = (row.at("ProcessId").empty()) ? "" : " (#" + row.at("ProcessId") + ")";
+            html += "<td >" + Job::jobStatusDescription(aStatus) + " " + title + "</td>";
+            if (aStatus == JobStatus::Running || aStatus == JobStatus::Completed || aStatus == JobStatus::Failed) {
+              html += "<td><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('" + row.
+                  at("WorkingDirectory") + "S_Display.txt')\">" +
+                  row.at("RunProgress") +
+                  "</a></td>";
+            } else {
+              html += "<td>" + row.at("RunProgress") + "</td>";
+            }
+            html += "<td>" + (row.at("Servant").empty() ? "" : row.at("Servant")) + "</td>";
+
+
+            if (!row.at("Ranking").empty()) {
+              double ranking = std::stod(row.at("Ranking"));
+              std::ostringstream stream;
+              stream << std::fixed << std::setprecision(2) << ranking;
+              html += "<td>" + stream.str() + "</td>";
+            } else {
+              html += "<td></td>";
+            }
+
+            if (!row.at("Life").empty()) {
+              double life = std::stod(row.at("Life"));
+              std::ostringstream stream;
+              stream << std::fixed << std::setprecision(2) << life;
+              html += "<td>" + stream.str() + "</td>";
+            } else {
+              html += "<td></td>";
+            }
+
+            html += "</tr>";
+            rowIndex++;
           }
-          html += "<td>" + (row.at("Servant").empty() ? "" : row.at("Servant")) + "</td>";
-
-
-          html += "<td>" + row.at("Ranking") + "</td>";
-          html += "<td>" + row.at("Life") + "</td>";
-          html += "<td>" + row.at("CaseName") + "</td>";
-          html += "</tr>";
-          rowIndex++;
+          html += "</table>"
+              "<div id='linksContainer' style='display: none;'>"
+              "<a href='#' id='stopLink' class='highlight' targetAddress='/jobs/selected_stop' >Stop</a>"
+              " <a href='#' id='restartLink' class='highlight' targetAddress='/jobs/selected_restart' >Restart</a>"
+              " <a href='#' id='deleteLink' class='highlight'  targetAddress='/jobs/selected_delete'>Delete</a>"
+              "</div>"
+              "";
         }
-        html += "</table>";
+        // Add filter and sort links to the HTML
+        std::string baseUrl = "/";
+        html += "<p>" + htmlGenerateFilterLinks(baseUrl, sort, filter) + "<br>";
+        html += "" + htmlGenerateSortLinks(baseUrl, sort, filter) + "</p>";
+
 
         return html;
       }
@@ -385,8 +404,8 @@ namespace comet
       {
         std::string whereclause = "";
         for (const auto &job: jobs) {
-          std::string caseNumber = job["caseNumber"].asString();
-          std::string groupName = job["groupName"].asString();
+          std::string caseNumber = job["casenumber"].asString();
+          std::string groupName = job["groupname"].asString();
           if (whereclause.empty()) {
             whereclause = " WHERE ";
           } else {
@@ -403,8 +422,8 @@ namespace comet
       {
         std::string whereclause = "";
         for (const auto &job: jobs) {
-          std::string caseNumber = job["caseNumber"].asString();
-          std::string groupName = job["groupName"].asString();
+          std::string caseNumber = job["casenumber"].asString();
+          std::string groupName = job["groupname"].asString();
           if (whereclause.empty()) {
             whereclause = " WHERE ";
           } else {
@@ -450,7 +469,7 @@ namespace comet
         json["RunProgress"] = "Job started on this servant.";
         json["ProcessId"] = std::to_string(processId);
         // Update the job in the manager
-        if (servant["ipAddress"] == getPrivateIPAddress()) {
+        if (servant["ipAddress"] == getMachineName()) {
           auto res = Job::processUpdateRunningToManager(JobStatus::Running, servant["ipAddress"],
                                                         std::to_string(processId),
                                                         json["RunProgress"], job["CaseNumber"], job["GroupName"]);
@@ -670,7 +689,7 @@ namespace comet
         //
 
 
-        if (servant["ipAddress"] == getPrivateIPAddress()) {
+        if (servant["ipAddress"] == getMachineName()) {
           auto engineFolder = servant["engineFolder"];
           startJob(db, job, servant);
         } else {

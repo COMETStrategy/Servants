@@ -29,6 +29,16 @@
 namespace comet
   {
     // Function to get the full filename and directory, creating directories if necessary
+    inline std::string lower(const std::string &str) {
+        std::string lowerStr = str;
+        std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+        return lowerStr;
+    }
+    inline std::string upper(const std::string &str) {
+        std::string upperStr = str;
+        std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
+        return upperStr;
+    }
 
     inline std::string getFullFilenameAndDirectory(const std::string &filename)
       {
@@ -189,6 +199,14 @@ namespace comet
         return size * nmemb;
       }
 
+    inline std::string getMachineName() {
+        char hostname[256];
+        if (gethostname(hostname, sizeof(hostname)) != 0) {
+          throw std::runtime_error("Failed to retrieve machine name");
+        }
+        return lower(std::string(hostname));
+    }
+
     inline std::string getPrivateIPAddress()
       {
         struct ifaddrs *ifaddr, *ifa;
@@ -320,16 +338,7 @@ namespace comet
 
         return tokens;
     }
-    inline std::string lower(const std::string &str) {
-        std::string lowerStr = str;
-        std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
-        return lowerStr;
-    }
-    inline std::string upper(const std::string &str) {
-        std::string upperStr = str;
-        std::transform(upperStr.begin(), upperStr.end(), upperStr.begin(), ::toupper);
-        return upperStr;
-    }
+
     
   }
 

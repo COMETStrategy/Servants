@@ -82,6 +82,9 @@ namespace comet
         void registerRootJobSummaryHandler();
         
         void registerJobProgressHandler();
+
+        void registerServantStopProcessesHandler();
+
         void registerJobSelectedDeleteHandler();
         void registerJobSelectedRestartHandler();
         void registerJobStartHandler();
@@ -91,11 +94,16 @@ namespace comet
 
         void registerRunQueuedHandler();
 
+        void registerServantSelectedDeleteHandler();
+
         void registerServantSettingsHandler();
 
         void registerServantStatusHandler();
         void registerStatusHandler();
         void registerStatusJobsHandler();
+
+        void registerProofOfLifeHandler();
+
         void registerQuitHandler();
         
 

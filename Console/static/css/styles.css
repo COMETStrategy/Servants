@@ -1,11 +1,14 @@
 /* CSS Document */
 :root {
     --stdColor: white;
-    --stdHighlightColor: #3A91B0;
-    --stdAltHighlightColor: cyan;
+    --stdHighlightColor: cyan;
+    --stdAltHighlightColor: #3A91B0;
     --stdAltWarningColor: orange;
+    --stdLink: #3A91B0;
+    --stdHover: orange;
     --stdBackgroundColor: #121212;
     --stdBackgroundHighlightColor: #000033;
+    --stdButtonBackgroundColor: #3A91B0;
     --stdTableHeaderColor: white;
     --stdTableHeaderBackgroundColor: #202020; /* #002b5a; */
     --stdLightGray: #202020;
@@ -42,13 +45,13 @@ body{
 
 
 a {
-    color: var(--stdColor);
+    color: var(--stdLink);
     text-decoration: none;
-    margin-right:15px
+    margin-right:15px;
 }
 
 a:hover{
-    color:var(--stdAltHighlightColor);
+    color:var(--stdHover);
     -webkit-transition: all 1.35s ease;
     transition: all 0.35s ease;
 }
@@ -60,13 +63,13 @@ header > a {
 
 
 h1 {
-    color:var(--stdHighlightColor);
+    color:var(--stdAltHighlightColor);
     font-size:  xx-large;
     vertical-align:middle;
 }
 
 h2 {
-    color:var(--stdHighlightColor);
+    color:var(--stdAltHighlightColor);
     text-align:left;
 }
 
@@ -79,7 +82,7 @@ h20 {
 }
 
 h3 {
-    color:var(--stdHighlightColor);
+    color:var(--stdAltHighlightColor);
     text-align:left;
 }
 
@@ -129,22 +132,25 @@ input:disabled, input:read-only {
 
 input[type="submit"] {
     color: var(--stdColor);
-    background-color:  var(--stdHighlightColor);
+    background-color:  var(--stdButtonBackgroundColor);
     font-size:large;
     width: auto;
 }
 
 input[type="submit"]:hover {
-    color:  var(--stdAltHighlightColor);
+    color:  var(--stdHover);
 }
 
 button {
     color: var(--stdColor);
-    background-color:  var(--stdHighlightColor);
+    background-color:  var(--stdButtonBackgroundColor);
     font-size:large;
     width: auto;
     border: none;
 }
+button:hover {
+    color:  green;
+ }
 
 input[type="checkbox"] {
     width: 1.5em;
@@ -183,7 +189,22 @@ table {
 
 td {
     text-align:left;
-    vertical-align:  top;
+    vertical-align:  middle;
+}
+
+[title]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 5px;
+    background-color: var(--stdHover);
+    border-radius: 50%;
+}
+
+[title] {
+    position: relative;
 }
 
 th {

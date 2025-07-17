@@ -30,7 +30,8 @@ namespace comet
         version = "V 2025.06.26";
         priority = 1.0;
         managerIpAddress = ""; // Default empty manager IP address
-        ipAddress = getPrivateIPAddress();
+        ipAddress = getMachineName();
+        if (ipAddress.empty()) ipAddress = getPrivateIPAddress();
         alive = true;
         engineFolder = "";
         thisServant = this;
@@ -75,7 +76,11 @@ namespace comet
 
     void Servant::setIpAddress(const std::string &aIpAddress)
       {
-        ipAddress = aIpAddress;
+        if (aIpAddress.find(':') == std::string::npos) {
+          ipAddress = aIpAddress;
+        } else {
+          ipAddress = aIpAddress.substr(0, aIpAddress.find(':'));
+        }
       }
 
     void Servant::setManagerIpAddress(const std::string &aManagerIpAddress)
@@ -134,6 +139,30 @@ namespace comet
         return availableServants;
       }
 
+    
+    int Servant::deleteServants(const Database &db, const Json::Value &servants) {
+        std::string whereClause  = "";
+        if (servants.size() == 0) return 0;
+        for (const auto &servant : servants) {
+          if (servant.isMember("ipaddress")) {
+            if (whereClause.empty()) {
+              whereClause = " WHERE ";
+            } else {
+              whereClause += " OR ";
+            }
+            whereClause += "(ipAddress = '" + servant["ipaddress"].asString() + "' )";
+           }
+        }
+        std::string query = "DELETE FROM servants" + whereClause + ";";
+        int deletedServants = db.updateQuery("Delete Servant", query, false);
+        if (deletedServants == 0) {
+          COMETLOG("Failed to delete any servants", LoggerLevel::CRITICAL);
+        } else {
+          COMETLOG("Successfully deleted " + std::to_string(deletedServants) + " servants.", LoggerLevel::INFO);
+        }
+ 
+    }
+   
     std::vector<std::map<std::string, std::string> > Servant::getAllServants(Database &db)
       {
         auto availableServants = db.getQueryResults(
@@ -143,14 +172,14 @@ namespace comet
 
     void Servant::checkAllServantsAlive(Database &db)
       {
-        auto thisIp = getPrivateIPAddress();
+        const std::string thisIp = thisServant->getIpAddress();
         auto servants = getAllServants(db);
         for (auto &servant: servants) {
           auto isAlive = false;
           if (thisIp == servant.at("ipAddress")) {
             isAlive = true;
           } else {
-            isAlive = check200Response(servant.at("ipAddress") + ":" + servant.at("port"));
+            isAlive = check200Response(servant.at("ipAddress") + ":" + servant.at("port") + "/proofoflife");
           }
           auto aliveStatusText = (isAlive) ? "ALIVE" : "NOT ALIVE";
           if ((servant.at("alive") == "1" && !isAlive) || (servant.at("alive") == "0" && isAlive)) {
@@ -161,7 +190,7 @@ namespace comet
                                "';";
             auto result = db.updateQuery("Update Servant Alive Status", updateQuery, false);
           }
-          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::DEBUGGING);
+          COMETLOG("Servant " + servant.at("ipAddress") + " status: " + aliveStatusText, LoggerLevel::INFO);
         }
       }
 
@@ -323,7 +352,8 @@ namespace comet
       }
 
     void Servant::stopSelectedProcesses(const Database &db, Json::Value &jobs)
-      { // Build new json list of jobs to stop
+      {
+        // Build new json list of jobs to stop
         if (jobs.isNull() || jobs.empty()) {
           COMETLOG("No jobs to stop.", LoggerLevel::DEBUGGING);
           return;
@@ -331,8 +361,8 @@ namespace comet
 
         std::string jobIds = "";
         for (const auto &job: jobs) {
-          if (job.isMember("processId")) {
-            jobIds += "'" + job["processId"].asString() + "',";
+          if (job.isMember("processid")) {
+            jobIds += "'" + job["processid"].asString() + "',";
           }
         }
         if (!jobIds.empty()) {
@@ -342,15 +372,15 @@ namespace comet
           return;
         }
 
-        std::string query = "SELECT Servant, GROUP_CONCAT(ProcessId, ',') AS ProcessIds FROM jobs " 
-                     " WHERE ProcessId IN (" + jobIds + ") GROUP BY Servant ORDER BY Servant, ProcessId;";
-        
+        std::string query = "SELECT Servant, GROUP_CONCAT(ProcessId, ',') AS ProcessIds FROM jobs "
+                            " WHERE ProcessId IN (" + jobIds + ") GROUP BY Servant ORDER BY Servant, ProcessId;";
+
         auto results = db.getQueryResults(query);
         // Send stop requests to each servant using api /servant/stop_processes
         for (const auto &row: results) {
           std::string servantIp = row.at("Servant");
           std::string processIds = row.at("ProcessIds");
-          if (servantIp == getPrivateIPAddress()) {
+          if (servantIp  == getMachineName()) {
             // Stop processes locally
             Job::stopProcessesLocally(processIds);
           } else {
@@ -367,7 +397,6 @@ namespace comet
             }
           }
         }
-        
       }
 
     void Servant::initialiseAllServantActiveCores(const Database &db)
@@ -377,9 +406,10 @@ namespace comet
         auto query = "UPDATE servants SET activeCores = IFNULL("
                      "(SELECT COUNT(*) FROM jobs "
                      "WHERE jobs.Servant = servants.ipAddress "
-                     "AND status = " + std::to_string(int(JobStatus::Running)) + " OR status = " + std::to_string(JobStatus::Allocated) + "), 0)"
+                     "AND status = " + std::to_string(int(JobStatus::Running)) + " OR status = " + std::to_string(
+                       JobStatus::Allocated) + "), 0)"
                      ";";
-        auto result = db.updateQuery("Initialise Active Cores", query,true);
+        auto result = db.updateQuery("Initialise Active Cores", query, true);
         COMETLOG("Initialise Active Cores for "+std::to_string(result) + " servants.", LoggerLevel::INFO);
       }
 
@@ -406,8 +436,16 @@ namespace comet
         // Generate the table
         html += "<table>";
         html +=
-            "<tr><th>Alive</th><th>Last Update</th><th>IP Address</th><th>Priority</th><th>Total Cores</th><th>Unused Cores</th>"
-            "<th>Active Cores</th><th>Manager IP</th><th>Engine Folder</th></tr>";
+            "<tr>"
+            "<th>" "<input type='checkbox' id='toggleAll' onchange='toggleLinks()' />" "</th>"
+            "<th>Alive</th>"
+            "<th>Last Update</th>"
+            "<th>IP Address</th><th>Priority</th>"
+            "<th>Total Cores</th><th>Unused Cores</th>"
+            "<th>Active Cores</th>"
+            "<th>Manager IP</th>"
+            "<th>Engine Folder</th>"
+            "</tr>";
 
         int rowIndex = 0;
         for (const auto &row: results) {
@@ -417,6 +455,10 @@ namespace comet
             eFolder = std::string(row.at("engineFolder"));
           }
           html += "<tr class='" + rowClass + "'>";
+          std::string checkbox = "<input type='checkbox' name='selectedjobs' unchecked "
+                                 " data-ipAddress='" + row.at("ipAddress") + "'"
+                                 ">";
+          html += "<td>" + checkbox + "</td>";
           html += "<td>" + row.at("alive") + "</td>";
           html += "<td>" + row.at("lastUpdateTime") + "</td>";
           html += "<td>" + row.at("ipAddress") + "</td>";
@@ -430,6 +472,9 @@ namespace comet
           rowIndex++;
         }
         html += "</table>";
+        html += "<div id='linksContainer' style='display: none;'>";
+        html += " <a href='#' id='deleteLink' class='highlight'  targetAddress='/servant/selected_delete'>Delete</a>";
+        html += "</div>";
 
         html += "<p></p><h2>Options for Servants</h2>"
             "<span id=message ><button onclick=\"writeMessage(); location.href='/updateAliveServants'\" >Update Alive Servants</button>"

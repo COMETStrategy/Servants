@@ -25,6 +25,11 @@ namespace comet
         Unknown = -1
       };
 
+    inline JobStatus convertJobStatus(int status)
+      {
+        return static_cast<JobStatus>(status);
+      }
+
 
     // Array with JobStatus descriptions
     static const char *JobStatusDescriptions[] = {

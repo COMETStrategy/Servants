@@ -44,7 +44,7 @@ namespace comet
         run();
 
         auto results = db.
-            getQueryResults("SELECT * FROM servants where iPAddress = '" + aServant.getIpAddress() + "';");
+            getQueryResults("SELECT * FROM servants where LOWER(iPAddress) = '" + aServant.getIpAddress() + "';");
         // COMETLOG the created Date and the last updated date
         if (!results.empty()) {
           aServant.setTotalCores(stoi(results[0].at("totalCores")));
@@ -56,7 +56,7 @@ namespace comet
           aServant.setCode(results[0].at("code"));
           aServant.setPort(stoi(results[0].at("port")));;
           aServant.setPriority(stod(results[0].at("priority")));;
-          aServant.setIpAddress(results[0].at("ipAddress"));
+          //aServant.setIpAddress(results[0].at("ipAddress"));
           for (const auto &row: results) {
             COMETLOG(
               "Database Servant: Registration Date: " + row.at("registrationTime") + ", Last Updated Date: " + row.at(
@@ -106,16 +106,19 @@ namespace comet
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
         registerMockRunJobsHandler();
+        registerProofOfLifeHandler();
+        registerQuitHandler();
         registerResetRunningJobsHandler();
         registerRunQueuedHandler();
+        registerServantSelectedDeleteHandler();
         registerServantSettingsHandler();
         registerServantStatusHandler();
+        registerServantStopProcessesHandler();
         registerServantSummaryHandler();
         registerStatusHandler();
         registerStatusJobsHandler();
         registerUpdateAliveServantsHandler();
         registerUploadJobHandler();
-        registerQuitHandler();
       }
 
     void WebServices::handleInvalidMethod(const HttpRequestPtr &request)
@@ -176,7 +179,7 @@ namespace comet
 
               aServant.setEmail(request->getParameter("email"));
               aServant.setCode(request->getParameter("code"));
-              aServant.setIpAddress(request->getParameter("ipAddress"));
+              //aServant.setIpAddress(request->getParameter("ipAddress"));
 
               const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
               if (!isAuthenticated) {
@@ -368,6 +371,7 @@ namespace comet
 
               callback(resp);
 
+              //aServant.setIpAddress(request->getHeader("Host"));
               Servant::checkAllServantsAlive(db);
             },
           {Post, Get});
@@ -425,53 +429,47 @@ namespace comet
             },
           {Post});
       }
+
     void WebServices::registerExecuteCommandHandler()
       {
         app().registerHandler(
-            "/execute-command",
-            [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+          "/execute-command",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
-                handleInvalidMethod(request);
+              handleInvalidMethod(request);
 
-                auto json = request->getJsonObject();
-                if (!json || !json->isMember("command"))
-                {
-                    auto resp = HttpResponse::newHttpResponse();
-                    resp->setStatusCode(k400BadRequest);
-                    resp->setBody(R"({"ErrorMessage":"Invalid or missing command in JSON payload"})");
-                    callback(resp);
-                    return;
-                }
+              auto json = request->getJsonObject();
+              if (!json || !json->isMember("command")) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing command in JSON payload"})");
+                callback(resp);
+                return;
+              }
 
-                std::string command = (*json)["command"].asString();
+              std::string command = (*json)["command"].asString();
 
-                try
-                {
-                    int result = system(command.c_str());
-                    if (result == 0)
-                    {
-                        auto resp = HttpResponse::newHttpResponse();
-                        resp->setStatusCode(k200OK);
-                        resp->setBody(R"({"Status":"Command executed successfully"})");
-                        callback(resp);
-                    }
-                    else
-                    {
-                        auto resp = HttpResponse::newHttpResponse();
-                        resp->setStatusCode(k500InternalServerError);
-                        resp->setBody(R"({"ErrorMessage":"Failed to execute command"})");
-                        callback(resp);
-                    }
+              try {
+                int result = system(command.c_str());
+                if (result == 0) {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k200OK);
+                  resp->setBody(R"({"Status":"Command executed successfully"})");
+                  callback(resp);
+                } else {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody(R"({"ErrorMessage":"Failed to execute command"})");
+                  callback(resp);
                 }
-                catch (const std::exception &e)
-                {
-                    auto resp = HttpResponse::newHttpResponse();
-                    resp->setStatusCode(k500InternalServerError);
-                    resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
-                    callback(resp);
-                }
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+              }
             },
-            {Post});
+          {Post});
       }
 
     void WebServices::registerJobProcessUpdateHandler()
@@ -545,7 +543,7 @@ namespace comet
               handleInvalidMethod(request);
 
               auto json = request->getJsonObject();
-              if (!json || !json->isMember("jobs")) {
+              if (!json || !json->isMember("rows")) {
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
@@ -555,7 +553,7 @@ namespace comet
 
               try {
                 autoStartJobs = false;
-                auto jobs = (*json)["jobs"];
+                auto jobs = (*json)["rows"];
                 Servant::stopSelectedProcesses(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
 
@@ -592,7 +590,7 @@ namespace comet
 
               try {
                 autoStartJobs = false;
-                auto jobs = (*json)["jobs"];
+                auto jobs = (*json)["rows"];
                 Job::deleteJobs(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
 
@@ -626,13 +624,17 @@ namespace comet
                 callback(resp);
                 return;
               }
-              auto jobs = (*json)["jobs"];
+              auto jobs = (*json)["rows"];
 
               try {
                 autoStartJobs = false;
                 Servant::stopSelectedProcesses(db, jobs);
                 Job::restartJobs(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
+                // Wait 1 second to allow all old cases to complete
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                autoStartJobs = true;
+                int jobsStarted = Scheduler::startJobsOnBestServants(db);
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k200OK);
@@ -785,6 +787,7 @@ namespace comet
           {Get});
       }
 
+
     void WebServices::registerJobProgressHandler()
       {
         app().registerHandler(
@@ -861,7 +864,9 @@ namespace comet
                   auto resp = HttpResponse::newHttpJsonResponse(jsonResponse);
 
                   callback(resp);
-                  COMETLOG("Job progress updated successfully for CaseNumber: " + caseNumber, LoggerLevel::INFO);
+                  COMETLOG(
+                    "Job progress updated successfully for CaseNumber: " + caseNumber + ", " + Job::jobStatusDescription
+                    (convertJobStatus(status)) + ": "+ runProgress, LoggerLevel::INFO);
                 } else {
                   auto resp = HttpResponse::newHttpResponse();
                   resp->setStatusCode(k500InternalServerError);
@@ -876,6 +881,41 @@ namespace comet
                 callback(resp);
                 COMETLOG(std::string("Exception occurred while updating job progress: ") + e.what(),
                          LoggerLevel::CRITICAL);
+              }
+            },
+          {Post});
+      }
+
+    void WebServices::registerServantStopProcessesHandler()
+      {
+        app().registerHandler(
+          "/servant/stop_processes",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json || !json->isMember("processIds")) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing processIds in JSON payload"})");
+                callback(resp);
+                return;
+              }
+
+              try {
+                auto processIds = (*json)["processIds"].asString();
+                Job::stopProcessesLocally(processIds);
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setBody(R"({"Status":"Processes stopped successfully"})");
+                callback(resp);
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
               }
             },
           {Post});
@@ -959,6 +999,44 @@ namespace comet
         );
       }
 
+
+    void WebServices::registerServantSelectedDeleteHandler()
+      {
+        app().registerHandler(
+          "/servant/selected_delete",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+              }
+
+              try {
+                autoStartJobs = false;
+                auto rows = (*json)["rows"];
+                Servant::deleteServants(db, rows);
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setBody(R"({"Status":"Servants deleted successfully"})");
+                callback(resp);
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+              }
+            },
+          {Post});
+      }
+
+
     void WebServices::registerServantSettingsHandler()
       {
         app().registerHandler(
@@ -980,6 +1058,7 @@ namespace comet
                 }
 
                 try {
+                  //aServant.setIpAddress(request->getHeader("Host"));
                   aServant.setTotalCores((*json)["totalCores"].asInt());
                   aServant.setUnusedCores((*json)["unusedCores"].asInt());
                   aServant.setActiveCores((*json)["activeCores"].asInt());
@@ -1004,9 +1083,11 @@ namespace comet
               }
 
               // Handle GET request
+              //aServant.setIpAddress(request->getHeader("Host"));
               auto responseBody = aServant.htmlServantSettingsForm();
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(responseBody, "/servant_settings", "Servant Settings"));
+              resp->setBody(setHTMLBody(responseBody, "/servant_settings",
+                                        "Servant Settings: " + aServant.getIpAddress()));
               COMETLOG("Servant settings page served", LoggerLevel::INFO);
               callback(resp);
             },
@@ -1036,7 +1117,7 @@ namespace comet
                 aServant.setActiveCores((*json)["activeCores"].asInt());
                 aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
                 aServant.setEngineFolder((*json)["engineFolder"].asString());
-                aServant.setIpAddress((*json)["ipAddress"].asString());
+                //aServant.setIpAddress((*json)["ipAddress"].asString());
                 aServant.setVersion((*json)["ServantVersion"].asString());
                 aServant.setEmail((*json)["email"].asString());
                 aServant.setCode((*json)["code"].asString());
@@ -1133,6 +1214,24 @@ namespace comet
           {Get, Post});
       }
 
+    void WebServices::registerProofOfLifeHandler()
+      {
+        app().registerHandler(
+          "/proofoflife",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
+
+
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setBody("Proof of life: " + request->getHeader("Host") + " is Alive...\n");
+              COMETLOG("Proof of life: " + request->getHeader("Host") + " is Alive", LoggerLevel::DEBUGGING);
+              callback(resp);
+            },
+          {Get, Post});
+      }
+
+
     void WebServices::registerQuitHandler()
       {
         app().registerHandler(
@@ -1213,7 +1312,7 @@ namespace comet
         if (queryPos != std::string::npos) {
           targetPath = targetPath.substr(0, queryPos);
         }
-        
+
 
         std::string linksHTML;
         for (const auto &link: links) {

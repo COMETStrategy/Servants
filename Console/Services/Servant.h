@@ -71,6 +71,7 @@ namespace comet
         static void initialiseAllServantActiveCores(const Database & db);
 
         static void decrementActiveProcessCount(Database &db, int decrementAmount);
+        static int deleteServants(const Database &db, const Json::Value &servants);
         static std::string servantSummaryHtmlReport(Database &db);;
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}

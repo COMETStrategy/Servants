@@ -117,10 +117,10 @@ namespace comet
         static int runExecutable(Database &db, std::map<std::string, std::string> &job,
                                  std::map<std::string, std::string> &servant);
 
-        static bool processUpdateRunningToManager(const JobStatus &aStatus, const std::string &aServant,
-                                           const std::string &aProcessId,
-                                           const std::string &aRunProgress, const std::string &aCaseNumber,
-                                           const std::string &aGroupName);
+        static bool processUpdateRunningToManager(Database &db, const JobStatus &aStatus,
+                                                  const std::string &aServant,
+                                                  const std::string &aProcessId, const std::string &aRunProgress,
+                                                  const std::string &aCaseNumber, const std::string &aGroupName);
 
         bool updateAllInLocalDatabase(Database &db) const;
 

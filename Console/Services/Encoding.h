@@ -56,7 +56,8 @@ namespace comet
 
             int val = 0, valb = -8;
             for (unsigned char c : input) {
-              if (decoding_table[c] == -1) break;
+              if (c == '=') break; // Stop at padding
+              if (decoding_table[c] == -1) continue; // Ignore invalid characters
               val = (val << 6) + decoding_table[c];
               valb += 6;
               if (valb >= 0) {

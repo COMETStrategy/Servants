@@ -25,7 +25,7 @@ namespace comet
         totalCores = std::thread::hardware_concurrency();
         unusedCores = 0;
         activeCores = 0;
-        port = 7777;
+        port = 777;
         projectId = 0;
         version = "V 2025.06.26";
         priority = 1.0;

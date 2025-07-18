@@ -39,7 +39,7 @@ namespace comet
         COMETLOG("Configuration path: " + configurationFilePath, comet::LoggerLevel::INFO);
         comet::Logger::setLoggerLevel(LoggerLevel::INFO);
         COMETLOG("WebServices::WebServices()", LoggerLevel::DEBUGGING);
-        aServant.setPort(7777);
+        aServant.setPort(777);
         initializeHandlers();
         run();
 
@@ -106,7 +106,7 @@ namespace comet
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
         registerMockRunJobsHandler();
-        registerProofOfLifeHandler();
+        registerLifeHandler();
         registerQuitHandler();
         registerResetRunningJobsHandler();
         registerRunQueuedHandler();
@@ -762,7 +762,7 @@ namespace comet
     void WebServices::registerRootJobSummaryHandler()
       {
         app().registerHandler(
-          "/",
+          "/job_summary",
           [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
               handleInvalidMethod(request);
@@ -1170,7 +1170,7 @@ namespace comet
               COMETLOG("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
 
               nlohmann::json responseJson = {
-                {"Status", "success"},
+                {"Status", "success..."},
                 {"message", "Status updated successfully"},
                 {"errorMessage", ""}
               };
@@ -1214,14 +1214,33 @@ namespace comet
           {Get, Post});
       }
 
-    void WebServices::registerProofOfLifeHandler()
+    void WebServices::registerLifeHandler()
       {
         app().registerHandler(
-          "/proofoflife",
+          "/",
           [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
               handleInvalidMethod(request);
+              handleInvalidMethod(request);
+              if (request->method() == drogon::Post) {
+                auto host = request->getHeader("Host");
+                std::string hubAddress = "http://" + aServant.getIpAddress() + ":" + std::to_string(aServant.getPort()) + "/";
 
+                nlohmann::json jsonResponse = {
+                  {"company", "COMET Strategy - Australia"},
+                  {"HubName", "COMET Servant (" + aServant.getIpAddress()  + "):LOCAL"},
+                  {"HubAddress", hubAddress},
+                  {"CloudDataConnection", "notused"},
+                  {"ErrorMessage", ""}
+                };
+
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setContentTypeCode(CT_APPLICATION_JSON);
+                resp->setBody(jsonResponse.dump());
+                callback(resp);
+                return;
+              }
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setBody("Proof of life: " + request->getHeader("Host") + " is Alive...\n");
@@ -1296,7 +1315,7 @@ namespace comet
           {"Authentication", "/authentication"},
           {"Servant Settings", "/servant_settings"},
           {"Servant Summary", "/servant_summary"},
-          {"Job Summary", "/"},
+          {"Job Summary", "/job_summary"},
           {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
           {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
           {"Run (Queued)", "/run_queued/"},

@@ -298,6 +298,7 @@ namespace comet
           for (const auto &row: results) {
             std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
             auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
+            rowClass += " Status" + Job::jobStatusDescription(aStatus) ;
             html += "<tr class='" + rowClass + "'>";
             // Add a checkbox for selection with the id CaseNumber and a custom attribute with the GroupName
             std::string checkbox = "<input type='checkbox' name='selectedjobs' unchecked "
@@ -334,7 +335,7 @@ namespace comet
               double ranking = std::stod(row.at("Ranking"));
               std::ostringstream stream;
               stream << std::fixed << std::setprecision(2) << ranking;
-              html += "<td>" + stream.str() + "</td>";
+              html += "<td> " + stream.str() + " </td>";
             } else {
               html += "<td></td>";
             }
@@ -343,7 +344,7 @@ namespace comet
               double life = std::stod(row.at("Life"));
               std::ostringstream stream;
               stream << std::fixed << std::setprecision(2) << life;
-              html += "<td>" + stream.str() + "</td>";
+              html += "<td> " + stream.str() + " </td>";
             } else {
               html += "<td></td>";
             }
@@ -360,7 +361,7 @@ namespace comet
               "";
         }
         // Add filter and sort links to the HTML
-        std::string baseUrl = "/";
+        std::string baseUrl = "/job_summary";
         html += "<p>" + htmlGenerateFilterLinks(baseUrl, sort, filter) + "<br>";
         html += "" + htmlGenerateSortLinks(baseUrl, sort, filter) + "</p>";
 
@@ -470,9 +471,9 @@ namespace comet
         json["ProcessId"] = std::to_string(processId);
         // Update the job in the manager
         if (servant["ipAddress"] == getMachineName()) {
-          auto res = Job::processUpdateRunningToManager(JobStatus::Running, servant["ipAddress"],
-                                                        std::to_string(processId),
-                                                        json["RunProgress"], job["CaseNumber"], job["GroupName"]);
+          auto res = Job::processUpdateRunningToManager(db, JobStatus::Running,
+                                                        servant["ipAddress"],
+                                                        std::to_string(processId), json["RunProgress"], job["CaseNumber"], job["GroupName"]);
           COMETLOG("Updated this job status:, updated " + std::to_string(res) + " record", comet::DEBUGGING);
         } else {
           auto url = "http://" + servant["ipAddress"] + ":" + servant["port"] + "/job/status/database/update";
@@ -563,9 +564,9 @@ namespace comet
                   }
 
                   Job::
-                      processUpdateRunningToManager(JobStatus::Running, sevantString, std::to_string(pid),
-                                                    "Starting process: " + std::to_string(pid),
-                                                    caseNumberString, groupNameString);
+                      processUpdateRunningToManager(db, JobStatus::Running, sevantString,
+                                                    std::to_string(pid),
+                                                    "Starting process: " + std::to_string(pid), caseNumberString, groupNameString);
 
                   // Wait for the child process to complete
                   int status;
@@ -582,9 +583,9 @@ namespace comet
                       + "with exit code: " + std::to_string(WEXITSTATUS(status))
                       , comet::INFO);
                     // Job::
-                    //  processUpdateRunningToManager(JobStatus::Completed, sevantString, std::string(""),
-                    // "Terminated by exit code: " + std::to_string(WEXITSTATUS(status)),
-                    // caseNumberString, groupNameString);
+                    //  processUpdateRunningToManager(db, JobStatus::Completed, sevantString,
+                    //                                std::string(""),
+                    //                                "Terminated by exit code: " + std::to_string(WEXITSTATUS(status)), caseNumberString, groupNameString);
                   } else if (WIFSIGNALED(status)) {
                     std::ostringstream oss;
                     auto now = std::chrono::system_clock::now();
@@ -601,9 +602,9 @@ namespace comet
                       + " Case Number: " + caseNumberString
                       + processUpdateString, loggerStatus);
                     Job::
-                        processUpdateRunningToManager(JobStatus::Failed, sevantString, std::string(""),
-                                                      processUpdateString,
-                                                      caseNumberString, groupNameString);
+                        processUpdateRunningToManager(db, JobStatus::Failed, sevantString,
+                                                      std::string(""),
+                                                      processUpdateString, caseNumberString, groupNameString);
                   }
                 } catch (const std::exception &e) {
                   COMETLOG("Exception in thread: " + std::string(e.what()), LoggerLevel::CRITICAL);
@@ -620,12 +621,12 @@ namespace comet
       }
 
     bool Job::processUpdateRunningToManager(
-      const JobStatus &aStatus
+      Database &db
+      , const JobStatus &aStatus
       , const std::string &aServant
       , const std::string &aProcessId
       , const std::string &aRunProgress
-      , const std::string &aCaseNumber
-      , const std::string &aGroupName
+      , const std::string &aCaseNumber, const std::string &aGroupName
     )
       {
         // Build json object of inputs to send to the manager
@@ -638,6 +639,13 @@ namespace comet
         json["ProcessId"] = aProcessId;
 
         // Update the job in the manager
+        if (Servant::thisServant->getManagerIpAddress().empty()) {
+
+          bool updateSuccess = Job::processUpdateRunning(db, aStatus, aServant, aProcessId, aRunProgress, aCaseNumber,
+                                                         aGroupName);
+
+          return true;
+        }
         auto url = "http://" + Servant::thisServant->getManagerIpAddress() + ":" + std::to_string(
                      Servant::thisServant->getPort()) + "/job/process_update";
         // Send the JSON to the manager
@@ -837,7 +845,7 @@ namespace comet
               lookupkey = key; // Update lookupkey before accessing the row
               auto value = row.at(key);
               if (key == "Status") {
-                value = Job::jobStatusDescription(aStatus) + " (" + std::to_string(int(aStatus)) + ")";
+                value = Job::jobStatusDescription(aStatus) ;
               }
               result += separator + value;
               separator = R"(\t)";

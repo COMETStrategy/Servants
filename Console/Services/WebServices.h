@@ -102,7 +102,7 @@ namespace comet
         void registerStatusHandler();
         void registerStatusJobsHandler();
 
-        void registerProofOfLifeHandler();
+        void registerLifeHandler();
 
         void registerQuitHandler();
         

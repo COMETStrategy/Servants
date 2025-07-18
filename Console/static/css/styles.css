@@ -310,3 +310,18 @@ tr .list_heading
     color: var(--stdAltWarningColor);
     margin: 0;
 }
+
+.StatusFailed {
+    color:red;
+}
+
+.StatusRunning {
+    color:cyan;
+}
+
+.StatusCompleted {
+}
+
+.StatusQueued {
+    color: var(--stdLightGray);
+}

@@ -1,0 +1,335 @@
+/* CSS Document */
+:root {
+    --stdColor: white;
+    --stdHighlightColor: cyan;
+    --stdAltHighlightColor: #3A91B0;
+    --stdAltWarningColor: orange;
+    --stdLink: #3A91B0;
+    --stdHover: orange;
+    --stdBackgroundColor: #121212;
+    --stdBackgroundHighlightColor: #000033;
+    --stdButtonBackgroundColor: #3A91B0;
+    --stdTableHeaderColor: white;
+    --stdTableHeaderBackgroundColor: #202020; /* #002b5a; */
+    --stdLightGray: #202020;
+    --stdMidGray: #404040;
+    --stdDarkGray: #606060;
+    --stdMargin: 25px;
+}
+
+body{
+    background-color:var(--stdBackgroundColor);
+    color:var(--stdColor);
+    font-family: "Helvetica Neue", Helvetica, "Arial Black", arial-black, sans-serif;
+    height: 100vh !important;
+    display: flex;
+    flex-direction: column;
+
+    margin-block-start: var(--stdMargin);
+    margin-block-end: var(--stdMargin);
+    margin-inline-start: var(--stdMargin);
+    margin-inline-end: var(--stdMargin);
+
+    width: auto;
+    outline: var(--stdMargin) solid var(--stdBackgroundHighlightColor);
+}
+
+
+.even {
+    background-color:var(--stdMidGray)
+}
+
+.odd {
+    background-color:var(--stdDarkGray)
+}
+
+
+a {
+    color: var(--stdLink);
+    text-decoration: none;
+    margin-right:15px;
+}
+
+a:hover{
+    color:var(--stdHover);
+    -webkit-transition: all 1.35s ease;
+    transition: all 0.35s ease;
+}
+
+header > a {
+    color: var(--stdColor);
+    text-decoration: none;
+}
+
+
+h1 {
+    color:var(--stdAltHighlightColor);
+    font-size:  xx-large;
+    vertical-align:middle;
+}
+
+h2 {
+    color:var(--stdAltHighlightColor);
+    text-align:left;
+}
+
+h20 {
+    color:white;
+    background-color: red;
+    font-size:  xx-large;
+    font-weight: bold;
+    text-align:left;
+}
+
+h3 {
+    color:var(--stdAltHighlightColor);
+    text-align:left;
+}
+
+h4 {
+    text-align:left;
+}
+
+dl {
+    margin-top: 0em;
+    margin-left: 3em;
+    margin-bottom: 1em;
+    background-color:  green;
+}
+
+dt {
+    background-color:  #FFD;
+}
+
+dt h2 {
+    background-color:  #FFB;
+}
+
+footer {
+    background-color:  var(--stdBackgroundHighlightColor);
+}
+
+header {
+    background-color:  var(--stdBackgroundHighlightColor);
+}
+
+
+
+input {
+    color: var(--stdBackgroundColor);
+    font-size:large;
+    background-color:  var(--stdColor);
+    width: 50ch;
+    text-align:right;
+}
+
+input:disabled, input:read-only {
+    color: var(--stdColor);
+    background-color:  var(--stdBackgroundColor);
+    font-size:large;
+    border-style:  none;
+}
+
+input[type="submit"] {
+    color: var(--stdColor);
+    background-color:  var(--stdButtonBackgroundColor);
+    font-size:large;
+    width: auto;
+}
+
+input[type="submit"]:hover {
+    color:  var(--stdHover);
+}
+
+button {
+    color: var(--stdColor);
+    background-color:  var(--stdButtonBackgroundColor);
+    font-size:large;
+    width: auto;
+    border: none;
+}
+button:hover {
+    color:  green;
+ }
+
+input[type="checkbox"] {
+    width: 1.5em;
+    height: 1.5em;
+    vertical-align: middle;
+}
+
+button:hover {
+    color:  var(--stdAltHighlightColor);
+ }
+
+p.quote {
+    color:white;
+    text-align:right;
+    vertical-align: central;
+    font-size: small;
+}
+
+p {
+    color: var(--stdColor);
+    margin-left: 0%;
+}
+
+li {
+    color: #002b5a;
+}
+
+svg {
+    vertical-align:middle;
+}
+
+table {
+    table-layout: auto;
+    width: max-content;
+}
+
+td {
+    text-align:left;
+    vertical-align:  middle;
+}
+
+[title]::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 5px;
+    background-color: var(--stdHover);
+    border-radius: 50%;
+}
+
+[title] {
+    position: relative;
+}
+
+th {
+    text-align:left;
+    vertical-align:  top;
+    color: var(--stdTableHeaderColor);
+    background-color: var(--stdTableHeaderBackgroundColor);
+}
+
+.heading_title {
+    color: var(--stdHighlightColor);
+}
+
+
+.number {
+    text-align:right;
+
+}
+.leftAlign {
+    text-align:left;
+
+}
+.rightAlign {
+    text-align:right;
+
+}
+.centerAlign {
+    text-align:center;
+
+}
+
+
+td .number_small[disabled]{
+    text-align:right;
+    color: #333;
+    border: #000 solid thin;
+}
+
+tr .list_heading
+{
+    color: green;
+    border: 5px solid cadetblue;
+}
+
+
+.highlight {
+    color:var(--stdHighlightColor);
+    font-weight:bolder
+}
+
+
+.formatted_table{
+    background-color: #DDD;
+}
+
+.formatted_table th{
+    background-color: #002b5a;
+    color:#4DB0DD;
+    border-spacing:1em;
+}
+
+.formatted_table td{
+    color:#002b5a;
+    border-spacing:1em;
+    border-color: red;
+}
+
+
+.formatted_special_table{
+    background-color: white;
+    margin: auto;
+}
+
+.formatted_special_table th{
+    background-color: #002b5a;
+    color:white;
+    border-spacing:1em;
+    min-width:  200px;
+}
+
+.formatted_special_table td{
+    color:#002b5a;
+    border-spacing:1em;
+    text-align: right;
+}
+
+
+.message
+{
+    background-color: #4181c3;
+    color: white;
+    margin: 0;
+}
+
+.success
+{
+    color: green;
+}
+
+
+.error
+{
+    background-color: red;
+    color: white;
+    margin: 0; 
+}
+
+
+.warning
+{
+    color: var(--stdAltWarningColor);
+    margin: 0;
+}
+
+.StatusFailed {
+    color:red;
+}
+
+.StatusRunning {
+    color:cyan;
+}
+
+.StatusCompleted {
+}
+
+.StatusQueued {
+    color: var(--stdLightGray);
+}

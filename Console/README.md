@@ -26,3 +26,24 @@ Mac
 brew install doxygen
 brew install graphviz
 ```
+
+
+# Setting up windows
+- Using clion
+- Use preinstalled toolchain
+
+```powershell
+
+.\vcpkg.exe install  sqlite3 hiredis zlib
+.\vcpkg.exe integrate install
+```
+
+Possibly also install the following:
+```powershell
+
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+.\bootstrap-vcpkg.bat
+.\vcpkg.exe install sqlite3 hiredis zlib
+````
+

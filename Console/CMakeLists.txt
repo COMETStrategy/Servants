@@ -8,12 +8,20 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 include(FetchContent)
 
 # Fetch Drogon
+set(DROGON_USE_MYSQL OFF CACHE BOOL "Disable MySQL support")
+set(DROGON_USE_POSTGRESQL OFF CACHE BOOL "Disable PostgreSQL support")
+set(DROGON_USE_HIREDIS OFF CACHE BOOL "Disable Hiredis support")
+set(DROGON_USE_ZLIB OFF CACHE BOOL "Disable ZLIB support")
+set(DROGON_USE_SQLITE ON CACHE BOOL "Enable SQLite support")
 FetchContent_Declare(
         drogon
         GIT_REPOSITORY https://github.com/drogonframework/drogon.git
         GIT_TAG master
 )
 FetchContent_MakeAvailable(drogon)
+if(DROGON_USE_ZLIB)
+    find_package(ZLIB REQUIRED)
+endif()
 
 # Fetch Google Test
 FetchContent_Declare(
@@ -46,6 +54,10 @@ file(GLOB SERVICES_SRC Services/*.cpp  Services/*.h)
 
 # Find and link libcurl
 find_package(CURL REQUIRED)
+find_package(jsoncpp CONFIG REQUIRED)
+
+target_link_libraries(servant-console PRIVATE JsonCpp::JsonCpp)
+target_link_libraries(servant-console-tests PRIVATE JsonCpp::JsonCpp)
 
 file(GLOB_RECURSE STATIC_FILES ${CMAKE_SOURCE_DIR}/static/*)
 

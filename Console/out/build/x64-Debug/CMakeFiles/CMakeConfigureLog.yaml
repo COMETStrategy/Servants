@@ -1,0 +1,622 @@
+
+---
+events:
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineSystem.cmake:205 (message)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      The system is: Windows - 10.0.22621 - AMD64
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the C compiler identification source file "CMakeCCompilerId.c" succeeded.
+      Compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35207.1 for x64
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      CMakeCCompilerId.c
+      Microsoft (R) Incremental Linker Version 14.44.35207.1
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      /out:CMakeCCompilerId.exe 
+      CMakeCCompilerId.obj 
+      
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.exe"
+      
+      Compilation of the C compiler identification source "CMakeCCompilerId.c" produced "CMakeCCompilerId.obj"
+      
+      The C compiler identification is MSVC, found in:
+        C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/3.31.6-msvc6/CompilerIdC/CMakeCCompilerId.exe
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:1288 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCCompiler.cmake:123 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Detecting C compiler /showIncludes prefix:
+        main.c
+        Note: including file: C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\ShowIncludes\\foo.h
+        
+      Found prefix "Note: including file: "
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35207.1 for x64
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      CMakeCXXCompilerId.cpp
+      Microsoft (R) Incremental Linker Version 14.44.35207.1
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+      
+      /out:CMakeCXXCompilerId.exe 
+      CMakeCXXCompilerId.obj 
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.exe"
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "CMakeCXXCompilerId.obj"
+      
+      The CXX compiler identification is MSVC, found in:
+        C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/3.31.6-msvc6/CompilerIdCXX/CMakeCXXCompilerId.exe
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:1288 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerId.cmake:250 (CMAKE_DETERMINE_MSVC_SHOWINCLUDES_PREFIX)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCXXCompiler.cmake:126 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Detecting CXX compiler /showIncludes prefix:
+        main.c
+        Note: including file: C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\ShowIncludes\\foo.h
+        
+      Found prefix "Note: including file: "
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting C compiler ABI info"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-3e7fn9"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-3e7fn9"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_C_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-3e7fn9'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_7ab1a
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo   /DWIN32 /D_WINDOWS  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_7ab1a.dir\\CMakeCCompilerABI.c.obj /FdCMakeFiles\\cmTC_7ab1a.dir\\ /FS -c "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\share\\cmake-3.31\\Modules\\CMakeCCompilerABI.c"
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_7ab1a.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_7ab1a.dir\\CMakeCCompilerABI.c.obj  /out:cmTC_7ab1a.exe /implib:cmTC_7ab1a.lib /pdb:cmTC_7ab1a.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed C implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'C': C:/PROGRA~1/MIB055~1/2022/ENTERP~1/VC/Tools/MSVC/1444~1.352/bin/Hostx64/x64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeTestCCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Running the C compiler's linker: "C:/PROGRA~1/MIB055~1/2022/ENTERP~1/VC/Tools/MSVC/1444~1.352/bin/Hostx64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.44.35207.1
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:74 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-etvndt"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-etvndt"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-etvndt'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_47abb
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_47abb.dir\\CMakeCXXCompilerABI.cpp.obj /FdCMakeFiles\\cmTC_47abb.dir\\ /FS -c "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\share\\cmake-3.31\\Modules\\CMakeCXXCompilerABI.cpp"
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_47abb.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_47abb.dir\\CMakeCXXCompilerABI.cpp.obj  /out:cmTC_47abb.exe /implib:cmTC_47abb.lib /pdb:cmTC_47abb.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:218 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|")?[ 	]*(([^"]*[/\\])?(ld[0-9]*(\\.[a-z]+)?|link\\.exe|lld-link(\\.exe)?))("|,| |$)]
+        linker tool for 'CXX': C:/PROGRA~1/MIB055~1/2022/ENTERP~1/VC/Tools/MSVC/1444~1.352/bin/Hostx64/x64/link.exe
+        implicit libs: []
+        implicit objs: []
+        implicit dirs: []
+        implicit fwks: []
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/Internal/CMakeDetermineLinkerId.cmake:40 (message)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeDetermineCompilerABI.cmake:255 (cmake_determine_linker_id)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Running the CXX compiler's linker: "C:/PROGRA~1/MIB055~1/2022/ENTERP~1/VC/Tools/MSVC/1444~1.352/bin/Hostx64/x64/link.exe" "-v"
+      Microsoft (R) Incremental Linker Version 14.44.35207.1
+      Copyright (C) Microsoft Corporation.  All rights reserved.
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake:108 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckSourceCompiles.cmake:89 (cmake_check_source_compiles)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/GenerateExportHeader.cmake:206 (check_source_compiles)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/GenerateExportHeader.cmake:263 (_check_cxx_compiler_attribute)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/GenerateExportHeader.cmake:420 (_test_compiler_has_deprecated)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:99 (generate_export_header)"
+    checks:
+      - "Performing Test COMPILER_HAS_DEPRECATED_ATTR"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-9shusv"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-9shusv"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "COMPILER_HAS_DEPRECATED_ATTR"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-9shusv'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_f1887
+        [1/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe -DCOMPILER_HAS_DEPRECATED_ATTR  /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx -nologo -TP -showIncludes -scanDependencies CMakeFiles\\cmTC_f1887.dir\\src.cxx.obj.ddi -FoCMakeFiles\\cmTC_f1887.dir\\src.cxx.obj
+        [2/4] "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E cmake_ninja_dyndep --tdi=CMakeFiles\\cmTC_f1887.dir\\CXXDependInfo.json --lang=CXX --modmapfmt=msvc --dd=CMakeFiles\\cmTC_f1887.dir\\CXX.dd @CMakeFiles\\cmTC_f1887.dir\\CXX.dd.rsp
+        [3/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DCOMPILER_HAS_DEPRECATED_ATTR  /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi /showIncludes @CMakeFiles\\cmTC_f1887.dir\\src.cxx.obj.modmap /FoCMakeFiles\\cmTC_f1887.dir\\src.cxx.obj /FdCMakeFiles\\cmTC_f1887.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx
+        FAILED: CMakeFiles/cmTC_f1887.dir/src.cxx.obj 
+        C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DCOMPILER_HAS_DEPRECATED_ATTR  /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi /showIncludes @CMakeFiles\\cmTC_f1887.dir\\src.cxx.obj.modmap /FoCMakeFiles\\cmTC_f1887.dir\\src.cxx.obj /FdCMakeFiles\\cmTC_f1887.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx(1): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx(1): error C2065: '__deprecated__': undeclared identifier
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx(1): error C2062: type 'int' unexpected
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx(1): error C2143: syntax error: missing ';' before '{'
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx(1): error C2447: '{': missing function header (old-style formal list?)
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9shusv\\src.cxx(2): error C3861: 'somefunc': identifier not found
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake:108 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckSourceCompiles.cmake:89 (cmake_check_source_compiles)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/GenerateExportHeader.cmake:206 (check_source_compiles)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/GenerateExportHeader.cmake:269 (_check_cxx_compiler_attribute)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/GenerateExportHeader.cmake:420 (_test_compiler_has_deprecated)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:99 (generate_export_header)"
+    checks:
+      - "Performing Test COMPILER_HAS_DEPRECATED"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-f9bz5n"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-f9bz5n"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "COMPILER_HAS_DEPRECATED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-f9bz5n'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_aeb03
+        [1/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe -DCOMPILER_HAS_DEPRECATED  /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-f9bz5n\\src.cxx -nologo -TP -showIncludes -scanDependencies CMakeFiles\\cmTC_aeb03.dir\\src.cxx.obj.ddi -FoCMakeFiles\\cmTC_aeb03.dir\\src.cxx.obj
+        [2/4] "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E cmake_ninja_dyndep --tdi=CMakeFiles\\cmTC_aeb03.dir\\CXXDependInfo.json --lang=CXX --modmapfmt=msvc --dd=CMakeFiles\\cmTC_aeb03.dir\\CXX.dd @CMakeFiles\\cmTC_aeb03.dir\\CXX.dd.rsp
+        [3/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DCOMPILER_HAS_DEPRECATED  /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi /showIncludes @CMakeFiles\\cmTC_aeb03.dir\\src.cxx.obj.modmap /FoCMakeFiles\\cmTC_aeb03.dir\\src.cxx.obj /FdCMakeFiles\\cmTC_aeb03.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-f9bz5n\\src.cxx
+        [4/4] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_aeb03.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_aeb03.dir\\src.cxx.obj  /out:cmTC_aeb03.exe /implib:cmTC_aeb03.lib /pdb:cmTC_aeb03.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckIncludeFileCXX.cmake:98 (try_compile)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:105 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include any"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-y6c4gd"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-y6c4gd"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "HAS_ANY"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-y6c4gd'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_bc88b
+        [1/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-y6c4gd\\CheckIncludeFile.cxx -nologo -TP -showIncludes -scanDependencies CMakeFiles\\cmTC_bc88b.dir\\CheckIncludeFile.cxx.obj.ddi -FoCMakeFiles\\cmTC_bc88b.dir\\CheckIncludeFile.cxx.obj
+        [2/4] "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E cmake_ninja_dyndep --tdi=CMakeFiles\\cmTC_bc88b.dir\\CXXDependInfo.json --lang=CXX --modmapfmt=msvc --dd=CMakeFiles\\cmTC_bc88b.dir\\CXX.dd @CMakeFiles\\cmTC_bc88b.dir\\CXX.dd.rsp
+        [3/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi /showIncludes @CMakeFiles\\cmTC_bc88b.dir\\CheckIncludeFile.cxx.obj.modmap /FoCMakeFiles\\cmTC_bc88b.dir\\CheckIncludeFile.cxx.obj /FdCMakeFiles\\cmTC_bc88b.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-y6c4gd\\CheckIncludeFile.cxx
+        [4/4] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_bc88b.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_bc88b.dir\\CheckIncludeFile.cxx.obj  /out:cmTC_bc88b.exe /implib:cmTC_bc88b.lib /pdb:cmTC_bc88b.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckIncludeFileCXX.cmake:98 (try_compile)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:106 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include string_view"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-agtgir"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-agtgir"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "HAS_STRING_VIEW"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-agtgir'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_feaac
+        [1/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-agtgir\\CheckIncludeFile.cxx -nologo -TP -showIncludes -scanDependencies CMakeFiles\\cmTC_feaac.dir\\CheckIncludeFile.cxx.obj.ddi -FoCMakeFiles\\cmTC_feaac.dir\\CheckIncludeFile.cxx.obj
+        [2/4] "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E cmake_ninja_dyndep --tdi=CMakeFiles\\cmTC_feaac.dir\\CXXDependInfo.json --lang=CXX --modmapfmt=msvc --dd=CMakeFiles\\cmTC_feaac.dir\\CXX.dd @CMakeFiles\\cmTC_feaac.dir\\CXX.dd.rsp
+        [3/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi /showIncludes @CMakeFiles\\cmTC_feaac.dir\\CheckIncludeFile.cxx.obj.modmap /FoCMakeFiles\\cmTC_feaac.dir\\CheckIncludeFile.cxx.obj /FdCMakeFiles\\cmTC_feaac.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-agtgir\\CheckIncludeFile.cxx
+        [4/4] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_feaac.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_feaac.dir\\CheckIncludeFile.cxx.obj  /out:cmTC_feaac.exe /implib:cmTC_feaac.lib /pdb:cmTC_feaac.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckIncludeFileCXX.cmake:98 (try_compile)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:107 (check_include_file_cxx)"
+    checks:
+      - "Looking for C++ include coroutine"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-5i4ot0"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-5i4ot0"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+    buildResult:
+      variable: "HAS_COROUTINE"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-5i4ot0'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_961e0
+        [1/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-5i4ot0\\CheckIncludeFile.cxx -nologo -TP -showIncludes -scanDependencies CMakeFiles\\cmTC_961e0.dir\\CheckIncludeFile.cxx.obj.ddi -FoCMakeFiles\\cmTC_961e0.dir\\CheckIncludeFile.cxx.obj
+        [2/4] "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E cmake_ninja_dyndep --tdi=CMakeFiles\\cmTC_961e0.dir\\CXXDependInfo.json --lang=CXX --modmapfmt=msvc --dd=CMakeFiles\\cmTC_961e0.dir\\CXX.dd @CMakeFiles\\cmTC_961e0.dir\\CXX.dd.rsp
+        [3/4] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++latest -MDd -Zi /showIncludes @CMakeFiles\\cmTC_961e0.dir\\CheckIncludeFile.cxx.obj.modmap /FoCMakeFiles\\cmTC_961e0.dir\\CheckIncludeFile.cxx.obj /FdCMakeFiles\\cmTC_961e0.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-5i4ot0\\CheckIncludeFile.cxx
+        [4/4] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_961e0.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_961e0.dir\\CheckIncludeFile.cxx.obj  /out:cmTC_961e0.exe /implib:cmTC_961e0.lib /pdb:cmTC_961e0.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/Internal/CheckSourceCompiles.cmake:108 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckCSourceCompiles.cmake:58 (cmake_check_source_compiles)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/FindThreads.cmake:97 (CHECK_C_SOURCE_COMPILES)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/FindThreads.cmake:163 (_threads_check_libc)"
+      - "out/build/x64-Debug/_deps/drogon-src/trantor/CMakeLists.txt:276 (find_package)"
+    checks:
+      - "Performing Test CMAKE_HAVE_LIBC_PTHREAD"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-sr8mel"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-sr8mel"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_C_FLAGS_DEBUG: "/Ob0 /Od /RTC1"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/trantor/cmake_modules/"
+    buildResult:
+      variable: "CMAKE_HAVE_LIBC_PTHREAD"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-sr8mel'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_d1865
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo -DCMAKE_HAVE_LIBC_PTHREAD  /DWIN32 /D_WINDOWS  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_d1865.dir\\src.c.obj /FdCMakeFiles\\cmTC_d1865.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-sr8mel\\src.c
+        FAILED: CMakeFiles/cmTC_d1865.dir/src.c.obj 
+        C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo -DCMAKE_HAVE_LIBC_PTHREAD  /DWIN32 /D_WINDOWS  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_d1865.dir\\src.c.obj /FdCMakeFiles\\cmTC_d1865.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-sr8mel\\src.c
+        C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-sr8mel\\src.c(1): fatal error C1083: Cannot open include file: 'pthread.h': No such file or directory
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckLibraryExists.cmake:78 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/FindThreads.cmake:175 (_threads_check_lib)"
+      - "out/build/x64-Debug/_deps/drogon-src/trantor/CMakeLists.txt:276 (find_package)"
+    checks:
+      - "Looking for pthread_create in pthreads"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-yycqe2"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-yycqe2"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/trantor/cmake_modules/"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREADS_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-yycqe2'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_77247
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo   /DWIN32 /D_WINDOWS -DCHECK_FUNCTION_EXISTS=pthread_create /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_77247.dir\\CheckFunctionExists.c.obj /FdCMakeFiles\\cmTC_77247.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-yycqe2\\CheckFunctionExists.c
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_77247.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_77247.dir\\CheckFunctionExists.c.obj  /out:cmTC_77247.exe /implib:cmTC_77247.lib /pdb:cmTC_77247.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  pthreads.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        FAILED: cmTC_77247.exe 
+        C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_77247.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_77247.dir\\CheckFunctionExists.c.obj  /out:cmTC_77247.exe /implib:cmTC_77247.lib /pdb:cmTC_77247.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  pthreads.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL
+        Pi commands have been ignored
+        LINK Pass 1: command "C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_77247.dir\\CheckFunctionExists.c.obj /out:cmTC_77247.exe /implib:cmTC_77247.lib /pdb:cmTC_77247.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console pthreads.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_77247.dir/intermediate.manifest CMakeFiles\\cmTC_77247.dir/manifest.res" failed (exit code 1104) with the following output:
+        LINK : fatal error LNK1104: cannot open file 'pthreads.lib'\x0d
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckLibraryExists.cmake:78 (try_compile)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/FindThreads.cmake:112 (CHECK_LIBRARY_EXISTS)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/FindThreads.cmake:176 (_threads_check_lib)"
+      - "out/build/x64-Debug/_deps/drogon-src/trantor/CMakeLists.txt:276 (find_package)"
+    checks:
+      - "Looking for pthread_create in pthread"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-9m2392"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-9m2392"
+    cmakeVariables:
+      CMAKE_C_FLAGS: "/DWIN32 /D_WINDOWS"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/trantor/cmake_modules/"
+    buildResult:
+      variable: "CMAKE_HAVE_PTHREAD_CREATE"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-9m2392'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_4c787
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo   /DWIN32 /D_WINDOWS -DCHECK_FUNCTION_EXISTS=pthread_create /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_4c787.dir\\CheckFunctionExists.c.obj /FdCMakeFiles\\cmTC_4c787.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-9m2392\\CheckFunctionExists.c
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_4c787.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_4c787.dir\\CheckFunctionExists.c.obj  /out:cmTC_4c787.exe /implib:cmTC_4c787.lib /pdb:cmTC_4c787.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  pthread.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        FAILED: cmTC_4c787.exe 
+        C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_4c787.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_4c787.dir\\CheckFunctionExists.c.obj  /out:cmTC_4c787.exe /implib:cmTC_4c787.lib /pdb:cmTC_4c787.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  pthread.lib  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL
+        Pi commands have been ignored
+        LINK Pass 1: command "C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_4c787.dir\\CheckFunctionExists.c.obj /out:cmTC_4c787.exe /implib:cmTC_4c787.lib /pdb:cmTC_4c787.pdb /version:0.0 /machine:x64 /debug /INCREMENTAL /subsystem:console pthread.lib kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib /MANIFEST /MANIFESTFILE:CMakeFiles\\cmTC_4c787.dir/intermediate.manifest CMakeFiles\\cmTC_4c787.dir/manifest.res" failed (exit code 1104) with the following output:
+        LINK : fatal error LNK1104: cannot open file 'pthread.lib'\x0d
+        ninja: build stopped: subcommand failed.
+        
+      exitCode: 1
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "out/build/x64-Debug/_deps/drogon-src/trantor/CMakeLists.txt:290 (try_compile)"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/trantor/cmake_modules/"
+    buildResult:
+      variable: "ATOMIC_WITHOUT_LINKING"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_9b5ba
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_9b5ba.dir\\test_atomic.cpp.obj /FdCMakeFiles\\cmTC_9b5ba.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\test_atomic.cpp
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_9b5ba.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_9b5ba.dir\\test_atomic.cpp.obj  /out:cmTC_9b5ba.exe /implib:cmTC_9b5ba.lib /pdb:cmTC_9b5ba.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckIncludeFileCXX.cmake:98 (try_compile)"
+      - "out/build/x64-Debug/_deps/drogon-src/cmake_modules/FindFilesystem.cmake:162 (check_include_file_cxx)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:155 (find_package)"
+    checks:
+      - "Looking for C++ include filesystem"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-pnidx7"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-pnidx7"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/cmake_modules/"
+    buildResult:
+      variable: "_CXX_FILESYSTEM_HAVE_HEADER"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-pnidx7'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_a26ec
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++17 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_a26ec.dir\\CheckIncludeFile.cxx.obj /FdCMakeFiles\\cmTC_a26ec.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-pnidx7\\CheckIncludeFile.cxx
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_a26ec.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_a26ec.dir\\CheckIncludeFile.cxx.obj  /out:cmTC_a26ec.exe /implib:cmTC_a26ec.lib /pdb:cmTC_a26ec.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+  -
+    kind: "try_run-v1"
+    backtrace:
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/Internal/CheckSourceRuns.cmake:99 (try_run)"
+      - "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/share/cmake-3.31/Modules/CheckCXXSourceRuns.cmake:52 (cmake_check_source_runs)"
+      - "out/build/x64-Debug/_deps/drogon-src/cmake_modules/FindFilesystem.cmake:126 (check_cxx_source_runs)"
+      - "out/build/x64-Debug/_deps/drogon-src/cmake_modules/FindFilesystem.cmake:220 (_cmcm_check_cxx_source)"
+      - "out/build/x64-Debug/_deps/drogon-src/CMakeLists.txt:155 (find_package)"
+    checks:
+      - "Performing Test CXX_FILESYSTEM_NO_LINK_NEEDED"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-umnr4k"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-umnr4k"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_CXX_FLAGS_DEBUG: "/Ob0 /Od /RTC1 -DDEBUG"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/cmake_modules/"
+    buildResult:
+      variable: "CXX_FILESYSTEM_NO_LINK_NEEDED_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeScratch/TryCompile-umnr4k'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_25d0e
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP -DCXX_FILESYSTEM_NO_LINK_NEEDED  /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -DDEBUG -std:c++17 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_25d0e.dir\\src.cxx.obj /FdCMakeFiles\\cmTC_25d0e.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\CMakeFiles\\CMakeScratch\\TryCompile-umnr4k\\src.cxx
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_25d0e.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_25d0e.dir\\src.cxx.obj  /out:cmTC_25d0e.exe /implib:cmTC_25d0e.lib /pdb:cmTC_25d0e.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+    runResult:
+      variable: "CXX_FILESYSTEM_NO_LINK_NEEDED_EXITCODE"
+      cached: true
+      stdout: |
+        C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug
+      stderr: |
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "out/build/x64-Debug/_deps/drogon-src/trantor/CMakeLists.txt:290 (try_compile)"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/trantor/cmake_modules/"
+    buildResult:
+      variable: "ATOMIC_WITHOUT_LINKING"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_68c78
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_68c78.dir\\test_atomic.cpp.obj /FdCMakeFiles\\cmTC_68c78.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\test_atomic.cpp
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_68c78.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_68c78.dir\\test_atomic.cpp.obj  /out:cmTC_68c78.exe /implib:cmTC_68c78.lib /pdb:cmTC_68c78.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+...
+
+---
+events:
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "out/build/x64-Debug/_deps/drogon-src/trantor/CMakeLists.txt:290 (try_compile)"
+    directories:
+      source: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp"
+      binary: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp"
+    cmakeVariables:
+      CMAKE_CXX_FLAGS: "/DWIN32 /D_WINDOWS /EHsc"
+      CMAKE_EXE_LINKER_FLAGS: "/machine:x64"
+      CMAKE_MODULE_PATH: "C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/_deps/drogon-src/trantor/cmake_modules/"
+    buildResult:
+      variable: "ATOMIC_WITHOUT_LINKING"
+      cached: true
+      stdout: |
+        Change Dir: 'C:/Users/brettking/Code/Servants/Console/out/build/x64-Debug/CMakeFiles/CMakeTmp'
+        
+        Run Build Command(s): "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/Common7/IDE/CommonExtensions/Microsoft/CMake/Ninja/ninja.exe" -v cmTC_b9f74
+        [1/2] C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\cl.exe  /nologo /TP   /DWIN32 /D_WINDOWS /EHsc  /Ob0 /Od /RTC1 -MDd -Zi /showIncludes /FoCMakeFiles\\cmTC_b9f74.dir\\test_atomic.cpp.obj /FdCMakeFiles\\cmTC_b9f74.dir\\ /FS -c C:\\Users\\brettking\\Code\\Servants\\Console\\out\\build\\x64-Debug\\test_atomic.cpp
+        [2/2] C:\\Windows\\system32\\cmd.exe /C "cd . && "C:\\Program Files\\Microsoft Visual Studio\\2022\\Enterprise\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\cmake.exe" -E vs_link_exe --msvc-ver=1944 --intdir=CMakeFiles\\cmTC_b9f74.dir --rc=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\rc.exe --mt=C:\\PROGRA~2\\WI3CF2~1\\10\\bin\\100261~1.0\\x64\\mt.exe --manifests  -- C:\\PROGRA~1\\MIB055~1\\2022\\ENTERP~1\\VC\\Tools\\MSVC\\1444~1.352\\bin\\Hostx64\\x64\\link.exe /nologo CMakeFiles\\cmTC_b9f74.dir\\test_atomic.cpp.obj  /out:cmTC_b9f74.exe /implib:cmTC_b9f74.lib /pdb:cmTC_b9f74.pdb /version:0.0 /machine:x64  /debug /INCREMENTAL /subsystem:console  kernel32.lib user32.lib gdi32.lib winspool.lib shell32.lib ole32.lib oleaut32.lib uuid.lib comdlg32.lib advapi32.lib && cd ."
+        To get al the aliases, type  DOSKEY /MACROS:ALL\x0d
+        Pi commands have been ignored\x0d
+        
+      exitCode: 0
+...

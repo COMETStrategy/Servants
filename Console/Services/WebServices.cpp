@@ -488,7 +488,7 @@ namespace comet
                   !json->isMember("Servant") ||
                   !json->isMember("RunProgress") ||
                   !json->isMember("ProcessId")) {
-                auto resp = HttpResponse::newHttpResponse();
+                auto resp =  HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
                 callback(resp);
@@ -856,14 +856,17 @@ namespace comet
                     {"CaseNumber", caseNumber}
                   };
 
-                  Json::Value jsonResponse;
-                  for (auto &[key, value]: responseJson.items()) {
-                    jsonResponse[key] = value.dump();
-                  }
+                  // Json::Value jsonResponse;
+                  // for (auto &[key, value]: responseJson.items()) {
+                  //   jsonResponse[key] = value.dump();
+                  // }
 
-                  auto resp = HttpResponse::newHttpJsonResponse(jsonResponse);
-
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k200OK);
+                  resp->setContentTypeCode(CT_APPLICATION_JSON);
+                  resp->setBody(responseJson.dump());
                   callback(resp);
+                  
                   COMETLOG(
                     "Job progress updated successfully for CaseNumber: " + caseNumber + ", " + Job::jobStatusDescription
                     (convertJobStatus(status)) + ": "+ runProgress, LoggerLevel::INFO);
@@ -1384,9 +1387,8 @@ namespace comet
 
         m_serverThread = std::make_unique<std::thread>([this]
           {
-            COMETLOG(std::string("Server running on localhost:") + to_string(aServant.getPort())
-                     + ", Private local IP: " + getPrivateIPAddress() + ":" + to_string(aServant.getPort())
-                     + " or Public IP: " + getPublicIPAddressFromWeb() + ":" + to_string(aServant.getPort())
+            COMETLOG(std::string("Server running on ") + getMachineName() + ":" + to_string(aServant.getPort())
+                     + " (" + getPrivateIPAddress() + ":" + to_string(aServant.getPort())+ ")"
                      , comet::INFO);
 
             app().addListener("0.0.0.0", aServant.getPort()).run();

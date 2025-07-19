@@ -223,8 +223,16 @@ th {
     text-align:right;
 
 }
-td .rightAlign {
+.leftAlign {
+    text-align:left;
+
+}
+.rightAlign {
     text-align:right;
+
+}
+.centerAlign {
+    text-align:center;
 
 }
 
@@ -301,7 +309,7 @@ tr .list_heading
 {
     background-color: red;
     color: white;
-    margin: 0;
+    margin: 0; 
 }
 
 

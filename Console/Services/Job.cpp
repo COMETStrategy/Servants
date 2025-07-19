@@ -257,7 +257,7 @@ namespace comet
                           JobStatus::Failed) + ") ";
         }
         std::string sortDescAsc = (sort[0] != std::tolower(sort[0])) ? "ASC" : "DESC";
-        std::string sortOrder= comet::lower(sort);
+        std::string sortOrder = comet::lower(sort);
         std::string orderBy = " ORDER BY LastUpdate " + sortDescAsc + " ";
         if (sortOrder == "status") {
           orderBy = " ORDER BY Status " + sortDescAsc + ", LastUpdate " + sortDescAsc + " ";
@@ -278,27 +278,26 @@ namespace comet
         if (results.empty()) {
           html += "<p>No jobs found.</p>";
           //return html;
-        }
-        else {
+        } else {
           // Generate the table
           html += "<table style='border: none; border-collapse: separate; border-spacing: 1px 0;'>";
           html += "<tr>"
               "<th>" "<input type='checkbox' id='toggleAll' onchange='toggleLinks()' />" "</th>"
               "<th>Last Update</th>"
               "<th>Group Name</th>"
-              "<th>Case Number</th>"
+              "<th class='centerAlign'>Case<br>Number</th>"
               "<th>Creator</th>"
-              "<th>Status</th>"
-              "<th>Progress</th>"
+              "<th class='centerAlign'>Status</th>"
+              "<th class='centerAlign'>Progress</th>"
               "<th>Servant</th>"
-              "<th>NPV</th>"
-              "<th>Life</th>"
+              "<th class='rightAlign'>NPV</th>"
+              "<th class='rightAlign'>Life</th>"
               "</tr>";
           int rowIndex = 0;
           for (const auto &row: results) {
             std::string rowClass = (rowIndex % 2 == 0) ? "even" : "odd";
             auto aStatus = static_cast<JobStatus>(stoi(row.at("Status")));
-            rowClass += " Status" + Job::jobStatusDescription(aStatus) ;
+            rowClass += " Status" + Job::jobStatusDescription(aStatus);
             html += "<tr class='" + rowClass + "'>";
             // Add a checkbox for selection with the id CaseNumber and a custom attribute with the GroupName
             std::string checkbox = "<input type='checkbox' name='selectedjobs' unchecked "
@@ -310,7 +309,8 @@ namespace comet
             html += "<td>" + checkbox + "</td>";
             html += "<td>" + row.at("LastUpdate") + "</td>";
             html += "<td>" + row.at("GroupName") + "</td>";
-            html += "<td><a href='#' title='Open Working Directory for input file " + row.at("InputFileName") +
+            html += "<td class='centerAlign'><a href='#' title='Open Working Directory for input file " + row.at(
+                  "InputFileName") +
                 "' onclick=\"openLocalFile('"
                 + row.at("WorkingDirectory")
                 + "')\">" + row.at("CaseNumber") +
@@ -319,9 +319,11 @@ namespace comet
                 "title='Machine: " + row.at("CreatorMachine") + ", Email: " + row.at("CreatorXEmail") + "'>"
                 + row.at("CreatorName") + "</span></td>";
             auto title = (row.at("ProcessId").empty()) ? "" : " (#" + row.at("ProcessId") + ")";
-            html += "<td >" + Job::jobStatusDescription(aStatus) + " " + title + "</td>";
+            html += "<td class='centerAlign'>" + Job::jobStatusDescription(aStatus) + " " + title + "</td>";
             if (aStatus == JobStatus::Running || aStatus == JobStatus::Completed || aStatus == JobStatus::Failed) {
-              html += "<td><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('" + row.
+              html +=
+                  "<td class='centerAlign'><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('"
+                  + row.
                   at("WorkingDirectory") + "S_Display.txt')\">" +
                   row.at("RunProgress") +
                   "</a></td>";
@@ -335,7 +337,12 @@ namespace comet
               double ranking = std::stod(row.at("Ranking"));
               std::ostringstream stream;
               stream << std::fixed << std::setprecision(2) << ranking;
-              html += "<td> " + stream.str() + " </td>";
+              html +=
+                  "<td class='rightAlign'> <a href='#' title='Open Schedule HTML File for more details' onclick=\"openLocalFile('"
+                  + row.
+                  at("WorkingDirectory") + "S_Schedule.html')\">" +
+                  stream.str() +
+                  "</a> </td>";
             } else {
               html += "<td></td>";
             }
@@ -344,7 +351,7 @@ namespace comet
               double life = std::stod(row.at("Life"));
               std::ostringstream stream;
               stream << std::fixed << std::setprecision(2) << life;
-              html += "<td> " + stream.str() + " </td>";
+              html += "<td class='rightAlign'> " + stream.str() + " </td>";
             } else {
               html += "<td></td>";
             }
@@ -386,7 +393,8 @@ namespace comet
             int processId = std::stoi(pid);
             if (processId > 0) {
               // Use the system command to kill the process
-              std::string command = "kill -" + std::to_string(SIGTERM) + " " + std::to_string(processId) + " 2>/dev/null";
+              std::string command = "kill -" + std::to_string(SIGTERM) + " " + std::to_string(processId) +
+                                    " 2>/dev/null";
               int result = system(command.c_str());
               if (result == 0) {
                 COMETLOG("Successfully stopped process ID: " + pid, LoggerLevel::INFO);
@@ -473,7 +481,8 @@ namespace comet
         if (servant["ipAddress"] == getMachineName()) {
           auto res = Job::processUpdateRunningToManager(db, JobStatus::Running,
                                                         servant["ipAddress"],
-                                                        std::to_string(processId), json["RunProgress"], job["CaseNumber"], job["GroupName"]);
+                                                        std::to_string(processId), json["RunProgress"],
+                                                        job["CaseNumber"], job["GroupName"]);
           COMETLOG("Updated this job status:, updated " + std::to_string(res) + " record", comet::DEBUGGING);
         } else {
           auto url = "http://" + servant["ipAddress"] + ":" + servant["port"] + "/job/status/database/update";
@@ -534,8 +543,8 @@ namespace comet
                     }
 
 
-                    std::string managerIpAddress = (managerIpAddress.empty())
-                                                     ? servant["ipAddress"]
+                    std::string managerIpAddress = (servant["managerIpAddress"].empty())
+                                                     ? getMachineName()
                                                      : servant["managerIpAddress"];
                     execl(
                       fullEnginePath.c_str(),
@@ -566,7 +575,8 @@ namespace comet
                   Job::
                       processUpdateRunningToManager(db, JobStatus::Running, sevantString,
                                                     std::to_string(pid),
-                                                    "Starting process: " + std::to_string(pid), caseNumberString, groupNameString);
+                                                    "Starting process: " + std::to_string(pid), caseNumberString,
+                                                    groupNameString);
 
                   // Wait for the child process to complete
                   int status;
@@ -582,10 +592,11 @@ namespace comet
                       + " completed "
                       + "with exit code: " + std::to_string(WEXITSTATUS(status))
                       , comet::INFO);
-                    // Job::
-                    //  processUpdateRunningToManager(db, JobStatus::Completed, sevantString,
-                    //                                std::string(""),
-                    //                                "Terminated by exit code: " + std::to_string(WEXITSTATUS(status)), caseNumberString, groupNameString);
+                    Job::
+                        processUpdateRunningToManager(db, JobStatus::Completed, sevantString,
+                                                      std::string(""),
+                                                      "Complete (" + std::to_string(WEXITSTATUS(status)) + ")",
+                                                      caseNumberString, groupNameString);
                   } else if (WIFSIGNALED(status)) {
                     std::ostringstream oss;
                     auto now = std::chrono::system_clock::now();
@@ -599,7 +610,7 @@ namespace comet
                     auto loggerStatus = (status == SIGTERM) ? LoggerLevel::INFO : LoggerLevel::CRITICAL;
                     COMETLOG(
                       "Child process [" + std::to_string(pid) + "] "
-                      + " Case Number: " + caseNumberString
+                      + " Case Number: " + caseNumberString + " "
                       + processUpdateString, loggerStatus);
                     Job::
                         processUpdateRunningToManager(db, JobStatus::Failed, sevantString,
@@ -640,7 +651,6 @@ namespace comet
 
         // Update the job in the manager
         if (Servant::thisServant->getManagerIpAddress().empty()) {
-
           bool updateSuccess = Job::processUpdateRunning(db, aStatus, aServant, aProcessId, aRunProgress, aCaseNumber,
                                                          aGroupName);
 
@@ -664,17 +674,29 @@ namespace comet
                                    , const JobStatus &aStatus
                                    , const std::string &aServant
                                    , const std::string &aProcessId
-                                   , const std::string &aRunProgress
+                                   , const std::string &newRunProgress
                                    , const std::string &aCaseNumber
                                    , const std::string &aGroupName
     )
       {
         std::string processIDstring = "";
+        std::string aRunProgress = newRunProgress;
         if (aStatus == JobStatus::Failed || aStatus == JobStatus::Completed || aProcessId == "") {
           processIDstring = "NULL";
           COMETLOG("Job completion detected: " + jobStatusDescription(aStatus) + " for #" + aCaseNumber, comet::INFO);
         } else {
           processIDstring = "'" + aProcessId + "'";
+        }
+        if (aStatus == JobStatus::Completed) {
+           auto querySelect = std::string("SELECT * FROM  jobs  ") +
+                        "WHERE CaseNumber = '" + aCaseNumber + "' "
+                        "AND GroupName = '" + aGroupName + "';";
+           auto result= db.getQueryResults(querySelect);
+           if (result.size() > 0) {
+             if (result[0]["Status"] != std::to_string(int(JobStatus::Running))) {
+               aRunProgress = aRunProgress + " - " + result[0]["RunProgress"];
+             }
+           }
         }
         auto query = std::string("UPDATE jobs SET ")
                      + "  Status = " + std::to_string(aStatus) + " "
@@ -845,7 +867,7 @@ namespace comet
               lookupkey = key; // Update lookupkey before accessing the row
               auto value = row.at(key);
               if (key == "Status") {
-                value = Job::jobStatusDescription(aStatus) ;
+                value = Job::jobStatusDescription(aStatus);
               }
               result += separator + value;
               separator = R"(\t)";

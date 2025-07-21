@@ -6,21 +6,30 @@
 #define UTILITIES_H
 #include <cstdlib>
 #include <filesystem>
-#include <ifaddrs.h>
 #include <string>
+
+#include <cstring>
+#include <sys/types.h>
+#include <curl/curl.h>
+#include <openssl/sha.h>
+
+#if defined(__unix__) || defined(__APPLE__)
+#include <ifaddrs.h>
 #include <net/if_dl.h>
 #include <sys/socket.h>
 #include <uuid/uuid.h>
-
-#include <cstring>
 #include <netdb.h>
-#include <sys/types.h>
 #include <arpa/inet.h>
-#include <curl/curl.h>
 #include <sys/socket.h>
 #include <net/if.h>
 #include <unistd.h>
-#include <openssl/sha.h>
+#endif
+
+#ifdef _WIN32
+  #include <winsock2.h>
+  #include <iphlpapi.h>
+  #pragma comment(lib, "iphlpapi.lib")
+#endif
 
 #include <future>
 
@@ -40,119 +49,133 @@ namespace comet
         return upperStr;
     }
 
-    inline std::string getFullFilenameAndDirectory(const std::string &filename)
-      {
-        if (filename.empty()) {
-          return "";
-        }
-
-        // Check if the filename is already an absolute path
-        if (filename[0] == '/' || (filename.size() > 2 && filename[1] == ':' && filename[2] == '\\')) {
-          return filename; // Already an absolute path
-        }
-
-        std::string fullPath = filename;
-        if (filename[0] == '~') {
-          const char *home = std::getenv("HOME");
-          if (home) {
-            fullPath = std::string(home) + filename.substr(1);
-          }
-        }
-
-        // Get the parent directory
-        std::filesystem::path parentPath = std::filesystem::path(fullPath).parent_path();
-        if (!std::filesystem::exists(parentPath)) {
-          if (!std::filesystem::create_directories(parentPath)) {
-            COMETLOG("Failed to create database directory: " + parentPath.string(), comet::LoggerLevel::CRITICAL);
-            throw std::runtime_error("Unable to create database directory: " + parentPath.string());
-          }
-          COMETLOG("Database directory created: " + parentPath.string(), comet::LoggerLevel::INFO);
-        }
-
-        return std::filesystem::path(fullPath);
+  inline std::string getFullFilenameAndDirectory(const std::string &filename)
+    {
+      if (filename.empty()) {
+        return "";
       }
+
+      std::string fullPath = filename;
+
+      // Expand ~ on Unix/Mac or fallback on Windows
+      if (filename[0] == '~') {
+#if defined(_WIN32)
+        const char* home = std::getenv("USERPROFILE");
+#else
+        const char* home = std::getenv("HOME");
+#endif
+        if (home) {
+          fullPath = std::string(home) + filename.substr(1);
+        }
+      }
+
+      std::filesystem::path path(fullPath);
+
+      // If it's not already absolute, make it relative to current path
+      if (!path.is_absolute()) {
+        path = std::filesystem::absolute(path);
+      }
+
+      std::filesystem::path parentPath = path.parent_path();
+      if (!std::filesystem::exists(parentPath)) {
+        if (!std::filesystem::create_directories(parentPath)) {
+          COMETLOG("Failed to create directory: " + parentPath.string(), comet::LoggerLevel::CRITICAL);
+          throw std::runtime_error("Unable to create directory: " + parentPath.string());
+        }
+        COMETLOG("Directory created: " + parentPath.string(), comet::LoggerLevel::INFO);
+      }
+
+      return path.string();
+    }
 
     inline std::string generateTimestamp()
       {
         return std::to_string(std::time(nullptr));
       }
 
-
-    inline std::string getMacAddress()
-      {
+inline std::string getMacAddress()
+{
 #ifdef _WIN32
-    IP_ADAPTER_INFO AdapterInfo[16];
-    DWORD dwBufLen = sizeof(AdapterInfo);
-    DWORD dwStatus = GetAdaptersInfo(AdapterInfo, &dwBufLen);
-    if (dwStatus != ERROR_SUCCESS) {
+    IP_ADAPTER_INFO adapterInfo[16];  // enough for most machines
+    DWORD bufLen = sizeof(adapterInfo);
+
+    DWORD status = GetAdaptersInfo(adapterInfo, &bufLen);
+    if (status != ERROR_SUCCESS) {
         return "";
     }
 
-    PIP_ADAPTER_INFO pAdapterInfo = AdapterInfo;
+    PIP_ADAPTER_INFO pAdapterInfo = adapterInfo;
     std::ostringstream macStream;
     macStream << std::hex;
 
-    while (pAdapterInfo) {
-        for (UINT i = 0; i < pAdapterInfo->AddressLength; i++) {
-            macStream << (i == 0 ? "" : ":") << std::setw(2) << std::setfill('0') << (int)pAdapterInfo->Address[i];
-        }
-        break;
+    // Get the MAC of the first adapter
+    for (UINT i = 0; i < pAdapterInfo->AddressLength; ++i) {
+        if (i > 0)
+            macStream << ":";
+        macStream << std::setw(2) << std::setfill('0') << static_cast<int>(pAdapterInfo->Address[i]);
     }
 
     return macStream.str();
-#elif __APPLE__
-        struct ifaddrs *ifaddr, *ifa;
-        unsigned char mac[6];
-        std::string macAddress = "";
 
-        if (getifaddrs(&ifaddr) == -1) {
-          perror("getifaddrs");
-          return macAddress;
-        }
+#elif defined(__APPLE__)
+    #include <ifaddrs.h>
+    #include <net/if_dl.h>
+    #include <cstring>
+    struct ifaddrs *ifaddr, *ifa;
+    unsigned char mac[6];
+    std::string macAddress;
 
-        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-          if (ifa->ifa_addr == nullptr || ifa->ifa_addr->sa_family != AF_LINK) continue;
+    if (getifaddrs(&ifaddr) == -1) {
+        return "";
+    }
 
-          struct sockaddr_dl *sdl = (struct sockaddr_dl *) ifa->ifa_addr;
-#ifndef IFT_ETHER
-#define IFT_ETHER 0x6
-#endif
-          if (sdl->sdl_type == IFT_ETHER) {
-            memcpy(mac, LLADDR(sdl), 6);
+    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_LINK)
+            continue;
+
+        struct sockaddr_dl* sdl = reinterpret_cast<struct sockaddr_dl*>(ifa->ifa_addr);
+        if (sdl->sdl_type == IFT_ETHER) {
+            std::memcpy(mac, LLADDR(sdl), 6);
             char macStr[18];
             snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
                      mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-            macAddress = std::string(macStr);
+            macAddress = macStr;
             break;
-          }
         }
+    }
 
-        freeifaddrs(ifaddr);
-        return macAddress;
-#elif __linux__
+    freeifaddrs(ifaddr);
+    return macAddress;
+
+#elif defined(__linux__)
+    #include <unistd.h>
+    #include <sys/ioctl.h>
+    #include <net/if.h>
+    #include <cstring>
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0) return "";
 
     struct ifreq ifr;
     const char* iface = "eth0";
-    strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    ifr.ifr_name[IFNAMSIZ - 1] = 0;
+    std::strncpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+    ifr.ifr_name[IFNAMSIZ - 1] = '\0';
 
     if (ioctl(sock, SIOCGIFHWADDR, &ifr) == 0) {
-        unsigned char* mac = (unsigned char*)ifr.ifr_hwaddr.sa_data;
+        unsigned char* mac = reinterpret_cast<unsigned char*>(ifr.ifr_hwaddr.sa_data);
         char macStr[18];
         snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
                  mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
         close(sock);
-        return std::string(macStr);
+        return macStr;
     }
 
     close(sock);
     return "";
+
 #else
     return "Unsupported platform";
 #endif
-      }
+}
 
     inline std::string getUuid()
       {
@@ -207,37 +230,79 @@ namespace comet
         return lower(std::string(hostname));
     }
 
-    inline std::string getPrivateIPAddress()
-      {
-        struct ifaddrs *ifaddr, *ifa;
-        char host[NI_MAXHOST];
-        std::string privateIP = "Not found";
+  inline std::string getPrivateIPAddress()
+    {
+#ifdef _WIN32
+      char ac[NI_MAXHOST] = {0};
 
-        if (getifaddrs(&ifaddr) == -1) {
-          perror("getifaddrs");
-          return privateIP;
-        }
+      // Initialize Winsock (required before using getaddrinfo etc.)
+      WSADATA wsaData;
+      if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        return "WSAStartup failed";
 
-        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-          if (ifa->ifa_addr == nullptr) continue;
-
-          if (ifa->ifa_addr->sa_family == AF_INET) {
-            // IPv4
-            if (getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0,
-                            NI_NUMERICHOST) == 0) {
-              std::string interfaceName = ifa->ifa_name;
-              if (interfaceName != "lo0") {
-                // Exclude loopback interface
-                privateIP = host;
-                break;
-              }
-            }
-          }
-        }
-
-        freeifaddrs(ifaddr);
-        return privateIP;
+      char hostname[NI_MAXHOST];
+      if (gethostname(hostname, NI_MAXHOST) != 0) {
+        WSACleanup();
+        return "Failed to get hostname";
       }
+
+      addrinfo hints = {};
+      hints.ai_family = AF_INET; // IPv4
+      hints.ai_socktype = SOCK_STREAM;
+      hints.ai_flags = AI_PASSIVE;
+
+      addrinfo* info = nullptr;
+      if (getaddrinfo(hostname, nullptr, &hints, &info) != 0) {
+        WSACleanup();
+        return "Failed to resolve host IP";
+      }
+
+      for (addrinfo* p = info; p != nullptr; p = p->ai_next) {
+        void* addr = &((sockaddr_in*)p->ai_addr)->sin_addr;
+        inet_ntop(p->ai_family, addr, ac, sizeof(ac));
+
+        if (std::string(ac) != "127.0.0.1") {
+          std::string result = ac;
+          freeaddrinfo(info);
+          WSACleanup();
+          return result;
+        }
+      }
+
+      freeaddrinfo(info);
+      WSACleanup();
+      return "Not found";
+
+#else
+      struct ifaddrs* ifaddr;
+      struct ifaddrs* ifa;
+      char host[NI_MAXHOST] = {0};
+      std::string privateIP = "Not found";
+
+      if (getifaddrs(&ifaddr) == -1) {
+        return "getifaddrs failed";
+      }
+
+      for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (!ifa->ifa_addr || ifa->ifa_addr->sa_family != AF_INET)
+          continue;
+
+        if (getnameinfo(ifa->ifa_addr, sizeof(sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST) != 0)
+          continue;
+
+        std::string ip = host;
+        std::string name = ifa->ifa_name;
+
+        if (ip != "127.0.0.1" && name != "lo" && name != "lo0") {
+          privateIP = ip;
+          break;
+        }
+      }
+
+      freeifaddrs(ifaddr);
+      return privateIP;
+#endif
+    }
 
     inline std::string getPublicIPAddressFromWeb()
       {

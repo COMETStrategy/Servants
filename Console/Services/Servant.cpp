@@ -160,6 +160,7 @@ namespace comet
         } else {
           COMETLOG("Successfully deleted " + std::to_string(deletedServants) + " servants.", LoggerLevel::INFO);
         }
+      return deletedServants;
  
     }
    
@@ -251,7 +252,7 @@ namespace comet
       {
         totalCores = std::thread::hardware_concurrency();
         // Example value, replace with actual COMETLOGic to get total cores
-        unusedCores = std::max(0, unusedCores); // Example value, replace with actual COMETLOGic to get reserved cores
+        if (unusedCores < 0) unusedCores = 0; // Example value, replace with actual COMETLOGic to get reserved cores
 
         std::string html = "";
         std::string leftColumnStyles = " style='text-align: left;' ";

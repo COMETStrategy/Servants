@@ -13,17 +13,18 @@
   #pragma comment(lib, "iphlpapi.lib")
   #pragma comment(lib, "rpcrt4.lib")
 #elif __APPLE__
-#include <ifaddrs.h>
+  #include <ifaddrs.h>
+  #include <netdb.h>
 #elif __linux__
   #include <sys/ioctl.h>
   #include <net/if.h>
   #include <unistd.h>
   #include <uuid/uuid.h>
   #include <net/if_types.h>
+  #include <netdb.h>
 #endif
 #include "Authentication.h"
 
-#include <netdb.h>
 #include <thread>
 
 #include "Logger.h"

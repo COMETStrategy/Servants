@@ -30,12 +30,10 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${Publi
 
 # ---------------------------
 # Source files
-# ---------------------------
 file(GLOB SERVICES_SRC Services/*.cpp Services/*.h)
 
 # ---------------------------
 # Dependencies from vcpkg
-# ---------------------------
 find_package(Drogon CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
@@ -43,7 +41,6 @@ find_package(nlohmann_json CONFIG REQUIRED)
 
 # ---------------------------
 # Static asset copy
-# ---------------------------
 file(GLOB_RECURSE STATIC_FILES ${CMAKE_SOURCE_DIR}/static/*)
 
 add_custom_command(

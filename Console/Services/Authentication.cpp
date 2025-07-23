@@ -13,17 +13,18 @@
   #pragma comment(lib, "iphlpapi.lib")
   #pragma comment(lib, "rpcrt4.lib")
 #elif __APPLE__
-#include <ifaddrs.h>
+  #include <ifaddrs.h>
+  #include <netdb.h>
 #elif __linux__
   #include <sys/ioctl.h>
   #include <net/if.h>
   #include <unistd.h>
   #include <uuid/uuid.h>
   #include <net/if_types.h>
+  #include <netdb.h>
 #endif
 #include "Authentication.h"
 
-#include <netdb.h>
 #include <thread>
 
 #include "Logger.h"
@@ -91,7 +92,7 @@ namespace comet
     bool Authentication::valid(std::string email, std::string code, std::string aIpAddress)
       {
         isAuthenticated = false;
-        if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 8) {
+        if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 2) {
           COMETLOG("Invalid authentication parameters.", LoggerLevel::CRITICAL);
           return false;
         }

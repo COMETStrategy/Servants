@@ -26,3 +26,53 @@ Mac
 brew install doxygen
 brew install graphviz
 ```
+
+
+# Setting up a new Windows
+- This contains a very useful link
+`https://drogonframework.github.io/drogon-docs/#/ENG/ENG-02-Installation?id=windows`
+- It seems using vcpkg is a popular consistent way to install Drogon on Windows/Mac/Linux.
+put it somewhere like `C:\vcpkg` and then run the following commands in a terminal:
+```bash
+git clone https://github.com/microsoft/vcpkg
+cd vcpkg
+./bootstrap-vcpkg.bat
+git pull
+```
+- Add this folder to the environmemnt variables PATH
+
+- Check it works with `vcpkg list` or `vcpkg --version' in a new shell
+
+- Using Administrator PowerShell
+```Powershell
+vcpkg install drogon:x64-windows
+vcpkg list
+````
+- Check if others are needed
+```Powershell
+vcpkg install curl:x64-windows
+vcpkg install sqlite3:x64-windows
+
+
+
+vcpkg install jsoncpp:x64-windows zlib:x64-windows openssl:x64-windows sqlite3:x64-windows libpq:x64-windows libpqxx:x64-windows 
+
+vcpkg install jsoncpp:x64-windows zlib:x64-windows openssl:x64-windows sqlite3:x64-windows libpq:x64-windows libpqxx:x64-windows drogon[core,ctl,sqlite3,postgres,orm]:x64-windows
+```
+To list what is there
+```Powershell
+vcpkg list
+```
+
+# Setting up on MacOS
+```angular2html
+brew upgrade
+brew install jsoncpp
+brew install ossp-uuid
+yum install zlib-devel
+brew install openssl
+
+```
+
+
+

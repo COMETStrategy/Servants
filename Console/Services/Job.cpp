@@ -10,8 +10,17 @@
 #include <thread>
 
 
-#include "Job.h"
 
+#include <csignal>
+// #ifdef _WIN32
+//   #include <windows.h>
+// #else
+//   #include <unistd.h>     // fork, execl
+//   #include <fcntl.h>      // open
+// #endif
+
+
+#include "Job.h"
 #include "Curl.hpp"
 #include "Logger.h"
 #include "Encoding.h"
@@ -494,142 +503,140 @@ namespace comet
         return true;
       }
 
+  int Job::runExecutable(Database &db, std::map<std::string, std::string> &job,
+                       std::map<std::string, std::string> &servant)
+{
+    try {
+        auto workDirectory = job["WorkingDirectory"];
+        auto inputFileName = job["InputFileName"];
 
-    int Job::runExecutable(Database &db, std::map<std::string, std::string> &job,
-                           std::map<std::string, std::string> &servant)
-      {
-        try {
-          auto workDirectory = job["WorkingDirectory"];
-          auto engineFileName = servant["engineFolder"] + job["EngineVersion"];
-          auto inputFileName = job["InputFileName"];
-
-          if (!std::filesystem::exists(workDirectory)) {
+        if (!std::filesystem::exists(workDirectory)) {
             COMETLOG("Creating working directory: " + workDirectory, comet::DEBUGGING);
             std::filesystem::create_directories(workDirectory);
-          } else {
+        } else {
             COMETLOG("Working directory already exists: " + workDirectory, comet::DEBUGGING);
-          }
+        }
 
-          std::promise<int> pidPromise;
-          auto pidFuture = pidPromise.get_future();
+        std::promise<int> pidPromise;
+        auto pidFuture = pidPromise.get_future();
 
-          auto fullEnginePath = servant["engineFolder"] + "/" + job["EngineVersion"];
+        std::string fullEnginePath = servant["engineFolder"] + "/" + job["EngineVersion"];
+        std::string savedCaseNumber = job.count("CaseNumber") ? job["CaseNumber"] : "No case number";
 
-          std::string savedCaseNumber = (job.find("CaseNumber") != job.end()) ? job["CaseNumber"] : "No case number";
-          // Save the CaseNumber when the job starts
+        std::thread([=, &db, &pidPromise]() mutable {
+            try {
+                std::string managerIp = servant["managerIpAddress"].empty()
+                                        ? getMachineName()
+                                        : servant["managerIpAddress"];
 
-          std::thread(
-            [&pidPromise, workDirectory, fullEnginePath, inputFileName, &servant, &job, &db, &savedCaseNumber]()
-              {
-                try {
-                  auto caseNumberString = job["CaseNumber"];
-                  auto groupNameString = job["GroupName"];
-                  auto sevantString = servant["ipAddress"];
+                std::string args =
+                    "\"" + fullEnginePath + "\" \"" + workDirectory + inputFileName + "\""
+                    " --hub-progress-url \"" + managerIp + ":" + servant["port"] + "/job/progress\""
+                    " --output-dir \"" + workDirectory + "/\""
+                    " --phase-dir \"" + job["PhaseFileLocation"] + "/\""
+                    " --email \"" + job["CreatorXEmail"] + "\""
+                    " --code \"" + job["CreatorXCode"] + "\""
+                    " --case-number \"" + job["CaseNumber"] + "\""
+                    " --lowercase-phase-file-paths false";
 
-                  pid_t pid = fork();
-                  if (pid == -1) {
-                    COMETLOG("Failed to fork process", comet::CRITICAL);
+#ifdef _WIN32
+                STARTUPINFOA si = { sizeof(STARTUPINFOA) };
+                PROCESS_INFORMATION pi;
+                si.dwFlags = STARTF_USESHOWWINDOW;
+                si.wShowWindow = SW_HIDE;
+
+                char* cmdLine = _strdup(args.c_str());
+                BOOL result = CreateProcessA(
+                    NULL, cmdLine, NULL, NULL, FALSE,
+                    CREATE_NO_WINDOW, NULL, NULL, &si, &pi
+                );
+
+                if (!result) {
+                    COMETLOG("Failed to start process: " + args, comet::CRITICAL);
                     pidPromise.set_value(-1);
                     return;
-                  }
+                }
 
-                  if (pid == 0) {
-                    // Redirect stdout and stderr to /dev/null
+                CloseHandle(pi.hThread);
+                pidPromise.set_value(static_cast<int>(pi.dwProcessId));
+
+                // Optionally wait for the process to finish
+                WaitForSingleObject(pi.hProcess, INFINITE);
+
+                DWORD exitCode = 0;
+                GetExitCodeProcess(pi.hProcess, &exitCode);
+                CloseHandle(pi.hProcess);
+
+                COMETLOG("Process completed with exit code: " + std::to_string(exitCode), comet::INFO);
+                Job::processUpdateRunningToManager(db, JobStatus::Completed, servant["ipAddress"],
+                    "", "Complete (" + std::to_string(exitCode) + ")", savedCaseNumber, job["GroupName"]);
+
+#else // Unix
+                pid_t pid = fork();
+                if (pid == -1) {
+                    COMETLOG("Failed to fork", comet::CRITICAL);
+                    pidPromise.set_value(-1);
+                    return;
+                }
+
+                if (pid == 0) {
                     int devNull = open("/dev/null", O_WRONLY);
                     if (devNull != -1) {
-                      dup2(devNull, STDOUT_FILENO);
-                      dup2(devNull, STDERR_FILENO);
-                      close(devNull);
+                        dup2(devNull, STDOUT_FILENO);
+                        dup2(devNull, STDERR_FILENO);
+                        close(devNull);
                     }
 
+                    execl(fullEnginePath.c_str(),
+                          fullEnginePath.c_str(),
+                          (workDirectory + inputFileName).c_str(),
+                          "--hub-progress-url",
+                          (managerIp + ":" + servant["port"] + "/job/progress").c_str(),
+                          "--output-dir", (workDirectory + "/").c_str(),
+                          "--phase-dir", (job.at("PhaseFileLocation") + "/").c_str(),
+                          "--email", job.at("CreatorXEmail").c_str(),
+                          "--code", job.at("CreatorXCode").c_str(),
+                          "--case-number", job.at("CaseNumber").c_str(),
+                          "--lowercase-phase-file-paths", "false",
+                          nullptr);
 
-                    std::string managerIpAddress = (servant["managerIpAddress"].empty())
-                                                     ? getMachineName()
-                                                     : servant["managerIpAddress"];
-                    execl(
-                      fullEnginePath.c_str(),
-                      fullEnginePath.c_str(),
-                      (workDirectory + inputFileName).c_str(),
-                      "--hub-progress-url",
-                      (managerIpAddress + ":" + servant["port"] + "/job/progress").c_str(),
-                      "--output-dir", (workDirectory + "/").c_str(),
-                      "--phase-dir", (job.at("PhaseFileLocation") + "/").c_str(),
-                      "--email", job.at("CreatorXEmail").c_str(),
-                      "--code", job.at("CreatorXCode").c_str(),
-                      "--case-number", job.at("CaseNumber").c_str(),
-                      "--lowercase-phase-file-paths", "false",
-                      nullptr
-                    );
-
-                    COMETLOG("Execute Failure: " + fullEnginePath, comet::CRITICAL);
+                    COMETLOG("Failed to exec: " + fullEnginePath, comet::CRITICAL);
                     _exit(EXIT_FAILURE);
-                  }
-
-                  pidPromise.set_value(pid);
-
-                  if (!db.isConnected()) {
-                    COMETLOG("Database connection is not active", comet::CRITICAL);
-                    throw std::runtime_error("Database connection error");
-                  }
-
-                  Job::
-                      processUpdateRunningToManager(db, JobStatus::Running, sevantString,
-                                                    std::to_string(pid),
-                                                    "Starting process: " + std::to_string(pid), caseNumberString,
-                                                    groupNameString);
-
-                  // Wait for the child process to complete
-                  int status;
-                  waitpid(pid, &status, 0);
-                  COMETLOG(
-                    "Job number completed Case#:" + caseNumberString + " with process ID: " + std::to_string(
-                      pid), comet::INFO);
-
-                  if (WIFEXITED(status)) {
-                    COMETLOG(
-                      "Child process [" + std::to_string(pid) + "] "
-                      + " Case Number: " + caseNumberString
-                      + " completed "
-                      + "with exit code: " + std::to_string(WEXITSTATUS(status))
-                      , comet::INFO);
-                    Job::
-                        processUpdateRunningToManager(db, JobStatus::Completed, sevantString,
-                                                      std::string(""),
-                                                      "Complete (" + std::to_string(WEXITSTATUS(status)) + ")",
-                                                      caseNumberString, groupNameString);
-                  } else if (WIFSIGNALED(status)) {
-                    std::ostringstream oss;
-                    auto now = std::chrono::system_clock::now();
-                    auto in_time_t = std::chrono::system_clock::to_time_t(now);
-                    oss << std::put_time(std::localtime(&in_time_t), "%Y-%m-%d %H:%M:%S");
-                    std::string currentTime = oss.str();
-
-                    auto processUpdateString = (status == SIGTERM)
-                                                 ? "User Terminated at " + currentTime
-                                                 : "Terminated by signal: " + std::to_string(WTERMSIG(status));
-                    auto loggerStatus = (status == SIGTERM) ? LoggerLevel::INFO : LoggerLevel::CRITICAL;
-                    COMETLOG(
-                      "Child process [" + std::to_string(pid) + "] "
-                      + " Case Number: " + caseNumberString + " "
-                      + processUpdateString, loggerStatus);
-                    Job::
-                        processUpdateRunningToManager(db, JobStatus::Failed, sevantString,
-                                                      std::string(""),
-                                                      processUpdateString, caseNumberString, groupNameString);
-                  }
-                } catch (const std::exception &e) {
-                  COMETLOG("Exception in thread: " + std::string(e.what()), LoggerLevel::CRITICAL);
-                  pidPromise.set_value(-1);
                 }
-              }).detach();
-          Servant::initialiseAllServantActiveCores(db);
-          return pidFuture.get();
-        } catch (const std::exception &e) {
-          COMETLOG("Exception in runExecutable: " + std::string(e.what()), comet::CRITICAL);
-          Servant::initialiseAllServantActiveCores(db);
-          return -1;
-        }
-      }
+
+                pidPromise.set_value(pid);
+
+                int status = 0;
+                waitpid(pid, &status, 0);
+
+                if (WIFEXITED(status)) {
+                    int code = WEXITSTATUS(status);
+                    COMETLOG("Child exited with code: " + std::to_string(code), comet::INFO);
+                    Job::processUpdateRunningToManager(db, JobStatus::Completed, servant["ipAddress"],
+                        "", "Complete (" + std::to_string(code) + ")", savedCaseNumber, job["GroupName"]);
+                } else if (WIFSIGNALED(status)) {
+                    int sig = WTERMSIG(status);
+                    COMETLOG("Child terminated by signal: " + std::to_string(sig), comet::CRITICAL);
+                    Job::processUpdateRunningToManager(db, JobStatus::Failed, servant["ipAddress"],
+                        "", "Terminated by signal: " + std::to_string(sig), savedCaseNumber, job["GroupName"]);
+                }
+#endif
+
+            } catch (const std::exception& e) {
+                COMETLOG("Exception in thread: " + std::string(e.what()), comet::CRITICAL);
+                pidPromise.set_value(-1);
+            }
+        }).detach();
+
+        Servant::initialiseAllServantActiveCores(db);
+        return pidFuture.get();
+    } catch (const std::exception& e) {
+        COMETLOG("Exception in runExecutable: " + std::string(e.what()), comet::CRITICAL);
+        Servant::initialiseAllServantActiveCores(db);
+        return -1;
+    }
+}
+
 
     bool Job::processUpdateRunningToManager(
       Database &db

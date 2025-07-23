@@ -103,33 +103,43 @@ namespace comet
         alive = aAlive;
       }
 
-    void Servant::updateServantSettings(Database &db)
+    void Servant::updateServantSettings(Database &db){
+
+      // Is servent already registered?
+      std::string queryFound = "SELECT * WHERE ipAddress = '" + ipAddress + "';";
+      auto found = db.getQueryResults(queryFound);
+      if (found.size() > 0)
       {
         std::string query = "UPDATE servants SET projectId = 0, lastUpdateTime = DATETIME('now'), "
-                            "version = '" + version + "', email = '" + email + "', code = '" + code + "', "
-                            "port = " + std::to_string(port) + ", totalCores = " + std::to_string(totalCores) + ", "
-                            "unusedCores = " + std::to_string(unusedCores) + ", activeCores = " + std::to_string(
-                              activeCores) + ", " + "priority = " + std::to_string(priority) +
-                            ", " + "alive = " + std::to_string(alive) + " "
-                            "WHERE ipAddress = '" + ipAddress + "';";
+                              "version = '" + version + "', email = '" + email + "', code = '" + code + "', "
+                              "port = " + std::to_string(port) + ", totalCores = " + std::to_string(totalCores) + ", "
+                              "unusedCores = " + std::to_string(unusedCores) + ", activeCores = " + std::to_string(
+                                activeCores) + ", " + "priority = " + std::to_string(priority) +
+                              ", " + "alive = " + std::to_string(alive) + " "
+                              "WHERE ipAddress = '" + ipAddress + "';";
 
-        if (db.updateQuery("Update Servants", query, false) == 0) {
-          // do an insert a new record
-          query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
+        auto update = db.updateQuery("Update Servants", query, false);
+        return;
+      }
+      else
+      {
+        std:
+          std::string query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
                   "version, email, code, port, priority, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder, alive) "
                   "VALUES ('" + ipAddress + "', 0, DATETIME('now'), DATETIME('now'), '1.0', '" + email + "', '" +
-                  code + "', " + std::to_string(port) + "', " + std::to_string(priority) + ", " +
+                  code + "', " + std::to_string(port) + ", " + std::to_string(priority) + ", " +
                   std::to_string(totalCores) + ", " +
                   std::to_string(unusedCores) + ", " +
                   std::to_string(activeCores) + ",'" + managerIpAddress + "','" + engineFolder + "'," +
-                  std::to_string(alive) + ", );";
-          if (!db.insertRecord(query, false)) {
-            COMETLOG("Failed to update Servants table with servant settings.", LoggerLevel::CRITICAL);
-            return;
-          }
-
-          COMETLOG("Servant settings updated successfully in the database.", LoggerLevel::DEBUGGING);
+                  std::to_string(alive) + " );";
+        if (!db.insertRecord(query, true)) {
+          COMETLOG("Failed to update Servants table with servant settings.", LoggerLevel::CRITICAL);
+          return;
         }
+
+        COMETLOG("Servant settings updated successfully in the database.", LoggerLevel::DEBUGGING);
+      }
+
       }
 
     std::vector<std::map<std::string, std::string> > Servant::getAvailableServants(Database &db)
@@ -160,6 +170,7 @@ namespace comet
         } else {
           COMETLOG("Successfully deleted " + std::to_string(deletedServants) + " servants.", LoggerLevel::INFO);
         }
+      return deletedServants;
  
     }
    
@@ -203,7 +214,7 @@ namespace comet
     std::string Servant::HtmlAuthenticationSettingsForm(Authentication &auth)
       {
         std::string ip_public = getPublicIPAddressFromWeb();
-        std::string ip_private = getPrivateIPAddress();
+        std::string ip_private = getMachineName();
         std::string ip = ip_public + " (public), " + ip_private + " (private/local)";
         std::string html = "";
         ipAddress = ip_private;
@@ -251,7 +262,7 @@ namespace comet
       {
         totalCores = std::thread::hardware_concurrency();
         // Example value, replace with actual COMETLOGic to get total cores
-        unusedCores = std::max(0, unusedCores); // Example value, replace with actual COMETLOGic to get reserved cores
+        if (unusedCores < 0) unusedCores = 0; // Example value, replace with actual COMETLOGic to get reserved cores
 
         std::string html = "";
         std::string leftColumnStyles = " style='text-align: left;' ";
@@ -314,22 +325,22 @@ namespace comet
     bool Servant::createNewServentsTable(Database &db)
       {
         std::string query = R"(CREATE TABLE IF NOT EXISTS `servants` (
-                    `ipAddress` varchar(250) NOT NULL
-                    , `projectId` int NOT NULL
-                    , `registrationTime` datetime NOT NULL
-                    , `lastUpdateTime` datetime NOT NULL
-                    , `ServantVersion` varchar(30) NOT NULL
-                    , `email` varchar(100) NOT NULL
-                    , `code` varchar(100)NOT NULL
-                    , `port` int NOT NULL
-                    , priority double DEFAULT(1)
-                    , `totalCores` int NOT NULL
-                    , `unusedCores` int NOT NULL
-                    , `activeCores` int NOT NULL
-                    , `managerIpAddress` varchar(250) NOT NULL
-                    , `engineFolder` varchar(1000) 
-                    , alive bool not null
-                    , PRIMARY KEY(`ipAddress`, `projectId`)
+                    alive bool DEFAULT(1)
+                  , ipAddress varchar(250) NOT NULL
+                  , projectId INT NOT NULL
+                  , registrationTime datetime NOT NULL
+                  , lastUpdateTime datetime NOT NULL
+                  , version varchar(30) NOT NULL
+                  , email varchar(100) NOT NULL
+                  , code varchar(100) NOT NULL
+                  , port INT NOT NULL
+                  , priority double DEFAULT(1)
+                  , totalCores INT NOT NULL
+                  , unusedCores INT NOT NULL
+                  , activeCores INT NOT NULL
+                  , managerIpAddress varchar(250) NOT NULL
+                  , engineFolder varchar(1000)
+                  , PRIMARY KEY(ipAddress, projectId)
                     );)";
 
         db.createTableIfNotExists("servants", query);

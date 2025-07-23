@@ -2,51 +2,51 @@ cmake_minimum_required(VERSION 3.31)
 project(servant-console)
 
 set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
-
-include(FetchContent)
-
-# Fetch Drogon
-FetchContent_Declare(
-        drogon
-        GIT_REPOSITORY https://github.com/drogonframework/drogon.git
-        GIT_TAG master
-)
-FetchContent_MakeAvailable(drogon)
-
-# Fetch Google Test
-FetchContent_Declare(
-        googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG release-1.12.1
-)
-FetchContent_MakeAvailable(googletest)
-
-# Detect OS
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+# ---------------------------
+# Detect OS name
+# ---------------------------
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(OS_NAME macOS)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(SQLITE3_LIBRARY_PATH "/usr/local/lib/libsqlite3.dylib") # adjust for Homebrew or wherever
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(OS_NAME Linux)
-elseif (${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    set(SQLITE3_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/libsqlite3.so") # or as appropriate
+elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(OS_NAME Windows)
+    set(SQLITE3_LIBRARY_PATH "C:/Program Files/vcpkg/installed/x64-windows/debug/lib/sqlite3.lib")
 else ()
     set(OS_NAME Other)
+    set(SQLITE3_LIBRARY_PATH "sqlite3") # fallback, may not work
 endif ()
 
+
+# ---------------------------
 # Set output directories
-# set($PublishFolder, $<CONFIG>)
-set($PublishFolder "Publish")
+# ---------------------------
+set(PublishFolder "Publish")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${PublishFolder})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${PublishFolder})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${PublishFolder})
 
+# ---------------------------
 # Source files
-file(GLOB SERVICES_SRC Services/*.cpp  Services/*.h)
+file(GLOB SERVICES_SRC Services/*.cpp Services/*.h)
 
-# Find and link libcurl
+# ---------------------------
+# Dependencies from vcpkg
+find_package(Drogon CONFIG REQUIRED)
 find_package(CURL REQUIRED)
+find_package(SQLite3 REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 
+# ---------------------------
+# Static asset copy
 file(GLOB_RECURSE STATIC_FILES ${CMAKE_SOURCE_DIR}/static/*)
 
 add_custom_command(
@@ -63,27 +63,24 @@ add_custom_target(copy_static_files ALL
         COMMENT "Copying static files to runtime directory"
 )
 
-
+# ---------------------------
 # Main executable
-add_executable(servant-console main.cpp ${SERVICES_SRC}
-        Services/Servant.cpp
-        Services/Servant.h
-        Services/Scheduler.cpp
-        Services/Scheduler.h)
+# ---------------------------
+add_executable(servant-console main.cpp ${SERVICES_SRC})
 target_include_directories(servant-console PRIVATE Services)
-target_link_libraries(servant-console PRIVATE drogon sqlite3 CURL::libcurl)
 
-# Ensure copy_static_files and copy_view_files runs before servant-console
+#link_directories("C:/Program Files/vcpkg/installed/x64-windows/debug/lib/")
+
+# "C:/Program Files/vcpkg/installed/x64-windows/debug/lib/sqlite3.lib"
+target_link_libraries(servant-console
+        PRIVATE
+        Drogon::Drogon
+        CURL::libcurl
+        nlohmann_json::nlohmann_json
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ${SQLITE3_LIBRARY_PATH}
+)
+
+
 add_dependencies(servant-console copy_static_files)
-
-# Unit tests
-enable_testing()
-file(GLOB SERVICES_SRC Services/*.cpp) # Include all .cpp files in the Services folder
-add_executable(servant-console-tests GTests/LoggerTest.cpp ${SERVICES_SRC}
-        Services/Servant.cpp
-        Services/Servant.h
-        Services/Scheduler.cpp
-        Services/Scheduler.h)
-target_link_libraries(servant-console-tests PRIVATE gtest gtest_main drogon sqlite3 CURL::libcurl)
-target_include_directories(servant-console-tests PRIVATE Services)
-add_test(NAME servant-console-tests COMMAND servant-console-tests)

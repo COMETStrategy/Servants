@@ -12,7 +12,7 @@
 #include <mutex>
 
 #include "utilities.h"
-#include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
+//#include "../../../../../../opt/homebrew/Cellar/openssl@3/3.5.0/include/openssl/obj_mac.h"
 
 
 std::mutex dbMutex;
@@ -67,7 +67,7 @@ namespace comet
         char *errMsg;
         if (sqlite3_exec(m_db, insertQuery.c_str(), nullptr, nullptr, &errMsg) != SQLITE_OK) {
           if (logErrors)
-            COMETLOG("Failed to insert record into Settings table: " + std::string(errMsg),
+            COMETLOG("Failed to insert record/s into table: " + std::string(errMsg),
                                LoggerLevel::CRITICAL);
           sqlite3_free(errMsg);
           return false; // Return false to indicate failure
@@ -144,7 +144,8 @@ namespace comet
         std::vector<std::map<std::string, std::string> > results;
         // Debug COMETLOG the query being executed
         COMETLOG("Executing query: " + query, LoggerLevel::DEBUGGING);
-
+      try
+      {
         if (sqlite3_prepare_v2(m_db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
           while (sqlite3_step(stmt) == SQLITE_ROW) {
             std::map<std::string, std::string> row;
@@ -160,8 +161,13 @@ namespace comet
         } else {
           COMETLOG("Failed to execute query: " + std::string(sqlite3_errmsg(m_db)), LoggerLevel::CRITICAL);
           sqlite3_finalize(stmt);
-          throw std::runtime_error("Failed to execute query");
+          return results;
         }
+      }
+      catch (const std::exception &e)
+      {
+        COMETLOG(std::string("Error executing query: ") + e.what(), LoggerLevel::INFO);;
+      }
 
         COMETLOG("Number of rows retrieved: " + std::to_string(results.size()), LoggerLevel::DEBUGGING);
         return results;

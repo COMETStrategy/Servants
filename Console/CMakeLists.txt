@@ -12,13 +12,18 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 # ---------------------------
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(OS_NAME macOS)
+    set(SQLITE3_LIBRARY_PATH "/usr/local/lib/libsqlite3.dylib") # adjust for Homebrew or wherever
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(OS_NAME Linux)
+    set(SQLITE3_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/libsqlite3.so") # or as appropriate
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Windows")
     set(OS_NAME Windows)
+    set(SQLITE3_LIBRARY_PATH "C:/Program Files/vcpkg/installed/x64-windows/debug/lib/sqlite3.lib")
 else ()
     set(OS_NAME Other)
+    set(SQLITE3_LIBRARY_PATH "sqlite3") # fallback, may not work
 endif ()
+
 
 # ---------------------------
 # Set output directories
@@ -38,6 +43,7 @@ find_package(Drogon CONFIG REQUIRED)
 find_package(CURL REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 # ---------------------------
 # Static asset copy
@@ -63,13 +69,17 @@ add_custom_target(copy_static_files ALL
 add_executable(servant-console main.cpp ${SERVICES_SRC})
 target_include_directories(servant-console PRIVATE Services)
 
-target_include_directories(servant-console PRIVATE ${SQLite3_INCLUDE_DIRS})
+#link_directories("C:/Program Files/vcpkg/installed/x64-windows/debug/lib/")
+
+# "C:/Program Files/vcpkg/installed/x64-windows/debug/lib/sqlite3.lib"
 target_link_libraries(servant-console
         PRIVATE
         Drogon::Drogon
-        ${SQLite3_LIBRARIES}
         CURL::libcurl
         nlohmann_json::nlohmann_json
+        OpenSSL::SSL
+        OpenSSL::Crypto
+        ${SQLITE3_LIBRARY_PATH}
 )
 
 

@@ -92,7 +92,7 @@ namespace comet
     bool Authentication::valid(std::string email, std::string code, std::string aIpAddress)
       {
         isAuthenticated = false;
-        if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 8) {
+        if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 2) {
           COMETLOG("Invalid authentication parameters.", LoggerLevel::CRITICAL);
           return false;
         }

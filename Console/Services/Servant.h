@@ -66,7 +66,7 @@ namespace comet
 
         std::string getEngineFolder();
 
-        static void stopSelectedProcesses(const Database & db, Json::Value & jobs);
+        static void stopSelectedProcesses(Database& db, Json::Value & jobs);
 
         static void initialiseAllServantActiveCores(const Database & db);
 

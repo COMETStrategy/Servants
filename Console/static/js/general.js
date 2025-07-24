@@ -144,8 +144,26 @@ function toggleLinks() {
 }
 
 function openLocalFile(filePath) {
-    const command = `open "${filePath}"`; // Use `open` for macOS or `explorer` for Windows
-    fetch(`/execute-command`, {
+    let command;
+    const windowsPath = filePath.replace(/\//g, '\\');
+
+    if (navigator.platform.startsWith('Mac')) {
+        command = `open "${filePath}"`;
+    } else if (navigator.platform.startsWith('Win')) {
+        if (windowsPath.match(/\.(txt)$/i)) {
+            command = `notepad "${windowsPath}"`;
+        } else if (windowsPath.match(/\.(html?|htm)$/i)) {
+            command = `start "" "${windowsPath}"`;
+        } else {
+            // Default: open folder containing the file
+            const folder = windowsPath.replace(/\\[^\\]*$/, '');
+            command = `explorer "${folder}"`;
+        }
+    } else { // Linux and others
+        command = `xdg-open "${filePath}"`;
+    }
+
+    fetch('/execute-command', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({command})

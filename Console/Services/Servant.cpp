@@ -106,7 +106,7 @@ namespace comet
     void Servant::updateServantSettings(Database &db){
 
       // Is servent already registered?
-      std::string queryFound = "SELECT * WHERE ipAddress = '" + ipAddress + "';";
+      std::string queryFound = "SELECT * FROM servants WHERE ipAddress = '" + ipAddress + "';";
       auto found = db.getQueryResults(queryFound);
       if (found.size() > 0)
       {
@@ -235,7 +235,7 @@ namespace comet
             "</tr>"
             "<tr>"
             "<td " + leftColumnStyles + "><label for=\"code\">Code:</label></td>"
-            "<td><input type=\"text\" id=\"code\" name=\"code\" value=\"" + code + "\" ></td>"
+            "<td><input type=\"password\" id=\"code\" name=\"code\" value=\"" + code + "\" ></td>"
             "</tr>"
 
             "<tr>"
@@ -362,7 +362,7 @@ namespace comet
         return engineFolder;
       }
 
-    void Servant::stopSelectedProcesses(const Database &db, Json::Value &jobs)
+    void Servant::stopSelectedProcesses(Database& db, Json::Value &jobs)
       {
         // Build new json list of jobs to stop
         if (jobs.isNull() || jobs.empty()) {
@@ -393,7 +393,7 @@ namespace comet
           std::string processIds = row.at("ProcessIds");
           if (servantIp  == getMachineName()) {
             // Stop processes locally
-            Job::stopProcessesLocally(processIds);
+            Job::stopProcessesLocally(db, processIds);
           } else {
             // Send stop request to the servant
             nlohmann::json jsonData;

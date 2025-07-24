@@ -25,10 +25,15 @@ namespace comet
         Unknown = -1
       };
 
-    inline JobStatus convertJobStatus(int status)
-      {
-        return static_cast<JobStatus>(status);
-      }
+  inline JobStatus convertJobStatus(int status)
+  {
+    return static_cast<JobStatus>(status);
+  }
+
+  inline int convertJobStatus(JobStatus status)
+  {
+    return static_cast<int>(status);
+  }
 
 
     // Array with JobStatus descriptions
@@ -82,7 +87,7 @@ namespace comet
 
         std::string description();
 
-        static void stopProcessesLocally(const std::string & ProcessIds);
+        static void stopProcessesLocally(Database& db, const std::string & ProcessIds);
 
 
         static void deleteJobs(const Database &db, Json::Value &jobs);

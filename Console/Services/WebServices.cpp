@@ -908,7 +908,7 @@ namespace comet
 
               try {
                 auto processIds = (*json)["processIds"].asString();
-                Job::stopProcessesLocally(processIds);
+                Job::stopProcessesLocally(db, processIds);
 
                 auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k200OK);

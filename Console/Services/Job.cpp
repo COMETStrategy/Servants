@@ -361,13 +361,12 @@ namespace comet
         html += "<td>" + checkbox + "</td>";
         html += "<td>" + row.at("LastUpdate") + "</td>";
         html += "<td>" + row.at("GroupName") + "</td>";
-        html += "<td class='centerAlign'><a href='#' title='Open Working Directory for input file " + row.at(
-            "InputFileName") +
-          "' onclick=\"openLocalFile('"
-          + row.at("WorkingDirectory")
-          + "')\">" + row.at("CaseNumber") +
-          "</a></td>";
-        html += "<td><span "
+
+        html += "<td class='centerAlign'><a href='#' title='Open Working Directory for input file " +
+                 row.at("InputFileName") + "' onclick=\"openLocalFile('" +
+                 jsEscape(row.at("WorkingDirectory")) + "')\">" + row.at("CaseNumber") + "</a></td>";
+
+         html += "<td><span "
           "title='Machine: " + row.at("CreatorMachine") + ", Email: " + row.at("CreatorXEmail") + "'>"
           + row.at("CreatorName") + "</span></td>";
         auto title = (row.at("ProcessId").empty()) ? "" : " (#" + row.at("ProcessId") + ")";
@@ -376,8 +375,7 @@ namespace comet
         {
           html +=
             "<td class='centerAlign'><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('"
-            + row.
-            at("WorkingDirectory") + "S_Display.txt')\">" +
+            + jsEscape(row.at("WorkingDirectory")) + "S_Display.txt')\">" +
             row.at("RunProgress") +
             "</a></td>";
         }
@@ -395,8 +393,7 @@ namespace comet
           stream << std::fixed << std::setprecision(2) << ranking;
           html +=
             "<td class='rightAlign'> <a href='#' title='Open Schedule HTML File for more details' onclick=\"openLocalFile('"
-            + row.
-            at("WorkingDirectory") + "S_Schedule.html')\">" +
+            + jsEscape(row.at("WorkingDirectory")) + "S_Schedule.html')\">" +
             stream.str() +
             "</a> </td>";
         }
@@ -535,7 +532,7 @@ namespace comet
       {
         whereclause += " OR ";
       }
-      whereclause += "(CaseNumber = " + caseNumber + " AND GroupName = '" + groupName + "')";
+      whereclause += "(CaseNumber = '" + caseNumber + "' AND GroupName = '" + groupName + "')";
     }
     std::string query = "DELETE FROM jobs " + whereclause + ";";
     auto numberDeleted = db.deleteQuery("Delete jobs from database", query);

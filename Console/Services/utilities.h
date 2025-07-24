@@ -404,6 +404,15 @@ inline std::string getMacAddress()
         return tokens;
     }
 
+  inline std::string jsEscape(const std::string& s) {
+      std::string out;
+      for (char c : s) {
+        if (c == '\\') out += "\\\\";
+        else if (c == '\'') out += "\\'";
+        else out += c;
+      }
+      return out;
+    }
     
   }
 

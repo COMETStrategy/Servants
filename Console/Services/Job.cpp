@@ -318,7 +318,7 @@ namespace comet
     }
     else if (sortOrder == "case")
     {
-      orderBy = " ORDER BY CaseNumber " + sortDescAsc + " ";
+      orderBy = " ORDER BY CAST(CaseNumber AS REAL) " + sortDescAsc + " ";
     }
     auto query = selection + whereClause + orderBy + " LIMIT 500;";
     auto results = db.getQueryResults(query);

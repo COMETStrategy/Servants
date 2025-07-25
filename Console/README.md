@@ -71,6 +71,7 @@ brew install jsoncpp
 brew install ossp-uuid
 yum install zlib-devel
 brew install openssl
+brew install sqlite3
 
 ```
 

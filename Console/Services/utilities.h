@@ -22,6 +22,7 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <net/if.h>
+#include <net/if_types.h>
 #include <unistd.h>
 #endif
 

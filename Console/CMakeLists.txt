@@ -10,9 +10,14 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 # ---------------------------
 # Detect OS name
 # ---------------------------
+set(OPENSSL_SSL_LIBRARY "OpenSSL::SSL")
+set(OPENSSL_CRYPTO_LIBRARY "OpenSSL::Crypto")
+
 if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(OS_NAME macOS)
-    set(SQLITE3_LIBRARY_PATH "/usr/local/lib/libsqlite3.dylib") # adjust for Homebrew or wherever
+    set(SQLITE3_LIBRARY_PATH "/opt/homebrew/opt/sqlite/lib/libsqlite3.3.50.3.dylib") 
+    set(OPENSSL_SSL_LIBRARY "/opt/homebrew/opt/openssl/lib/libssl.dylib")
+    set(OPENSSL_CRYPTO_LIBRARY "/opt/homebrew/opt/openssl/lib/libcrypto.dylib")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(OS_NAME Linux)
     set(SQLITE3_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/libsqlite3.so") # or as appropriate
@@ -41,7 +46,7 @@ file(GLOB SERVICES_SRC Services/*.cpp Services/*.h)
 # Dependencies from vcpkg
 find_package(Drogon CONFIG REQUIRED)
 find_package(CURL REQUIRED)
-find_package(SQLite3 REQUIRED)
+#find_package(SQLite3 REQUIRED) #included in Dragon
 find_package(nlohmann_json CONFIG REQUIRED)
 find_package(OpenSSL REQUIRED)
 
@@ -69,16 +74,13 @@ add_custom_target(copy_static_files ALL
 add_executable(servant-console main.cpp ${SERVICES_SRC})
 target_include_directories(servant-console PRIVATE Services)
 
-#link_directories("C:/Program Files/vcpkg/installed/x64-windows/debug/lib/")
-
-# "C:/Program Files/vcpkg/installed/x64-windows/debug/lib/sqlite3.lib"
 target_link_libraries(servant-console
         PRIVATE
         Drogon::Drogon
         CURL::libcurl
         nlohmann_json::nlohmann_json
-        OpenSSL::SSL
-        OpenSSL::Crypto
+        ${OPENSSL_SSL_LIBRARY}
+        ${OPENSSL_CRYPTO_LIBRARY}
         ${SQLITE3_LIBRARY_PATH}
 )
 

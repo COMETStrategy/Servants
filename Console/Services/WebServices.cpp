@@ -211,7 +211,7 @@ namespace comet
                 LoggerLevel::INFO);
               callback(resp);
             },
-          {Post});
+          {Post, Get});
       }
 
     void WebServices::registerConfigurationHandler()
@@ -366,7 +366,7 @@ namespace comet
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found); // Set status code to 302 for redirection
-              resp->addHeader("Location", "/servant_summary");
+              resp->addHeader("Location", "/authentication");
               resp->setBody("Checking status of Servants and then will redirect to Servant summary...");
 
               callback(resp);
@@ -1246,7 +1246,7 @@ namespace comet
               }
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody("Proof of life: " + request->getHeader("Host") + " is Alive...\n");
+              resp->setBody("Proof of life: " + request->getHeader("Host") + " is Alive...\n Go to: " + request->getHeader("Host") + "/authenticate");
               COMETLOG("Proof of life: " + request->getHeader("Host") + " is Alive", LoggerLevel::DEBUGGING);
               callback(resp);
             },

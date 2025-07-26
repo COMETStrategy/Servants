@@ -18,6 +18,10 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(SQLITE3_LIBRARY_PATH "/opt/homebrew/opt/sqlite/lib/libsqlite3.3.50.3.dylib") 
     set(OPENSSL_SSL_LIBRARY "/opt/homebrew/opt/openssl/lib/libssl.dylib")
     set(OPENSSL_CRYPTO_LIBRARY "/opt/homebrew/opt/openssl/lib/libcrypto.dylib")
+
+    set(OPENSSL_ROOT_DIR "/opt/homebrew/opt/openssl")
+    set(OPENSSL_INCLUDE_DIR "/opt/homebrew/opt/openssl/include")
+    set(OPENSSL_LIBRARIES "/opt/homebrew/opt/openssl/lib")
 elseif (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(OS_NAME Linux)
     set(SQLITE3_LIBRARY_PATH "/usr/lib/x86_64-linux-gnu/libsqlite3.so") # or as appropriate
@@ -44,7 +48,7 @@ file(GLOB SERVICES_SRC Services/*.cpp Services/*.h)
 file(GLOB UTILITIES_SRC Utilities/*.cpp Utilities/*.h)
 
 add_library(utilities STATIC ${UTILITIES_SRC})
-target_include_directories(utilities PUBLIC Utilities)
+target_include_directories(utilities PUBLIC Utilities ${OPENSSL_INCLUDE_DIR})
 
 target_link_libraries(utilities
     PUBLIC
@@ -85,7 +89,7 @@ add_custom_target(copy_static_files ALL
 # Main executable
 # ---------------------------
 add_executable(servant-console Console.cpp ${SERVICES_SRC})
-target_include_directories(servant-console PRIVATE Services)
+target_include_directories(servant-console PRIVATE Services ${OPENSSL_INCLUDE_DIR})
 
 target_link_libraries(servant-console
         PRIVATE
@@ -95,6 +99,7 @@ target_link_libraries(servant-console
         nlohmann_json::nlohmann_json
         ${OPENSSL_SSL_LIBRARY}
         ${OPENSSL_CRYPTO_LIBRARY}
+        ${OPENSSL_LIBRARIES}
         ${SQLITE3_LIBRARY_PATH}
 )
 

@@ -10,8 +10,8 @@
 #include <thread>
 #include <memory>
 #include "drogon/utils/FunctionTraits.h"
-#include "Database.h"
-#include "Authentication.h"
+#include "../Utilities/Database.h"
+#include "../Utilities/Authentication.h"
 #include "Scheduler.h"
 #include "Servant.h"
 

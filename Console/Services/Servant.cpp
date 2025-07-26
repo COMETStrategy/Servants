@@ -7,12 +7,12 @@
 #include <string>
 
 
-#include "Authentication.h"
-#include "Curl.hpp"
-#include "utilities.h"
+#include "../Utilities/Authentication.h"
+#include "../Utilities/Curl.hpp"
+#include "../Utilities/utilities.h"
 #include "Servant.h"
 
-#include "Database.h"
+#include "../Utilities/Database.h"
 #include "Job.h"
 #include "drogon/LocalHostFilter.h"
 

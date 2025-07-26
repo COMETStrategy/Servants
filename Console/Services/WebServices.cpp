@@ -10,13 +10,13 @@
 
 #include "WebServices.h"
 
-#include "Authentication.h"
-#include "Database.h"
-#include "Logger.h"
+#include "../Utilities/Authentication.h"
+#include "../Utilities/Database.h"
+#include "../Utilities/Logger.h"
 #include "Job.h"
-#include "Encoding.h"
+#include "../Utilities/Encoding.h"
 #include "Scheduler.h"
-#include "utilities.h"
+#include "../Utilities/utilities.h"
 #include "Servant.h"
 //#include "../../../../../../opt/homebrew/Cellar/c-ares/1.34.4/include/ares.h"
 

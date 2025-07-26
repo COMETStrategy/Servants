@@ -6,9 +6,9 @@
 #include "Scheduler.h"
 
 #include "Servant.h"
-#include "Database.h"
+#include "../Utilities/Database.h"
 #include "Job.h"
-#include "Logger.h"
+#include "../Utilities/Logger.h"
 
 namespace comet
   {

@@ -20,11 +20,11 @@
 
 
 #include "Job.h"
-#include "Curl.hpp"
-#include "Logger.h"
-#include "Encoding.h"
-#include "Database.h"
-#include "utilities.h"
+#include "../Utilities/Curl.hpp"
+#include "../Utilities/Logger.h"
+#include "../Utilities/Encoding.h"
+#include "../Utilities/Database.h"
+#include "../Utilities/utilities.h"
 #include "WebServices.h"
 #include "drogon/orm/BaseBuilder.h"
 
@@ -482,7 +482,7 @@ namespace comet
             }
             else
             {
-              COMETLOG("Failed to stop process ID via taskkill: " + pid, LoggerLevel::CRITICAL);
+              COMETLOG("Failed to stop process ID via taskkill: " + pid, LoggerLevel::INFO);
             }
           }
 #else

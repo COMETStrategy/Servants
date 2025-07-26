@@ -3,12 +3,19 @@
 
 #include "Console.h"
 
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 #include "Services/WebServices.h"
-#include "Services/Logger.h"
+#include "Utilities/Logger.h"
 
 int main()
 {
+#ifdef _WIN32
+#include <windows.h>
+  SetConsoleOutputCP(CP_UTF8);
+#endif
 
   try {
 

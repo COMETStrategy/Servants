@@ -1,5 +1,7 @@
 cmake-build-**
 output
+Console/output/**
+Console/out/**
 .idea
 
 .vs/

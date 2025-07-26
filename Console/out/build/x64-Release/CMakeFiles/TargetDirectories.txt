@@ -1,0 +1,4 @@
+C:/Users/User/Code/Servants/Console/out/build/x64-Release/CMakeFiles/copy_static_files.dir
+C:/Users/User/Code/Servants/Console/out/build/x64-Release/CMakeFiles/servant-console.dir
+C:/Users/User/Code/Servants/Console/out/build/x64-Release/CMakeFiles/edit_cache.dir
+C:/Users/User/Code/Servants/Console/out/build/x64-Release/CMakeFiles/rebuild_cache.dir

@@ -1,0 +1,14 @@
+{
+    "version": 1,
+    "revision": 0,
+    "rules": [
+        {
+            "primary-output": "CMakeFiles\\servant-console.dir\\main.cpp.obj",
+            "outputs": [
+                "C:\\Users\\User\\Code\\Servants\\Console\\out\\build\\x64-Debug\\vc140.pdb",
+                "CMakeFiles\\servant-console.dir\\main.cpp.obj.ddi"
+            ],
+            "requires": []
+        }
+    ]
+}

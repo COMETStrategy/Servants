@@ -33,7 +33,7 @@ endif ()
 # ---------------------------
 # Set output directories
 # ---------------------------
-set(PublishFolder "Publish")
+set(PublishFolder "Publishh-${CMAKE_BUILD_TYPE}")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${PublishFolder})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${PublishFolder})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${PublishFolder})
@@ -71,7 +71,7 @@ add_custom_target(copy_static_files ALL
 # ---------------------------
 # Main executable
 # ---------------------------
-add_executable(servant-console main.cpp ${SERVICES_SRC})
+add_executable(servant-console Console.cpp ${SERVICES_SRC})
 target_include_directories(servant-console PRIVATE Services)
 
 target_link_libraries(servant-console

@@ -39,6 +39,8 @@ namespace comet
         static void setLoggerLevel(const LoggerLevel &level);
         static LoggerLevel getLoggerLevel(const LoggerLevel &level);
       };
+
+
   } // cs
 
 #endif //LOGGER_H

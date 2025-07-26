@@ -36,6 +36,36 @@ namespace comet
         return std::string(buffer);
       }
 
+#ifdef _WIN32
+#include <windows.h>
+#include <iostream>
+#include <string>
+
+    struct DebugStreamBuf : public std::streambuf {
+      std::string buffer;
+      int overflow(int c) override {
+        if (c == '\n' || c == EOF) {
+          if (!buffer.empty()) {
+            OutputDebugStringA(buffer.c_str());
+            buffer.clear();
+          }
+        }
+        else {
+          buffer += static_cast<char>(c);
+        }
+        return c;
+      }
+      int sync() override {
+        if (!buffer.empty()) {
+          OutputDebugStringA(buffer.c_str());
+          buffer.clear();
+        }
+        return 0;
+      }
+    };
+
+#endif
+
     void Logger::log(const std::string &message, const LoggerLevel COMETLOGLevel, const char *file, int line)
       {
         // Extract the file name using string manipulation
@@ -46,12 +76,11 @@ namespace comet
         std::string lastDirectoryAndFile = (secondLastSlash != std::string::npos)
                                              ? filePath.substr(secondLastSlash + 1)
                                              : filePath;
-        std::string fileLocation = " (" + lastDirectoryAndFile + ":" + std::to_string(line) + ")";
+        std::string fileLocation = "" + lastDirectoryAndFile + "(" + std::to_string(line) + "): ";
 
         std::string timeStamp = formatTime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-        std::string commonText = "COMET Logger " + timeStamp + " [" + LogLevelToString(COMETLOGLevel) + "] " + message +
-                                 "" +
-                                 fileLocation;
+        std::string commonText = fileLocation + " COMET Logger " + timeStamp + " [" + LogLevelToString(COMETLOGLevel) + "] " + message +
+                                 "";
 
         if (COMETLOGLevel >= Logger::m_LoggerLevel) {
           if (COMETLOGLevel < LoggerLevel::WARNING)
@@ -59,6 +88,14 @@ namespace comet
           else
             std::cerr << commonText << std::endl << std::flush;
         }
+#ifdef _WIN32
+
+        DebugStreamBuf debugStreamBuf;
+        std::ostream debugStream(&debugStreamBuf);
+
+        OutputDebugStringA(commonText.c_str());
+        OutputDebugStringA("\n");
+#endif
       }
 
     void comet::Logger::setFileName(const std::string &fileName)

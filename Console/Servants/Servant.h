@@ -33,6 +33,7 @@ namespace comet
         std::string managerIpAddress;
         std::string version;
         std::string engineFolder;
+        std::string centralDataFolder;
         int projectId;
         double priority;
         Authentication *auth;
@@ -66,13 +67,16 @@ namespace comet
 
         std::string getEngineFolder();
 
+        void setCentralDataFolder(const std::string& newFolder);
+        std::string getCentralDataFolder();
+
         static void stopSelectedProcesses(Database& db, Json::Value & jobs);
 
         static void initialiseAllServantActiveCores(const Database & db);
 
         static void decrementActiveProcessCount(Database &db, int decrementAmount);
         static int deleteServants(const Database &db, const Json::Value &servants);
-        static std::string servantSummaryHtmlReport(Database &db);;
+        static std::string htmlServantSummary(Database &db);;
         std::string getEmail() {return email;};
         std::string getIpAddress() {return ipAddress;}
         int getPort() const {return port;};
@@ -81,7 +85,7 @@ namespace comet
         
         bool isManager();
 
-        std::string HtmlAuthenticationSettingsForm(Authentication &auth);
+        std::string htmlAuthenticationSettingsForm(Authentication &auth);
         std::string htmlServantSettingsForm();
 
         static bool createNewServentsTable(Database &db);

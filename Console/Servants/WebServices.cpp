@@ -51,6 +51,7 @@ namespace comet
           aServant.setActiveCores(stoi(results[0].at("activeCores")));
           aServant.setManagerIpAddress(results[0].at("managerIpAddress"));
           aServant.setEngineFolder(results[0].at("engineFolder"));
+          aServant.setCentralDataFolder(results[0].at("centralDataFolder"));
           aServant.setEmail(results[0].at("email"));
           aServant.setCode(results[0].at("code"));
           aServant.setPort(stoi(results[0].at("port")));;
@@ -159,7 +160,7 @@ namespace comet
 
               // GET response
               auto resp = HttpResponse::newHttpResponse();
-              std::string responseBody = aServant.HtmlAuthenticationSettingsForm(auth);
+              std::string responseBody = aServant.htmlAuthenticationSettingsForm(auth);
 
               resp->setBody(setHTMLBody(responseBody, "/authentication", "Servant Authentication"));
               COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
@@ -230,6 +231,7 @@ namespace comet
               if (priority.empty()) priority = "0";
               auto managerIpAddress = request->getParameter("managerIpAddress");
               auto engineFolder = request->getParameter("engineFolder");
+              auto centralDataFolder = request->getParameter("centralDataFolder");
               auto alive = request->getParameter("alive");
               if (alive.empty()) alive = "0";
 
@@ -239,6 +241,7 @@ namespace comet
               aServant.setPriority(std::stod(priority));
               aServant.setManagerIpAddress(managerIpAddress);
               aServant.setEngineFolder(engineFolder);
+              aServant.setCentralDataFolder(centralDataFolder);
               aServant.setAlive(std::stoi(alive));
 
               if (!db.insertRecord(
@@ -247,6 +250,7 @@ namespace comet
                 ", activeCores = '" + activeCores + +"' "
                 ", managerIpAddress = '" + managerIpAddress + "' "
                 ", engineFolder = '" + engineFolder + "' "
+                ", centralDataFolder = '" + centralDataFolder + "' "
                 ", lastUpdateTime = DATETIME('now') "
                 "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
                 COMETLOG("Failed to update Settings table with configuration information: ",
@@ -940,7 +944,7 @@ namespace comet
               }
 
 
-              std::string report = Servant::servantSummaryHtmlReport(db);
+              std::string report = Servant::htmlServantSummary(db);
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setBody(setHTMLBody(report, "/servant_summary", "Servant Summary"));
@@ -1066,6 +1070,7 @@ namespace comet
                   aServant.setActiveCores((*json)["activeCores"].asInt());
                   aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
                   aServant.setEngineFolder((*json)["engineFolder"].asString());
+                  aServant.setCentralDataFolder((*json)["centralDataFolder"].asString());
                   aServant.setPriority((*json)["priority"].asDouble());
                   aServant.updateServantSettings(db);
 
@@ -1119,7 +1124,7 @@ namespace comet
                 aServant.setActiveCores((*json)["activeCores"].asInt());
                 aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
                 aServant.setEngineFolder((*json)["engineFolder"].asString());
-                //aServant.setIpAddress((*json)["ipAddress"].asString());
+                aServant.setCentralDataFolder((*json)["centralDataFolder"].asString());
                 aServant.setVersion((*json)["ServantVersion"].asString());
                 aServant.setEmail((*json)["email"].asString());
                 aServant.setCode((*json)["code"].asString());

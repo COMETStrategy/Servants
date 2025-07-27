@@ -653,7 +653,7 @@ namespace comet
 			return;
 		}
 		else {
-			COMETLOG("Servant information updated successfully in the manager database.", LoggerLevel::DEBUGGING);
+			COMETLOG("Servant information updated successfully in the manager database.", LoggerLevel::INFO);
 		}
 	}
 

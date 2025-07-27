@@ -115,6 +115,7 @@ namespace comet
         registerServantStatusHandler();
         registerServantStopProcessesHandler();
         registerServantSummaryHandler();
+        registerServantUpdateRemoteServantHandler();
         registerStatusHandler();
         registerStatusJobsHandler();
         registerUpdateAliveServantsHandler();
@@ -1237,7 +1238,7 @@ namespace comet
             callback(resp);
           }
         },
-        { Post });
+        { Post, Get });
     }
 
     void WebServices::registerStatusHandler()

@@ -44,7 +44,7 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/output/${OS_NAME}/${Publi
 
 # ---------------------------
 # Source files
-file(GLOB SERVICES_SRC Services/*.cpp Services/*.h)
+file(GLOB SERVICES_SRC Servants/*.cpp Servants/*.h)
 file(GLOB UTILITIES_SRC Utilities/*.cpp Utilities/*.h)
 
 add_library(utilities STATIC ${UTILITIES_SRC})

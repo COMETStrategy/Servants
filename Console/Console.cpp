@@ -3,20 +3,19 @@
 
 #include "Console.h"
 
-#ifdef _WIN32
-#include <windows.h>
+#if defined(_WIN32)
+  #include <windows.h>
 #endif
 
-#include "Services/WebServices.h"
+
 #include "Utilities/Logger.h"
+#include "Servants/WebServices.h"
 
 int main()
 {
-#ifdef _WIN32
-#include <windows.h>
-  SetConsoleOutputCP(CP_UTF8);
-#endif
-
+  #if defined(_WIN32)
+    SetConsoleOutputCP(CP_UTF8);
+  #endif
   try {
 
     comet::WebServices server("~/comet-servants.db");

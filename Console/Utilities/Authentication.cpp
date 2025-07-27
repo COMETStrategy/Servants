@@ -99,7 +99,7 @@ namespace comet
         if (!CheckVerificationInformation(email, code)) return false;
         
         isAuthenticated = true;
-        COMETLOG("Valid authentication settings ✅", LoggerLevel::INFO);
+        COMETLOG("✅ Valid authentication settings", LoggerLevel::INFO);
         return true;
       }
 

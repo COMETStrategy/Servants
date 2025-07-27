@@ -13,12 +13,11 @@
 #include "../Utilities/Authentication.h"
 #include "../Utilities/Database.h"
 #include "../Utilities/Logger.h"
-#include "Job.h"
 #include "../Utilities/Encoding.h"
-#include "Scheduler.h"
 #include "../Utilities/utilities.h"
+#include "Scheduler.h"
+#include "Job.h"
 #include "Servant.h"
-//#include "../../../../../../opt/homebrew/Cellar/c-ares/1.34.4/include/ares.h"
 
 using namespace std;
 using namespace drogon;

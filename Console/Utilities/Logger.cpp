@@ -36,10 +36,10 @@ namespace comet
         return std::string(buffer);
       }
 
-#ifdef _WIN32
-#include <windows.h>
-#include <iostream>
-#include <string>
+    #if defined(_WIN32) && defined(_DEBUG)
+      #include <windows.h>
+      #include <iostream>
+      #include <string>
 
     struct DebugStreamBuf : public std::streambuf {
       std::string buffer;
@@ -64,7 +64,7 @@ namespace comet
       }
     };
 
-#endif
+    #endif
 
     void Logger::log(const std::string &message, const LoggerLevel COMETLOGLevel, const char *file, int line)
       {
@@ -88,7 +88,7 @@ namespace comet
           else
             std::cerr << commonText << std::endl << std::flush;
         }
-#ifdef _WIN32
+#if defined(_WIN32) && defined(_DEBUG)
 
         DebugStreamBuf debugStreamBuf;
         std::ostream debugStream(&debugStreamBuf);

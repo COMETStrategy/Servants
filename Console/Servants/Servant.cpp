@@ -10,11 +10,11 @@
 #include "../Utilities/Authentication.h"
 #include "../Utilities/Curl.hpp"
 #include "../Utilities/utilities.h"
-#include "Servant.h"
 
 #include "../Utilities/Database.h"
-#include "Job.h"
 #include "drogon/LocalHostFilter.h"
+#include "Servant.h"
+#include "Job.h"
 
 namespace comet
   {

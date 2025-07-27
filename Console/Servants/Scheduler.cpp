@@ -3,12 +3,12 @@
 //
 #include <map>
 
-#include "Scheduler.h"
-
-#include "Servant.h"
 #include "../Utilities/Database.h"
-#include "Job.h"
 #include "../Utilities/Logger.h"
+
+#include "Scheduler.h"
+#include "Servant.h"
+#include "Job.h"
 
 namespace comet
   {

@@ -29,7 +29,7 @@ namespace comet
 		projectId = 0;
 		version = "V 2025.06.26";
 		priority = 1.0;
-		managerIpAddress = ""; // Default empty manager IP address
+		managerIpAddress = "Remove if this is the manager"; // Default empty manager IP address
 		ipAddress = getMachineName();
 		if (ipAddress.empty()) ipAddress = getPrivateIPAddress();
 		alive = true;
@@ -212,7 +212,7 @@ namespace comet
 
 	bool Servant::isManager()
 	{
-		return managerIpAddress != getManagerIpAddress();
+		return managerIpAddress.empty();
 	}
 
 	std::string Servant::htmlAuthenticationSettingsForm(Authentication& auth)

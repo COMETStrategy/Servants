@@ -75,5 +75,47 @@ brew install sqlite3
 
 ```
 
+# Setting up two machines
+
+My Laptop is called "one.local", the server will be a Windows machine called "two"
+
+## On "one.local"
+
+Make sure each one can get to the other one
+
+- If a Mac
+
+> Edit the hosts file as administrator
+
+> `sudo nano /etc/hosts`
+
+> Add the following if `192.168.1.152` is the ip address of `two`
+
+> `192.168.1.152 two`
+
+- If Windows
+
+> As an administrator, edit the Windows host file
+
+> `notepad C:\Windows\System32\drivers\etc\hosts`
+
+> Add the row if `192.168.1.48` is the ip address of `one.local`
+
+> `192.168.1.48 one.local`
+
+
+## On a mac connect to the server
+
+Make a mounting point
+
+`mkdir -p ~/NetworkShares`
+
+Add the following line to link to the mount  folder:
+`ln -s /Volumes/COMET_Data ~/NetworkShares`
+
+
+
+
+
 
 

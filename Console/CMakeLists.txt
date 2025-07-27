@@ -7,6 +7,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DDEBUG")
 
+if(MSVC)
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "EditAndContinue")
+endif()
+
 # ---------------------------
 # Detect OS name
 # ---------------------------

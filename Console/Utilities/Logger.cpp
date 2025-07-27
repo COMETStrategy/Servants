@@ -79,8 +79,8 @@ namespace comet
         std::string fileLocation = "" + lastDirectoryAndFile + "(" + std::to_string(line) + "): ";
 
         std::string timeStamp = formatTime(std::chrono::system_clock::to_time_t(std::chrono::system_clock::now()));
-        std::string commonText = fileLocation + " COMET Logger " + timeStamp + " [" + LogLevelToString(COMETLOGLevel) + "] " + message +
-                                 "";
+        std::string commonText = "COMET Logger " + timeStamp + " [" + LogLevelToString(COMETLOGLevel) + "] " + message +
+          " " + fileLocation;
 
         if (COMETLOGLevel >= Logger::m_LoggerLevel) {
           if (COMETLOGLevel < LoggerLevel::WARNING)
@@ -90,10 +90,13 @@ namespace comet
         }
 #if defined(_WIN32) && defined(_DEBUG)
 
-        DebugStreamBuf debugStreamBuf;
-        std::ostream debugStream(&debugStreamBuf);
 
-        OutputDebugStringA(commonText.c_str());
+        std::string debugText = fileLocation + " COMET Logger " + timeStamp + " [" + LogLevelToString(COMETLOGLevel) + "] " + message + "";
+
+        DebugStreamBuf debugStreamBuf;
+        std::ostream debugStream(&debugStreamBuf); 
+
+        OutputDebugStringA(debugText.c_str()); 
         OutputDebugStringA("\n");
 #endif
       }

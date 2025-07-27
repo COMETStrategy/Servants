@@ -162,7 +162,7 @@ namespace comet
               auto resp = HttpResponse::newHttpResponse();
               std::string responseBody = aServant.htmlAuthenticationSettingsForm(auth);
 
-              resp->setBody(setHTMLBody(responseBody, "/authentication", "Servant Authentication"));
+              resp->setBody(htmlSetBody(responseBody, "/authentication", "Servant Authentication"));
               COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
               callback(resp);
             },
@@ -784,7 +784,7 @@ namespace comet
               std::string report = Job::htmlJobSummaryReport(db, sort, filter);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, request->path() + "?" + request->query(), "Job Summary"));
+              resp->setBody(htmlSetBody(report, request->path() + "?" + request->query(), "Job Summary"));
               callback(resp);
             },
           {Get});
@@ -947,7 +947,7 @@ namespace comet
               std::string report = Servant::htmlServantSummary(db);
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(report, "/servant_summary", "Servant Summary"));
+              resp->setBody(htmlSetBody(report, "/servant_summary", "Servant Summary"));
               callback(resp);
             },
           {Get});
@@ -988,7 +988,7 @@ namespace comet
                 } else {
                   auto resp = HttpResponse::newHttpResponse();
                   resp->setStatusCode(k200OK);
-                  resp->setBody(setHTMLBody("No jobs available to start or cores available to run.", "/run_queued/",
+                  resp->setBody(htmlSetBody("No jobs available to start or cores available to run.", "/run_queued/",
                                             "Run Queued Jobs"));
                   COMETLOG("No queued jobs available to start", LoggerLevel::INFO);
                   callback(resp);
@@ -1051,6 +1051,16 @@ namespace comet
             {
               handleInvalidMethod(request);
 
+
+              if (!auth.machineAuthenticationisValid()) {
+                COMETLOG("Unauthorized access to /", LoggerLevel::WARNING);
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k302Found);
+                resp->addHeader("Location", "/authentication");
+                callback(resp);
+                return;
+              }
+
               if (request->method() == drogon::Post) {
                 // Handle POST request
                 auto json = request->getJsonObject();
@@ -1093,7 +1103,7 @@ namespace comet
               //aServant.setIpAddress(request->getHeader("Host"));
               auto responseBody = aServant.htmlServantSettingsForm();
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody(responseBody, "/servant_settings",
+              resp->setBody(htmlSetBody(responseBody, "/servant_settings",
                                         "Servant Settings: " + aServant.getIpAddress()));
               COMETLOG("Servant settings page served", LoggerLevel::INFO);
               callback(resp);
@@ -1268,7 +1278,7 @@ namespace comet
               m_running = false;
 
               auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(setHTMLBody("COMET Server shut down.", "/quit", "Servant Shutdown"));
+              resp->setBody(htmlSetBody("COMET Server shut down.", "/quit", "Servant Shutdown"));
               callback(resp);
 
               // Wait 5 seconds and then quit the application  on a separate thread
@@ -1297,7 +1307,7 @@ namespace comet
         COMETLOG(std::string("WebServices::handleRequest() - Request: ") + request, LoggerLevel::INFO);
       }
 
-    std::string WebServices::setHTMLBody(const std::string &body, const std::string &targetPath,
+    std::string WebServices::htmlSetBody(const std::string &body, const std::string &targetPath,
                                          const std::string &title) const
       {
         return "<!DOCTYPE html>"
@@ -1314,24 +1324,46 @@ namespace comet
           {
             std::string name;
             std::string href;
+            bool showIfNotAuthenticated;
+            bool showIfNotManager;
+            bool showIfNotDebug;
           };
 
         std::vector<Link> links = {
 
-          {"Quit", "/quit"},
-          {"Authentication", "/authentication"},
-          {"Servant Settings", "/servant_settings"},
-          {"Servant Summary", "/servant_summary"},
-          {"Job Summary", "/job_summary"},
-          {"Reset Running Jobs (Dev only)", "/resetrunningjobs/"},
-          {"Mock Run Jobs (Dev only)", "/mockrunjobs/"},
-          {"Run (Queued)", "/run_queued/"},
+          {"Authentication", "/authentication", true, true, true},
+          {"Servant Settings", "/servant_settings", false, true, true},
+          {"Servant Summary", "/servant_summary", false, false, true},
+          {"Job Summary", "/job_summary", false, false, true},
+          {"Reset Running Jobs (Dev only)", "/resetrunningjobs/", false, false, false},
+          {"Mock Run Jobs (Dev only)", "/mockrunjobs/", false, false, false},
+          {"Run (Queued)", "/run_queued/", false, false, false},
+          {"Quit", "/quit", false, false, true},
         };
+        
+        // Go through all the links, removing if showIfNotAuthenticated, showIfNotManager or showIfNotDebug conditions not met
+        bool isAuthenticated = auth.machineAuthenticationisValid();
+        bool isManager = aServant.isManager();
+#ifdef _DEBUG
+        bool isDebug = true;
+#else
+        bool isDebug = false;
+#endif
+        // Remove links that should not be shown based on the current state
+        links.erase(
+          std::remove_if(
+            links.begin(), links.end(),
+            [&](const Link& link) {
+              if (!isAuthenticated && !link.showIfNotAuthenticated)
+                return true;
+              if (!isManager && !link.showIfNotManager)
+                return true;
+              if (!isDebug && !link.showIfNotDebug)
+                return true;
+              return false;
+            }),
+          links.end());
 
-        // Delete the last 6 if the servant is not valid
-        if (!auth.machineAuthenticationisValid() && links.size() >= 5) {
-          links.erase(links.end() - 5, links.end());
-        }
 
         std::string targetPath = fullTargetPath;
         size_t queryPos = targetPath.find('?');

@@ -106,6 +106,7 @@ namespace comet
         void startRoutineStatusUpdates();
 
         void updateDatabase(Database &db);
+        void updateManagerDatabase();
       };
     
   };

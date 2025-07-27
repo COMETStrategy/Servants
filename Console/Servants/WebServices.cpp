@@ -265,6 +265,7 @@ namespace comet
               }
 
               aServant.updateDatabase(db);
+              aServant.updateManagerDatabase();
 
               auto resp = HttpResponse::newHttpResponse();
               resp->setStatusCode(k302Found);
@@ -1154,6 +1155,90 @@ namespace comet
             },
           {Post});
       }
+
+    void WebServices::registerServantUpdateRemoteServantHandler()
+    {
+      app().registerHandler(
+        "/servant/update_remote_servant",
+        [this](const HttpRequestPtr& request, std::function<void(const HttpResponsePtr&)>&& callback)
+        {
+          handleInvalidMethod(request);
+
+          auto json = request->getJsonObject();
+          if (!json) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+            callback(resp);
+            return;
+          }
+
+          try {
+            // Extract all required fields from JSON
+            std::string ipAddress = (*json)["ipAddress"].asString();
+            int projectId = (*json)["projectId"].asInt();
+            std::string version = (*json)["version"].asString();
+            std::string email = (*json)["email"].asString();
+            std::string code = (*json)["code"].asString();
+            int port = (*json)["port"].asInt();
+            int totalCores = (*json)["totalCores"].asInt();
+            int unusedCores = (*json)["unusedCores"].asInt();
+            int activeCores = (*json)["activeCores"].asInt();
+            std::string managerIpAddress = (*json)["managerIpAddress"].asString();
+            std::string engineFolder = (*json)["engineFolder"].asString();
+            std::string centralDataFolder = (*json)["centralDataFolder"].asString();
+            double priority = (*json)["priority"].asDouble();
+            int alive = (*json)["alive"].asInt();
+
+            // Upsert servant info in the manager's database
+            std::string queryFound = "SELECT * FROM servants WHERE ipAddress = '" + ipAddress + "';";
+            auto found = db.getQueryResults(queryFound);
+            if (!found.empty()) {
+              std::string query = "UPDATE servants SET "
+                "projectId = " + std::to_string(projectId) + ", "
+                "lastUpdateTime = DATETIME('now'), "
+                "version = '" + version + "', "
+                "email = '" + email + "', "
+                "code = '" + code + "', "
+                "port = " + std::to_string(port) + ", "
+                "totalCores = " + std::to_string(totalCores) + ", "
+                "unusedCores = " + std::to_string(unusedCores) + ", "
+                "activeCores = " + std::to_string(activeCores) + ", "
+                "managerIpAddress = '" + managerIpAddress + "', "
+                "engineFolder = '" + engineFolder + "', "
+                "centralDataFolder = '" + centralDataFolder + "', "
+                "priority = " + std::to_string(priority) + ", "
+                "alive = " + std::to_string(alive) + " "
+                "WHERE ipAddress = '" + ipAddress + "';";
+              db.updateQuery("Update Remote Servant", query, false);
+            }
+            else {
+              std::string query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
+                "version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder, centralDataFolder, priority, alive) "
+                "VALUES ('" + ipAddress + "', " + std::to_string(projectId) + ", DATETIME('now'), DATETIME('now'), '" +
+                version + "', '" + email + "', '" + code + "', " + std::to_string(port) + ", " +
+                std::to_string(totalCores) + ", " + std::to_string(unusedCores) + ", " +
+                std::to_string(activeCores) + ", '" + managerIpAddress + "', '" + engineFolder + "', '" +
+                centralDataFolder + "', " + std::to_string(priority) + ", " + std::to_string(alive) + ");";
+              db.insertRecord(query, true);
+            }
+
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            resp->setBody(R"({"status":"Remote servant updated successfully"})");
+            COMETLOG("Remote servant updated successfully: " + ipAddress, LoggerLevel::INFO);
+            callback(resp);
+          }
+          catch (const std::exception& e) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+            COMETLOG(std::string("Exception in /servant/update_remote_servant: ") + e.what(), LoggerLevel::CRITICAL);
+            callback(resp);
+          }
+        },
+        { Post });
+    }
 
     void WebServices::registerStatusHandler()
       {

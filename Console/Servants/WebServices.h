@@ -101,6 +101,7 @@ namespace comet
         void registerServantStatusHandler();
         void registerStatusHandler();
         void registerStatusJobsHandler();
+        void registerServantUpdateRemoteServantHandler();
 
         void registerLifeHandler();
 

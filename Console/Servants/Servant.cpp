@@ -617,5 +617,46 @@ namespace comet
 			}
 		}
 	}
+
+	void Servant::updateManagerDatabase() 
+			{
+		// Update the manager database with the servant information
+		if (isManager()) {
+			COMETLOG("Servant is the manager, no need to update the manager database.", LoggerLevel::INFO);
+			return;
+		}
+
+		// Sent request to the manager
+		auto url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/update_remote_servant";
+		// Construct the JSON data of all the members
+		nlohmann::json jsonData;
+		jsonData["ipAddress"] = ipAddress;
+		jsonData["projectId"] = projectId;
+		jsonData["registrationTime"] = "DATETIME('now')"; // This will be set by the manager
+		jsonData["lastUpdateTime"] = "DATETIME('now')"; // This will be set by the manager
+		jsonData["version"] = version;
+		jsonData["email"] = email;
+		jsonData["code"] = code;
+		jsonData["port"] = port;
+		jsonData["totalCores"] = totalCores;
+		jsonData["unusedCores"] = unusedCores;
+		jsonData["activeCores"] = activeCores;
+		jsonData["managerIpAddress"] = managerIpAddress;
+		jsonData["engineFolder"] = engineFolder;
+		jsonData["centralDataFolder"] = centralDataFolder;
+		jsonData["priority"] = priority;
+		jsonData["alive"] = alive;
+		auto response = Curl::postJson(url, jsonData);
+		if (response.isError()) {
+			COMETLOG("Failed to update manager database with servant information: " + response.body,
+				LoggerLevel::CRITICAL);
+			return;
+		}
+		else {
+			COMETLOG("Servant information updated successfully in the manager database.", LoggerLevel::DEBUGGING);
+		}
+	}
+
+
 } // comet
 

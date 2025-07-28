@@ -92,7 +92,9 @@ add_custom_target(copy_static_files ALL
 # ---------------------------
 # Main executable
 # ---------------------------
-add_executable(servant-console Console.cpp ${SERVICES_SRC})
+add_executable(servant-console Console.cpp ${SERVICES_SRC}
+        Servants/Routes.cpp
+        Servants/Routes.h)
 target_include_directories(servant-console PRIVATE Services ${OPENSSL_INCLUDE_DIR})
 
 target_link_libraries(servant-console

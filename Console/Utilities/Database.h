@@ -24,6 +24,7 @@ namespace comet
         bool openDatabase(const std::string & databaseFullPath);
 
         // Constructor: Opens the database
+        Database();
         explicit Database(const std::string &dbPath);
         // Destructor: Closes the database
         ~Database();

@@ -18,6 +18,7 @@
 #include "Scheduler.h"
 #include "Job.h"
 #include "Servant.h"
+#include "Routes.h"
 
 using namespace std;
 using namespace drogon;
@@ -106,8 +107,8 @@ namespace comet
         registerJobStartHandler();
         registerJobStatusDatabaseUpdateHandler();
         registerMockRunJobsHandler();
-        registerLifeHandler();
-        registerQuitHandler();
+        registerRoutes();
+        //registerQuitHandler();
         registerResetRunningJobsHandler();
         registerRunQueuedHandler();
         registerServantSelectedDeleteHandler();
@@ -493,7 +494,7 @@ namespace comet
                   !json->isMember("Servant") ||
                   !json->isMember("RunProgress") ||
                   !json->isMember("ProcessId")) {
-                auto resp =  HttpResponse::newHttpResponse();
+                auto resp = HttpResponse::newHttpResponse();
                 resp->setStatusCode(k400BadRequest);
                 resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
                 callback(resp);
@@ -871,7 +872,7 @@ namespace comet
                   resp->setContentTypeCode(CT_APPLICATION_JSON);
                   resp->setBody(responseJson.dump());
                   callback(resp);
-                  
+
                   COMETLOG(
                     "Job progress updated successfully for CaseNumber: " + caseNumber + ", " + Job::jobStatusDescription
                     (convertJobStatus(status)) + ": "+ runProgress, LoggerLevel::INFO);
@@ -1158,88 +1159,90 @@ namespace comet
       }
 
     void WebServices::registerServantUpdateRemoteServantHandler()
-    {
-      app().registerHandler(
-        "/servant/update_remote_servant",
-        [this](const HttpRequestPtr& request, std::function<void(const HttpResponsePtr&)>&& callback)
-        {
-          handleInvalidMethod(request);
+      {
+        app().registerHandler(
+          "/servant/update_remote_servant",
+          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
+            {
+              handleInvalidMethod(request);
 
-          auto json = request->getJsonObject();
-          if (!json) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k400BadRequest);
-            resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
-            callback(resp);
-            return;
-          }
+              auto json = request->getJsonObject();
+              if (!json) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+              }
 
-          try {
-            // Extract all required fields from JSON
-            std::string ipAddress = (*json)["ipAddress"].asString();
-            int projectId = (*json)["projectId"].asInt();
-            std::string version = (*json)["version"].asString();
-            std::string email = (*json)["email"].asString();
-            std::string code = (*json)["code"].asString();
-            int port = (*json)["port"].asInt();
-            int totalCores = (*json)["totalCores"].asInt();
-            int unusedCores = (*json)["unusedCores"].asInt();
-            int activeCores = (*json)["activeCores"].asInt();
-            std::string managerIpAddress = (*json)["managerIpAddress"].asString();
-            std::string engineFolder = (*json)["engineFolder"].asString();
-            std::string centralDataFolder = (*json)["centralDataFolder"].asString();
-            double priority = (*json)["priority"].asDouble();
-            int alive = (*json)["alive"].asInt();
+              try {
+                // Extract all required fields from JSON
+                std::string ipAddress = (*json)["ipAddress"].asString();
+                int projectId = (*json)["projectId"].asInt();
+                std::string version = (*json)["version"].asString();
+                std::string email = (*json)["email"].asString();
+                std::string code = (*json)["code"].asString();
+                int port = (*json)["port"].asInt();
+                int totalCores = (*json)["totalCores"].asInt();
+                int unusedCores = (*json)["unusedCores"].asInt();
+                int activeCores = (*json)["activeCores"].asInt();
+                std::string managerIpAddress = (*json)["managerIpAddress"].asString();
+                std::string engineFolder = (*json)["engineFolder"].asString();
+                std::string centralDataFolder = (*json)["centralDataFolder"].asString();
+                double priority = (*json)["priority"].asDouble();
+                int alive = (*json)["alive"].asInt();
 
-            // Upsert servant info in the manager's database
-            std::string queryFound = "SELECT * FROM servants WHERE ipAddress = '" + ipAddress + "';";
-            auto found = db.getQueryResults(queryFound);
-            if (!found.empty()) {
-              std::string query = "UPDATE servants SET "
-                "projectId = " + std::to_string(projectId) + ", "
-                "lastUpdateTime = DATETIME('now'), "
-                "version = '" + version + "', "
-                "email = '" + email + "', "
-                "code = '" + code + "', "
-                "port = " + std::to_string(port) + ", "
-                "totalCores = " + std::to_string(totalCores) + ", "
-                "unusedCores = " + std::to_string(unusedCores) + ", "
-                "activeCores = " + std::to_string(activeCores) + ", "
-                "managerIpAddress = '" + managerIpAddress + "', "
-                "engineFolder = '" + engineFolder + "', "
-                "centralDataFolder = '" + centralDataFolder + "', "
-                "priority = " + std::to_string(priority) + ", "
-                "alive = " + std::to_string(alive) + " "
-                "WHERE ipAddress = '" + ipAddress + "';";
-              db.updateQuery("Update Remote Servant", query, false);
-            }
-            else {
-              std::string query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
-                "version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder, centralDataFolder, priority, alive) "
-                "VALUES ('" + ipAddress + "', " + std::to_string(projectId) + ", DATETIME('now'), DATETIME('now'), '" +
-                version + "', '" + email + "', '" + code + "', " + std::to_string(port) + ", " +
-                std::to_string(totalCores) + ", " + std::to_string(unusedCores) + ", " +
-                std::to_string(activeCores) + ", '" + managerIpAddress + "', '" + engineFolder + "', '" +
-                centralDataFolder + "', " + std::to_string(priority) + ", " + std::to_string(alive) + ");";
-              db.insertRecord(query, true);
-            }
+                // Upsert servant info in the manager's database
+                std::string queryFound = "SELECT * FROM servants WHERE ipAddress = '" + ipAddress + "';";
+                auto found = db.getQueryResults(queryFound);
+                if (!found.empty()) {
+                  std::string query = "UPDATE servants SET "
+                                      "projectId = " + std::to_string(projectId) + ", "
+                                      "lastUpdateTime = DATETIME('now'), "
+                                      "version = '" + version + "', "
+                                      "email = '" + email + "', "
+                                      "code = '" + code + "', "
+                                      "port = " + std::to_string(port) + ", "
+                                      "totalCores = " + std::to_string(totalCores) + ", "
+                                      "unusedCores = " + std::to_string(unusedCores) + ", "
+                                      "activeCores = " + std::to_string(activeCores) + ", "
+                                      "managerIpAddress = '" + managerIpAddress + "', "
+                                      "engineFolder = '" + engineFolder + "', "
+                                      "centralDataFolder = '" + centralDataFolder + "', "
+                                      "priority = " + std::to_string(priority) + ", "
+                                      "alive = " + std::to_string(alive) + " "
+                                      "WHERE ipAddress = '" + ipAddress + "';";
+                  db.updateQuery("Update Remote Servant", query, false);
+                } else {
+                  std::string query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
+                                      "version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder, centralDataFolder, priority, alive) "
+                                      "VALUES ('" + ipAddress + "', " + std::to_string(projectId) +
+                                      ", DATETIME('now'), DATETIME('now'), '" +
+                                      version + "', '" + email + "', '" + code + "', " + std::to_string(port) + ", " +
+                                      std::to_string(totalCores) + ", " + std::to_string(unusedCores) + ", " +
+                                      std::to_string(activeCores) + ", '" + managerIpAddress + "', '" + engineFolder +
+                                      "', '" +
+                                      centralDataFolder + "', " + std::to_string(priority) + ", " + std::to_string(
+                                        alive) + ");";
+                  db.insertRecord(query, true);
+                }
 
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k200OK);
-            resp->setBody(R"({"status":"Remote servant updated successfully"})");
-            COMETLOG("Remote servant updated successfully: " + ipAddress, LoggerLevel::INFO);
-            callback(resp);
-          }
-          catch (const std::exception& e) {
-            auto resp = HttpResponse::newHttpResponse();
-            resp->setStatusCode(k500InternalServerError);
-            resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
-            COMETLOG(std::string("Exception in /servant/update_remote_servant: ") + e.what(), LoggerLevel::CRITICAL);
-            callback(resp);
-          }
-        },
-        { Post, Get });
-    }
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k200OK);
+                resp->setBody(R"({"status":"Remote servant updated successfully"})");
+                COMETLOG("Remote servant updated successfully: " + ipAddress, LoggerLevel::INFO);
+                callback(resp);
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                COMETLOG(std::string("Exception in /servant/update_remote_servant: ") + e.what(),
+                         LoggerLevel::CRITICAL);
+                callback(resp);
+              }
+            },
+          {Post, Get});
+      }
 
     void WebServices::registerStatusHandler()
       {
@@ -1317,40 +1320,60 @@ namespace comet
           {Get, Post});
       }
 
-    void WebServices::registerLifeHandler()
+
+    using vHandler = std::function<void(const drogon::HttpRequestPtr &,
+                                        std::function<void(const drogon::HttpResponsePtr &)> &&)>;
+
+    struct PossibleRoutes
       {
-        app().registerHandler(
-          "/",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-              handleInvalidMethod(request);
-              if (request->method() == drogon::Post) {
-                auto host = request->getHeader("Host");
-                std::string hubAddress = "http://" + aServant.getIpAddress() + ":" + std::to_string(aServant.getPort()) + "/";
+        bool validForUnauthorisedAccess;
+        bool validForDebugOnly;
+        std::string path;
+        vHandler handler;
+        const std::vector<internal::HttpConstraint> methods;
 
-                nlohmann::json jsonResponse = {
-                  {"company", "COMET Strategy - Australia"},
-                  {"HubName", "COMET Servant (" + aServant.getIpAddress()  + "):LOCAL"},
-                  {"HubAddress", hubAddress},
-                  {"CloudDataConnection", "notused"},
-                  {"ErrorMessage", ""}
-                };
+        PossibleRoutes(bool unauth, bool debug, std::string p,
+                       vHandler h,
+                       const std::vector<internal::HttpConstraint> &m)
+          : validForUnauthorisedAccess(unauth),
+            validForDebugOnly(debug),
+            path(p),
+            handler(h),
+            methods(m)
+          {
+          }
+      };
 
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setContentTypeCode(CT_APPLICATION_JSON);
-                resp->setBody(jsonResponse.dump());
-                callback(resp);
-                return;
-              }
 
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setBody("Proof of life: " + request->getHeader("Host") + " is Alive...\n Go to: " + request->getHeader("Host") + "/authenticate");
-              COMETLOG("Proof of life: " + request->getHeader("Host") + " is Alive", LoggerLevel::DEBUGGING);
-              callback(resp);
-            },
-          {Get, Post});
+    void WebServices::registerRoutes()
+      {
+        Routes route(aServant, db, m_running);
+
+
+        //app().registerHandler("/alive", &Routes::Alive, {Get, Post});
+
+        std::vector<PossibleRoutes> allPossibleRoutes = {
+          {true, true, "/", Routes::Alive, {drogon::Get, drogon::Post}},
+          {true, true, "/quit", Routes::Quit, {drogon::Get, drogon::Post}},
+          // If you want to register both, add them separately without random
+        };
+
+        for (const auto &r: allPossibleRoutes) {
+          auto chosen = r.handler;
+
+          drogon::app().registerHandler(r.path, [r](const drogon::HttpRequestPtr &req,
+                                                    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+                                          {
+                                            r.handler(req, std::move(callback));
+                                          }, r.methods);
+
+          COMETLOG(
+            std::string("Registering route: ") + r.path + ", Unauthorised:" + to_string(r.validForUnauthorisedAccess) +
+            ", Debug:" + to_string(r.validForDebugOnly), LoggerLevel::INFO);
+        }
+
+
+        //app().registerHandler("/alive", &Routes::Alive, {Get, Post});
       }
 
 
@@ -1426,7 +1449,7 @@ namespace comet
           {"Run (Queued)", "/run_queued/", false, false, false},
           {"Quit", "/quit", false, false, true},
         };
-        
+
         // Go through all the links, removing if showIfNotAuthenticated, showIfNotManager or showIfNotDebug conditions not met
         bool isAuthenticated = auth.machineAuthenticationisValid();
         bool isManager = aServant.isManager();
@@ -1439,15 +1462,16 @@ namespace comet
         links.erase(
           std::remove_if(
             links.begin(), links.end(),
-            [&](const Link& link) {
-              if (!isAuthenticated && !link.showIfNotAuthenticated)
-                return true;
-              if (!isManager && !link.showIfNotManager)
-                return true;
-              if (!isDebug && !link.showIfNotDebug)
-                return true;
-              return false;
-            }),
+            [&](const Link &link)
+              {
+                if (!isAuthenticated && !link.showIfNotAuthenticated)
+                  return true;
+                if (!isManager && !link.showIfNotManager)
+                  return true;
+                if (!isDebug && !link.showIfNotDebug)
+                  return true;
+                return false;
+              }),
           links.end());
 
 

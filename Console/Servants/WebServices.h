@@ -9,7 +9,8 @@
 #include <string>
 #include <thread>
 #include <memory>
-#include "drogon/utils/FunctionTraits.h"
+#include <drogon/drogon.h>
+//#include "drogon/utils/FunctionTraits.h"
 #include "../Utilities/Database.h"
 #include "../Utilities/Authentication.h"
 #include "Scheduler.h"
@@ -55,7 +56,7 @@ namespace comet
 
       private:
         std::unique_ptr<std::thread> m_serverThread;
-        std::atomic<bool> m_running{true};
+        bool m_running = true; // Flag to indicate if the server is running
         Database db;
         Authentication auth;
         std::string configurationFilePath; // Default database path
@@ -103,7 +104,7 @@ namespace comet
         void registerStatusJobsHandler();
         void registerServantUpdateRemoteServantHandler();
 
-        void registerLifeHandler();
+        void registerRoutes();
 
         void registerQuitHandler();
         

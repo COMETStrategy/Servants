@@ -124,6 +124,14 @@ namespace comet
         return databaseExists;
       }
 
+    Database::Database()
+      {
+        m_db = nullptr;
+        m_dbPath = "";
+        databaseExists = false;
+        
+      }
+
     bool Database::executeQuery(const std::string &query) const
       {
         char *errMsg = nullptr;

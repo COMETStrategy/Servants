@@ -534,7 +534,7 @@ namespace comet
 			servantLocation = "Manager";
 		}
 		nlohmann::json jsonData;
-		jsonData["ipAddress"] = getPrivateIPAddress();
+		jsonData["ipAddress"] = getMachineName();
 		jsonData["totalCores"] = totalCores;
 		jsonData["unusedCores"] = unusedCores;
 		jsonData["activeCores"] = activeCores;

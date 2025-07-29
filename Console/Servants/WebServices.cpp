@@ -41,7 +41,7 @@ namespace comet
         COMETLOG("WebServices::WebServices()", LoggerLevel::DEBUGGING);
         aServant.setPort(777);
       
-        //Routes route(auth, aServant, db, m_running);
+        Routes route(auth, aServant, db, m_running);
         run();
 
         auto results = db.

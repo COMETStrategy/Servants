@@ -314,13 +314,13 @@ namespace comet
 			"<td " + leftColumnStyles + "><label for='engineFolder'>Engine folder:</label></td>"
 			"<td style='text-align: right;'><input type='text' id='engineFolder' name='engineFolder' value='"
 			+ engineFolder +
-			"'  placeholder='e.g. C:\\Comet\\'  style='border: none; background-color: #f0f0f0;'></td>"
+			"'  placeholder='e.g. C:\\Comet'  style='border: none; background-color: #f0f0f0;'></td>"
 			"</tr>"
 			"<tr>"
 			"<td " + leftColumnStyles + "><label for='centralDataFolder'>Central data folder:</label></td>"
 			"<td style='text-align: right;'><input type='text' id='centralDataFolder' name='centralDataFolder' value='"
 			+ centralDataFolder +
-			"'  placeholder='e.g. Z:\\ or C:\\Comet_data\\'  style='border: none; background-color: #f0f0f0;'></td>"
+			"'  placeholder='e.g. Z: or C:\\Comet_data'  style='border: none; background-color: #f0f0f0;'></td>"
 			"</tr>"
 			"<tr>"
 			"<td><input type='submit' value='Update Machine Settings' class='ui primary button'></td>"

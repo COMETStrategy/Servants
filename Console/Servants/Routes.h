@@ -51,6 +51,7 @@ namespace comet
         static void ServantStopProcesses(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback);
         static void ServantSummary(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback);
         static void Status(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback);
+        static void StatusJobs(const drogon::HttpRequestPtr& request, std::function<void(const drogon::HttpResponsePtr&)>&& callback);
         static void UpdateAliveServants(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback);
         static void UploadJob(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback);
 

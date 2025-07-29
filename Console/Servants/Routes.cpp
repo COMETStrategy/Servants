@@ -31,7 +31,7 @@ namespace comet
              {true, false, "/authenticate", Routes::Authenticate, {drogon::Get, drogon::Post}},
              {true, false, "/authentication", Routes::Authentication, {drogon::Get, drogon::Post}},
              {true, false, "/configuration", Routes::Configuration, {drogon::Post}},
-             {true, false, "/execute_command", Routes::ExecuteCommand, {drogon::Post}},
+             {true, false, "/execute/command", Routes::ExecuteCommand, {drogon::Get, drogon::Post}},
              {true, false, "/job/process_update", Routes::JobProcessUpdate, {drogon::Post}},
              {true, false, "/job/progress", Routes::JobProgress, {drogon::Get, Post}},
              {true, false, "/jobs/selected_delete", Routes::JobSelectedDelete, {drogon::Post}},
@@ -50,8 +50,9 @@ namespace comet
              {true, false, "/servant/summary", Routes::ServantSummary, {drogon::Get}},
              {true, false, "/servant/settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
              {true, false, "/status/", Routes::Status, {drogon::Post}},
+             {true, false, "/status/jobs/", Routes::StatusJobs, {drogon::Post, drogon::Get}},
              {true, false, "/updateAliveServants", Routes::UpdateAliveServants, {drogon::Post, drogon::Get}},
-             {true, false, "/upload/job", Routes::UploadJob, {drogon::Post}},
+             {true, false, "/upload/job/", Routes::UploadJob, {drogon::Post}},
         };
 
         for (const auto &r: allPossibleRoutes) {
@@ -941,6 +942,31 @@ namespace comet
               resp->setBody(responseJson.dump());
               callback(resp);
        }
+
+    void Routes::StatusJobs(const drogon::HttpRequestPtr& request, std::function<void(const drogon::HttpResponsePtr&)>&& callback)
+    {
+      
+          handleInvalidMethod(request);
+
+          // Get GroupName from Posted data
+          auto json = request->getJsonObject();
+          if (!json || !json->isMember("GroupName")) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Invalid or missing GroupName in JSON payload"})");
+            callback(resp);
+            return;
+          }
+          std::string GroupName = (*json)["GroupName"].asString();
+          std::string jobStatuses = Job::getAllJobStatuses(db, GroupName);
+
+          jobStatuses = R"({"ErrorMessage": "", "Status": ")" + jobStatuses + R"("})";
+          auto resp = HttpResponse::newHttpResponse();
+          resp->addHeader("Access-Control-Allow-Headers", "Content-type");
+          resp->setContentTypeCode(CT_TEXT_HTML);
+          resp->setBody(jobStatuses);
+          callback(resp);
+    }
 
     void Routes::UpdateAliveServants(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
       {

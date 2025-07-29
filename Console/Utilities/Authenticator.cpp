@@ -23,7 +23,7 @@
   #include <net/if_types.h>
   #include <netdb.h>
 #endif
-#include "Authentication.h"
+#include "Authenticator.h"
 
 #include <thread>
 
@@ -31,12 +31,12 @@
 
 namespace comet
   {
-    Authentication::Authentication()
+    Authenticator::Authenticator()
       {
         isAuthenticated = false;
       }
 
-    bool Authentication::CheckVerificationInformation(std::string email, std::string code)
+    bool Authenticator::CheckVerificationInformation(std::string email, std::string code)
       {
         std::string requestUrl = "https://license.cometstrategy.com/cloudService/getApiInformation.php";
         std::list<std::string> cHeaders;
@@ -89,7 +89,7 @@ namespace comet
       }
 
 
-    bool Authentication::valid(std::string email, std::string code, std::string aIpAddress)
+    bool Authenticator::valid(std::string email, std::string code, std::string aIpAddress)
       {
         isAuthenticated = false;
         if (code.size() < 5 || email.size() < 10 || aIpAddress.size() < 2) {

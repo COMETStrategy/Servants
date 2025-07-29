@@ -12,7 +12,7 @@
 #include <drogon/drogon.h>
 //#include "drogon/utils/FunctionTraits.h"
 #include "../Utilities/Database.h"
-#include "../Utilities/Authentication.h"
+#include "../Utilities/Authenticator.h"
 #include "Scheduler.h"
 #include "Servant.h"
 
@@ -36,8 +36,9 @@ namespace comet
 
         void handleRequest(const std::string& request);
         std::string htmlSetBody(const std::string& body, const std::string &targetPath, const std::string &title) const;
-        std::string htmlHeader(const std::string &fullTargetPath, const std::string &title) const;
-        std::string htmlFooter() const;
+        
+        static std::string htmlHeader(const std::string &fullTargetPath, const std::string &title);
+        static std::string htmlFooter();
 
         void run();
         void join();
@@ -58,7 +59,7 @@ namespace comet
         std::unique_ptr<std::thread> m_serverThread;
         bool m_running = true; // Flag to indicate if the server is running
         Database db;
-        Authentication auth;
+        Authenticator auth;
         std::string configurationFilePath; // Default database path
         static comet::Servant aServant;
         Scheduler scheduler;
@@ -70,7 +71,6 @@ namespace comet
         static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
       private:
         void registerRootAuthenticationHandler();
-        void registerAuthenticateHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
 
@@ -80,7 +80,7 @@ namespace comet
 
         void registerJobSelectedStopHandler();
 
-        void registerRootJobSummaryHandler();
+        void registerJobSummaryHandler();
         
         void registerJobProgressHandler();
 
@@ -104,7 +104,7 @@ namespace comet
         void registerStatusJobsHandler();
         void registerServantUpdateRemoteServantHandler();
 
-        void registerRoutes();
+        void registerAllHandlers();
 
         void registerQuitHandler();
         

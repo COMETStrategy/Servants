@@ -15,7 +15,7 @@ namespace Json
 
 namespace comet
   {
-    class Authentication;
+    class Authenticator;
     class Database;
     class Servant
       {
@@ -36,7 +36,7 @@ namespace comet
         std::string centralDataFolder;
         int projectId;
         double priority;
-        Authentication *auth;
+        Authenticator *auth;
         bool alive;
       public:
         static Servant *thisServant;
@@ -55,7 +55,7 @@ namespace comet
         void setPriority(const double aPriority);
         void setAlive(const int aAlive);
 
-        void setAuthentication(Authentication *authState);
+        void setAuthentication(Authenticator *authState);
         
 
         int getTotalCores() const{return totalCores;}
@@ -85,7 +85,7 @@ namespace comet
         
         bool isManager();
 
-        std::string htmlAuthenticationSettingsForm(Authentication &auth);
+        std::string htmlAuthenticationSettingsForm(Authenticator &auth);
         std::string htmlServantSettingsForm();
 
         static bool createNewServentsTable(Database &db);

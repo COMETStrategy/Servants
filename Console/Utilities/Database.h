@@ -44,6 +44,8 @@ namespace comet
               m_db = nullptr;
             }
           }
+
+        std::string getDatabasePath() const { return m_dbPath; }
         
         
 

@@ -8,14 +8,14 @@
 
 namespace comet
     {
-        class Authentication {
+        class Authenticator {
 
             private:
                 bool isAuthenticated;
 
 
             public:
-                Authentication();
+                Authenticator();
 
                 bool valid(std::string email, std::string code, std::string machineUrl);
                 std::string HtmlAuthenticationForm();

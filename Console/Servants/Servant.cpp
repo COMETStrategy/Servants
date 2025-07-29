@@ -7,7 +7,7 @@
 #include <string>
 
 
-#include "../Utilities/Authentication.h"
+#include "../Utilities/Authenticator.h"
 #include "../Utilities/Curl.hpp"
 #include "../Utilities/utilities.h"
 
@@ -215,7 +215,7 @@ namespace comet
 		return managerIpAddress.empty();
 	}
 
-	std::string Servant::htmlAuthenticationSettingsForm(Authentication& auth)
+	std::string Servant::htmlAuthenticationSettingsForm(Authenticator& auth)
 	{
 		std::string ip_public = getPublicIPAddressFromWeb();
 		std::string ip_private = getMachineName();
@@ -359,7 +359,7 @@ namespace comet
 		return true;
 	}
 
-	void Servant::setAuthentication(Authentication* authState)
+	void Servant::setAuthentication(Authenticator* authState)
 	{
 		auth = authState;
 	}

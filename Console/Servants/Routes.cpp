@@ -49,6 +49,7 @@ namespace comet
              {true, false, "/servant/status", Routes::ServantStatus, {drogon::Post}},
              {true, false, "/servant/summary", Routes::ServantSummary, {drogon::Get}},
              {true, false, "/servant/settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
+             {true, false, "/status/", Routes::Status, {drogon::Post}},
              {true, false, "/updateAliveServants", Routes::UpdateAliveServants, {drogon::Post, drogon::Get}},
              {true, false, "/upload/job", Routes::UploadJob, {drogon::Post}},
         };
@@ -899,6 +900,47 @@ namespace comet
           callback(resp);
         }
       }
+
+
+    void Routes::Status(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+              handleInvalidMethod(request);
+
+              auto email = request->getHeader("X-Email");
+              auto code = request->getHeader("X-Code");
+
+              if (email.empty() || code.empty()) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
+                callback(resp);
+                return;
+              }
+
+              auto json = request->getJsonObject();
+              if (!json || !json->isMember("CloudDataConnection")) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                callback(resp);
+                return;
+              }
+
+              std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
+              COMETLOG("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
+
+              nlohmann::json responseJson = {
+                {"Status", "success..."},
+                {"message", "Status updated successfully"},
+                {"errorMessage", ""}
+              };
+
+              auto resp = HttpResponse::newHttpResponse();
+              resp->setStatusCode(k200OK);
+              resp->setContentTypeCode(CT_APPLICATION_JSON);
+              resp->setBody(responseJson.dump());
+              callback(resp);
+       }
 
     void Routes::UpdateAliveServants(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
       {

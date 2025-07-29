@@ -511,7 +511,8 @@ namespace comet
         COMETLOG("🏃Job:Starting job " + job["GroupName"] + " " + job["CaseNumber"]
                  + " on this servant. ", comet::INFO);
         std::string executableEngine = servant["engineFolder"] + job["EngineVersion"];
-        auto workingDirectory = job["WorkingDirectory"];;
+        auto workingDirectory = servant["centralDataFolder"] + job["WorkingDirectory"];
+        workingDirectory = convertToOSFormat(workingDirectory);
         // Make sure the working directory exists
         if (!std::filesystem::exists(workingDirectory)) {
           COMETLOG("Creating working directory: " + workingDirectory, comet::INFO);
@@ -556,14 +557,16 @@ namespace comet
                            std::map<std::string, std::string> &servant)
       {
         try {
-          auto workDirectory = job["WorkingDirectory"];
+          auto WorkingDirectory = servant["centralDataFolder"] + job["WorkingDirectory"];
+          WorkingDirectory = convertToOSFormat(WorkingDirectory);
+
           auto inputFileName = job["InputFileName"];
 
-          if (!std::filesystem::exists(workDirectory)) {
-            COMETLOG("Creating working directory: " + workDirectory, comet::DEBUGGING);
-            std::filesystem::create_directories(workDirectory);
+          if (!std::filesystem::exists(WorkingDirectory)) {
+            COMETLOG("Creating working directory: " + WorkingDirectory, comet::DEBUGGING);
+            std::filesystem::create_directories(WorkingDirectory);
           } else {
-            COMETLOG("Working directory already exists: " + workDirectory, comet::DEBUGGING);
+            COMETLOG("Working directory already exists: " + WorkingDirectory, comet::DEBUGGING);
           }
 
           std::promise<int> pidPromise;
@@ -580,9 +583,9 @@ namespace comet
                                           : servant["managerIpAddress"];
 
                 std::string args =
-                    "\"" + fullEnginePath + "\" \"" + workDirectory + inputFileName + "\""
+                    "\"" + fullEnginePath + "\" \"" + WorkingDirectory + inputFileName + "\""
                     " --hub-progress-url \"http://" + managerIp + ":" + servant["port"] + "/job/progress\""
-                    " --output-dir \"" + workDirectory + "/\""
+                    " --output-dir \"" + WorkingDirectory + "/\""
                     " --phase-dir \"" + job["PhaseFileLocation"] + "/\""
                     " --email \"" + job["CreatorXEmail"] + "\""
                     " --code \"" + job["CreatorXCode"] + "\""
@@ -641,10 +644,10 @@ namespace comet
 
                   execl(fullEnginePath.c_str(),
                         fullEnginePath.c_str(),
-                        (workDirectory + inputFileName).c_str(),
+                        (WorkingDirectory + inputFileName).c_str(),
                         "--hub-progress-url",
                         (managerIp + ":" + servant["port"] + "/job/progress").c_str(),
-                        "--output-dir", (workDirectory + "/").c_str(),
+                        "--output-dir", (WorkingDirectory + "/").c_str(),
                         "--phase-dir", (job.at("PhaseFileLocation") + "/").c_str(),
                         "--email", job.at("CreatorXEmail").c_str(),
                         "--code", job.at("CreatorXCode").c_str(),

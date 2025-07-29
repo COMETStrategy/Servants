@@ -1,15 +1,11 @@
 ﻿// Console.cpp : Defines the entry point for the application.
 //
 
-#include "Console.h"
-
-#if defined(_WIN32)
-  #include <windows.h>
-#endif
-
-
 #include "Utilities/Logger.h"
 #include "Servants/WebServices.h"
+
+#include "Console.h"
+
 
 int main()
 {

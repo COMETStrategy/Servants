@@ -10,7 +10,6 @@
 #include <thread>
 #include <memory>
 #include <drogon/drogon.h>
-//#include "drogon/utils/FunctionTraits.h"
 #include "../Utilities/Database.h"
 #include "../Utilities/Authenticator.h"
 #include "Scheduler.h"
@@ -25,12 +24,6 @@ namespace comet
       public:
         explicit WebServices(const std::string& dbFilename = "~/comet-servants.db");
         ~WebServices();
-
-        void registerResetRunningJobsHandler();
-
-        void registerUpdateAliveServantsHandler();
-
-        void registerMockRunJobsHandler();
 
         void shutdown();
 
@@ -66,47 +59,7 @@ namespace comet
         
       public:
 
-        void initializeHandlers();
-        static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
-      private:
-        //void registerRootAuthenticationHandler();
-        void registerConfigurationHandler();
-        void registerUploadJobHandler();
-
-        void registerExecuteCommandHandler();
-
-        void registerJobProcessUpdateHandler();
-
-        void registerJobSelectedStopHandler();
-
-        void registerJobSummaryHandler();
-        
-        void registerJobProgressHandler();
-
-        void registerServantStopProcessesHandler();
-
-        void registerJobSelectedDeleteHandler();
-        void registerJobSelectedRestartHandler();
-        void registerJobStartHandler();
-        void registerJobStatusDatabaseUpdateHandler();
-
-        void registerServantSummaryHandler();
-
-        void registerRunQueuedHandler();
-
-        void registerServantSelectedDeleteHandler();
-
-        //void registerServantSettingsHandler();
-
-        void registerServantStatusHandler();
-        void registerStatusHandler();
-        void registerStatusJobsHandler();
-        void registerServantUpdateRemoteServantHandler();
-
-        //void registerAllHandlers();
-
-        //void registerQuitHandler();
-        
+           
 
         const std::string ciphering = "aes-256-cbc"; // Cipher method
         const std::string secret_key = "comet_servant_secret_key"; // Replace with your secret key

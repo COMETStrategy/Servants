@@ -38,7 +38,6 @@ namespace comet
 
     #if defined(_WIN32) && defined(_DEBUG)
       #include <windows.h>
-      #include <iostream>
       #include <string>
 
     struct DebugStreamBuf : public std::streambuf {

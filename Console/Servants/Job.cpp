@@ -11,12 +11,6 @@
 
 
 #include <csignal>
-// #ifdef _WIN32
-//   #include <windows.h>
-// #else
-//   #include <unistd.h>     // fork, execl
-//   #include <fcntl.h>      // open
-// #endif
 
 
 #include "Job.h"

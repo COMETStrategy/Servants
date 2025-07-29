@@ -40,9 +40,6 @@ namespace comet
         comet::Logger::setLoggerLevel(LoggerLevel::INFO);
         COMETLOG("WebServices::WebServices()", LoggerLevel::DEBUGGING);
         aServant.setPort(777);
-      
-        Routes route(auth, aServant, db, m_running);
-        run();
 
         auto results = db.
             getQueryResults("SELECT * FROM servants where LOWER(iPAddress) = '" + aServant.getIpAddress() + "';");
@@ -80,6 +77,10 @@ namespace comet
         } else {
           COMETLOG("No records found in Servant Settings table, authentication required.", LoggerLevel::WARNING);
         }
+              
+        Routes route(auth, aServant, db, m_running);
+        run();
+
       }
 
 

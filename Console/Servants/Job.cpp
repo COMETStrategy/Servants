@@ -238,6 +238,9 @@ namespace comet
       {
         std::string html = "";
 
+        // Get active servant
+        auto centralDataFolder = Servant::thisServant->getCentralDataFolder();
+
 
         // Get the job summary from the database
         std::string selection = "SELECT * FROM jobs ";
@@ -321,7 +324,7 @@ namespace comet
 
             html += "<td class='centerAlign'><a href='#' title='Open Working Directory for input file " +
                 row.at("InputFileName") + "' onclick=\"openLocalFile('" +
-                jsEscape(row.at("WorkingDirectory")) + "')\">" + row.at("CaseNumber") + "</a></td>";
+                jsEscape(centralDataFolder + row.at("WorkingDirectory")) + "')\">" + row.at("CaseNumber") + "</a></td>";
 
             html += "<td><span "
                 "title='Machine: " + row.at("CreatorMachine") + ", Email: " + row.at("CreatorXEmail") + "'>"
@@ -338,11 +341,10 @@ namespace comet
               }
               else {
                 fullProgress = "Open Display File for more details";
-                // remove ' & " from fullProgress
               }
               html +=
                   "<td class='centerAlign'><a href='#' title='" + fullProgress + "' onclick=\"openLocalFile('"
-                  + jsEscape(row.at("WorkingDirectory")) + "S_Display.txt')\">" +
+                  + jsEscape(centralDataFolder + row.at("WorkingDirectory")) + "S_Display.txt')\">" +
                   progress +
                   "</a></td>";
             } else {
@@ -357,7 +359,7 @@ namespace comet
               stream << std::fixed << std::setprecision(2) << ranking;
               html +=
                   "<td class='rightAlign'> <a href='#' title='Open Schedule HTML File for more details' onclick=\"openLocalFile('"
-                  + jsEscape(row.at("WorkingDirectory")) + "S_Schedule.html')\">" +
+                  + jsEscape(centralDataFolder + row.at("WorkingDirectory")) + "S_Schedule.html')\">" +
                   stream.str() +
                   "</a> </td>";
             } else {
@@ -510,8 +512,9 @@ namespace comet
       {
         COMETLOG("🏃Job:Starting job " + job["GroupName"] + " " + job["CaseNumber"]
                  + " on this servant. ", comet::INFO);
-        std::string executableEngine = servant["engineFolder"] + job["EngineVersion"];
-        auto workingDirectory = servant["centralDataFolder"] + job["WorkingDirectory"];
+        std::string executableEngine = convertToOSFormat(servant["engineFolder"] + "/" + job["EngineVersion"]);
+        auto workingDirectory = servant["centralDataFolder"];
+        workingDirectory +=  job["WorkingDirectory"];
         workingDirectory = convertToOSFormat(workingDirectory);
         // Make sure the working directory exists
         if (!std::filesystem::exists(workingDirectory)) {
@@ -572,7 +575,7 @@ namespace comet
           std::promise<int> pidPromise;
           auto pidFuture = pidPromise.get_future();
 
-          std::string fullEnginePath = servant["engineFolder"] + "/" + job["EngineVersion"];
+          std::string fullEnginePath = convertToOSFormat(servant["engineFolder"] + "/" + job["EngineVersion"]);
           std::string savedCaseNumber = job.count("CaseNumber") ? job["CaseNumber"] : "No case number";
 
           std::thread([=, &db, &pidPromise]() mutable
@@ -581,16 +584,27 @@ namespace comet
                 std::string managerIp = servant["managerIpAddress"].empty()
                                           ? getMachineName()
                                           : servant["managerIpAddress"];
+                std::string fullInputFile = convertToOSFormat(WorkingDirectory  + inputFileName);
+                std::string fullPhaseFilePath = convertToOSFormat(servant["centralDataFolder"] + job["PhaseFileLocation"]);
+
+                if (!WorkingDirectory.empty() && WorkingDirectory.back() == '\\') {
+                  WorkingDirectory += '\\';
+                }
+                if (!fullPhaseFilePath.empty() && fullPhaseFilePath.back() == '\\') {
+                  fullPhaseFilePath += '\\';
+                }
 
                 std::string args =
-                    "\"" + fullEnginePath + "\" \"" + WorkingDirectory + inputFileName + "\""
+                    "\"" + fullEnginePath + "\" \"" + fullInputFile + "\""
                     " --hub-progress-url \"http://" + managerIp + ":" + servant["port"] + "/job/progress\""
-                    " --output-dir \"" + WorkingDirectory + "/\""
-                    " --phase-dir \"" + job["PhaseFileLocation"] + "/\""
+                    " --output-dir \"" + WorkingDirectory + "\""
+                    " --phase-dir \"" + fullPhaseFilePath + "\""
                     " --email \"" + job["CreatorXEmail"] + "\""
                     " --code \"" + job["CreatorXCode"] + "\""
                     " --case-number \"" + job["CaseNumber"] + "\""
                     " --lowercase-phase-file-paths false";
+
+                COMETLOG("Executing: " + args, LoggerLevel::CRITICAL);
 
 #ifdef _WIN32
           STARTUPINFOA si = {sizeof(STARTUPINFOA)};

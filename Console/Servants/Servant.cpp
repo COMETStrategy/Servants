@@ -482,7 +482,6 @@ namespace comet
 			"<th>Manager IP</th>"
 			"<th>Engine Folder</th>"
 			"<th>Central Folders</th>"
-			"<th>Local Folder</th>"
 			"</tr>";
 
 		int rowIndex = 0;

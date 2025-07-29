@@ -194,7 +194,7 @@ namespace comet
 				isAlive = true;
 			}
 			else {
-				isAlive = check200Response(servant.at("ipAddress") + ":" + servant.at("port") + "/proofoflife");
+				isAlive = check200Response(servant.at("ipAddress") + ":" + servant.at("port") + "/alive");
 			}
 			auto aliveStatusText = (isAlive) ? "ALIVE" : "NOT ALIVE";
 			if ((servant.at("alive") == "1" && !isAlive) || (servant.at("alive") == "0" && isAlive)) {

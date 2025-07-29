@@ -52,16 +52,16 @@ namespace comet
     struct PossibleRoutes
       {
         bool validForUnauthorisedAccess;
-        bool validForDebugOnly;
+        bool showInDebug;
         std::string path;
         vHandler handler;
         const std::vector<internal::HttpConstraint> methods;
 
-        PossibleRoutes(bool unauth, bool debug, std::string p,
+        PossibleRoutes(bool unauth, bool showWhenDebugging, std::string p,
                        vHandler h,
                        const std::vector<internal::HttpConstraint> &m)
           : validForUnauthorisedAccess(unauth),
-            validForDebugOnly(debug),
+            showInDebug(showWhenDebugging),
             path(p),
             handler(h),
             methods(m)
@@ -72,45 +72,57 @@ namespace comet
     void Routes::registerAllHandlers()
       {
         std::vector<PossibleRoutes> allPossibleRoutes = {
-          {true, true, "/", Routes::Alive, {drogon::Get, drogon::Post}},
-          {true, true, "/alive", Routes::Alive, {drogon::Get, drogon::Post}},
-          {true, true, "/authenticate", Routes::Authenticate, {drogon::Get, drogon::Post}},
-          {true, true, "/authentication", Routes::Authentication, {drogon::Get, drogon::Post}},
-          {true, true, "/configuration", Routes::Configuration, {drogon::Post}},
-          {true, true, "/mockrunjobs", Routes::MockRunJobs, {drogon::Post, drogon::Get}},
-          {true, true, "/resetrunningjobs", Routes::ResetRunningJobs, {drogon::Post, drogon::Get}},
-          {true, true, "/run_queued", Routes::RunQueued, {drogon::Post, drogon::Get}},
-          {true, true, "/servant/selected_delete", Routes::ServantSelectedDelete, {drogon::Post}},
-          {true, true, "/servant/stop_processes", Routes::ServantStopProcesses, {drogon::Post}},
-          {true, true, "/servant_settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
-          {true, true, "/servant_status", Routes::ServantStatus, {drogon::Post}},
-          {true, true, "/servant_summary", Routes::ServantSummary, {drogon::Get}},
-          {true, true, "/quit", Routes::Quit, {drogon::Get, drogon::Post}},
-          {true, true, "/updateAliveServants", Routes::UpdateAliveServants, {drogon::Post, drogon::Get}},
-          {true, true, "/upload/job", Routes::UploadJob, {drogon::Post}},
-          {false, false, "/execute_command", Routes::ExecuteCommand, {drogon::Post}},
-          {false, false, "/job/process_update", Routes::JobProcessUpdate, {drogon::Post}},
-          {false, false, "/job/selected_stop", Routes::JobSelectedStop, {drogon::Post}},
-          {false, false, "/job/selected_delete", Routes::JobSelectedDelete, {drogon::Post}},
-          {false, false, "/job/selected_restart", Routes::JobSelectedRestart, {drogon::Post}},
-          {false, false, "/job/start", Routes::JobStart, {drogon::Post}},
-          {false, false, "/job/status_database_update", Routes::JobStatusDatabaseUpdate, {drogon::Post}},
-          {false, false, "/job/summary", Routes::JobSummary, {drogon::Get}},
-          {false, false, "/job/progress", Routes::JobProgress, {drogon::Get}},
+             {true, false, "/", Routes::Alive, {drogon::Get, drogon::Post}},
+             {true, false, "/alive", Routes::Alive, {drogon::Get, drogon::Post}},
+             {true, false, "/authenticate", Routes::Authenticate, {drogon::Get, drogon::Post}},
+             {true, false, "/authentication", Routes::Authentication, {drogon::Get, drogon::Post}},
+             {true, false, "/configuration", Routes::Configuration, {drogon::Post}},
+             {true, false, "/execute_command", Routes::ExecuteCommand, {drogon::Post}},
+             {true, false, "/job/process_update", Routes::JobProcessUpdate, {drogon::Post}},
+             {true, false, "/job/progress", Routes::JobProgress, {drogon::Get}},
+             {true, false, "/job/selected_delete", Routes::JobSelectedDelete, {drogon::Post}},
+             {true, false, "/job/selected_restart", Routes::JobSelectedRestart, {drogon::Post}},
+             {true, false, "/job/selected_stop", Routes::JobSelectedStop, {drogon::Post}},
+             {true, false, "/job/start", Routes::JobStart, {drogon::Post}},
+             {true, false, "/job/status_database_update", Routes::JobStatusDatabaseUpdate, {drogon::Post}},
+             {true, false, "/job/summary", Routes::JobSummary, {drogon::Get}},
+             {true, true, "/mockrunjobs", Routes::MockRunJobs, {drogon::Post, drogon::Get}},
+             {true, true, "/quit", Routes::Quit, {drogon::Get, drogon::Post}},
+             {true, false, "/resetrunningjobs", Routes::ResetRunningJobs, {drogon::Post, drogon::Get}},
+             {true, false, "/run_queued", Routes::RunQueued, {drogon::Post, drogon::Get}},
+             {true, false, "/servant/selected_delete", Routes::ServantSelectedDelete, {drogon::Post}},
+             {true, false, "/servant/stop_processes", Routes::ServantStopProcesses, {drogon::Post}},
+             {true, false, "/servant/status", Routes::ServantStatus, {drogon::Post}},
+             {true, false, "/servant/summary", Routes::ServantSummary, {drogon::Get}},
+             {true, false, "/servant_settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
+             {true, false, "/updateAliveServants", Routes::UpdateAliveServants, {drogon::Post, drogon::Get}},
+             {true, false, "/upload/job", Routes::UploadJob, {drogon::Post}},
         };
 
         for (const auto &r: allPossibleRoutes) {
           auto chosen = r.handler;
+          bool isAuthenticated = auth.machineAuthenticationisValid();
+          bool isManager = aServant.isManager();
+          // isDebug
+          #if defined(_GLIBCXX_DEBUG) || defined(DEBUG)
+            bool inDebug = true;
+          #else
+            bool inDebug = false;
+          #endif
+          
+          if ((r.showInDebug && inDebug) || (!r.showInDebug))
+          {
+            drogon::app().registerHandler(r.path, [r](const drogon::HttpRequestPtr &req,
+                                                      std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+                                            {
+                                              r.handler(req, std::move(callback));
+                                            }, r.methods);
 
-          drogon::app().registerHandler(r.path, [r](const drogon::HttpRequestPtr &req,
-                                                    std::function<void(const drogon::HttpResponsePtr &)> &&callback)
-                                          {
-                                            r.handler(req, std::move(callback));
-                                          }, r.methods);
-
-          COMETLOG(
-            std::string("Registering route: ") + r.path + ", Unauthorised:" + std::to_string(r.validForUnauthorisedAccess) +
-            ", Debug:" + std::to_string(r.validForDebugOnly), LoggerLevel::INFO);
+            COMETLOG(std::string("Registering route: ") + r.path , LoggerLevel::INFO);
+          }
+          else {
+            COMETLOG(std::string("IGNORED route: ") + r.path , LoggerLevel::CRITICAL);
+          }
         }
 
 
@@ -427,7 +439,7 @@ namespace comet
       {
         handleInvalidMethod(request);
         if (!auth.machineAuthenticationisValid()) {
-          COMETLOG("Unauthorized access to /servant_summary", LoggerLevel::WARNING);
+          COMETLOG("Unauthorized access to /servant/summary", LoggerLevel::WARNING);
           auto resp = drogon::HttpResponse::newHttpResponse();
           resp->setStatusCode(k401Unauthorized);
           resp->setBody("Unauthorized");
@@ -438,7 +450,7 @@ namespace comet
         std::string report = Servant::htmlServantSummary(db);
 
         auto resp = drogon::HttpResponse::newHttpResponse();
-        resp->setBody(htmlSetBody(report, "/servant_summary", "Servant Summary"));
+        resp->setBody(htmlSetBody(report, "/servant/summary", "Servant Summary"));
         callback(resp);
       }
 
@@ -482,7 +494,7 @@ namespace comet
 
           auto resp = drogon::HttpResponse::newHttpResponse();
           resp->setStatusCode(k500InternalServerError);
-          resp->addHeader("Location", "/servant_summary");
+          resp->addHeader("Location", "/servant/summary");
           resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
           callback(resp);
           return;
@@ -1029,8 +1041,8 @@ namespace comet
 
           {"Authentication", "/authentication", true, true, true},
           {"Servant Settings", "/servant_settings", false, true, true},
-          {"Servant Summary", "/servant_summary", false, false, true},
-          {"Job Summary", "/job_summary", false, false, true},
+          {"Servant Summary", "/servant/summary", false, false, true},
+          {"Job Summary", "/job/summary", false, false, true},
           {"Reset Running Jobs (Dev only)", "/resetrunningjobs/", false, false, false},
           {"Mock Run Jobs (Dev only)", "/mockrunjobs/", false, false, false},
           {"Run (Queued)", "/run_queued/", false, false, false},

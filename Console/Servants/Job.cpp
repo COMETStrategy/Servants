@@ -373,10 +373,16 @@ namespace comet
         html += "<td class='centerAlign'>" + Job::jobStatusDescription(aStatus) + " " + title + "</td>";
         if (aStatus == JobStatus::Running || aStatus == JobStatus::Completed || aStatus == JobStatus::Failed)
         {
+          auto progress = row.at("RunProgress");
+          // truncate too long, more that 20 characters
+          if (progress.length() > 20)
+          {
+            progress = progress.substr(0, 20) + "...";
+          }
           html +=
             "<td class='centerAlign'><a href='#' title='Open Display File for more details' onclick=\"openLocalFile('"
             + jsEscape(row.at("WorkingDirectory")) + "S_Display.txt')\">" +
-            row.at("RunProgress") +
+            progress +
             "</a></td>";
         }
         else
@@ -426,7 +432,7 @@ namespace comet
         "";
     }
     // Add filter and sort links to the HTML
-    std::string baseUrl = "/job_summary";
+    std::string baseUrl = "/job/summary";
     html += "<p>" + htmlGenerateFilterLinks(baseUrl, sort, filter) + "<br>";
     html += "" + htmlGenerateSortLinks(baseUrl, sort, filter) + "</p>";
 

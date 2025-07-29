@@ -624,7 +624,7 @@ namespace comet
     void WebServices::registerJobSummaryHandler()
       {
         app().registerHandler(
-          "/job_summary",
+          "/job/summary",
           [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
             {
               handleInvalidMethod(request);

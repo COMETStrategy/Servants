@@ -300,6 +300,7 @@ namespace comet
               "<th>Servant</th>"
               "<th class='rightAlign'>NPV</th>"
               "<th class='rightAlign'>Life</th>"
+            "<th>Working Directory</th>"
               "</tr>";
           int rowIndex = 0;
           for (const auto &row: results) {
@@ -371,6 +372,8 @@ namespace comet
             } else {
               html += "<td></td>";
             }
+
+            html += "<td>" + (row.at("WorkingDirectory").empty() ? "" : row.at("WorkingDirectory")) + "</td>";
 
             html += "</tr>";
             rowIndex++;

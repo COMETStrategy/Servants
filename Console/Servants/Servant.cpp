@@ -627,7 +627,7 @@ namespace comet
 		}
 
 		// Sent request to the manager
-		auto url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/update_remote_servant";
+		auto url = "http://" + managerIpAddress + ":" + std::to_string(port) + "/servant/update_manager";
 		// Construct the JSON data of all the members
 		nlohmann::json jsonData;
 		jsonData["ipAddress"] = ipAddress;

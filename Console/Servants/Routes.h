@@ -57,6 +57,29 @@ namespace comet
         static std::string htmlHeader(const std::string &fullTargetPath, const std::string &title) ;
         static std::string htmlFooter() ;
       };
+
+    using vHandler = std::function<void(const drogon::HttpRequestPtr &,
+                                        std::function<void(const drogon::HttpResponsePtr &)> &&)>;
+
+    struct PossibleRoutes
+      {
+        bool validForUnauthorisedAccess;
+        bool showInDebug;
+        std::string path;
+        vHandler handler;
+        const std::vector<drogon::internal::HttpConstraint> methods;
+
+        PossibleRoutes(bool unauth, bool showWhenDebugging, std::string p,
+                       vHandler h,
+                       const std::vector<drogon::internal::HttpConstraint> &m)
+          : validForUnauthorisedAccess(unauth),
+            showInDebug(showWhenDebugging),
+            path(p),
+            handler(h),
+            methods(m)
+          {
+          }
+      };
   }
 
 #endif //ROUTES_H

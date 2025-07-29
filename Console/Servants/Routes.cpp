@@ -4,7 +4,6 @@
 
 
 #include <nlohmann/json.hpp>
-#include <cstdlib>
 #include <string>
 #include <stdexcept>
 
@@ -23,52 +22,7 @@ namespace comet
     Servant Routes::aServant;
     Database Routes::db;
     bool Routes::m_running = true;
-
-
-    void Routes::handleInvalidMethod(const HttpRequestPtr &request)
-      {
-        std::string upperMethod = to_string(request->method());
-        std::transform(upperMethod.begin(), upperMethod.end(), upperMethod.begin(), ::toupper);
-        // Get the request body
-        //std::string body = std::string(request->getBody());
-
-        COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::DEBUGGING);
-      }
-
-    Routes::Routes(Authenticator &anAuth, Servant &servant, Database &database, bool &running)
-      {
-        auth = anAuth;
-        aServant = servant;
-        db = database;
-        m_running = running;
-
-        registerAllHandlers();
-      }
-
-
-    using vHandler = std::function<void(const drogon::HttpRequestPtr &,
-                                        std::function<void(const drogon::HttpResponsePtr &)> &&)>;
-
-    struct PossibleRoutes
-      {
-        bool validForUnauthorisedAccess;
-        bool showInDebug;
-        std::string path;
-        vHandler handler;
-        const std::vector<internal::HttpConstraint> methods;
-
-        PossibleRoutes(bool unauth, bool showWhenDebugging, std::string p,
-                       vHandler h,
-                       const std::vector<internal::HttpConstraint> &m)
-          : validForUnauthorisedAccess(unauth),
-            showInDebug(showWhenDebugging),
-            path(p),
-            handler(h),
-            methods(m)
-          {
-          }
-      };
-
+    
     void Routes::registerAllHandlers()
       {
         std::vector<PossibleRoutes> allPossibleRoutes = {
@@ -79,10 +33,10 @@ namespace comet
              {true, false, "/configuration", Routes::Configuration, {drogon::Post}},
              {true, false, "/execute_command", Routes::ExecuteCommand, {drogon::Post}},
              {true, false, "/job/process_update", Routes::JobProcessUpdate, {drogon::Post}},
-             {true, false, "/job/progress", Routes::JobProgress, {drogon::Get}},
-             {true, false, "/job/selected_delete", Routes::JobSelectedDelete, {drogon::Post}},
-             {true, false, "/job/selected_restart", Routes::JobSelectedRestart, {drogon::Post}},
-             {true, false, "/job/selected_stop", Routes::JobSelectedStop, {drogon::Post}},
+             {true, false, "/job/progress", Routes::JobProgress, {drogon::Get, Post}},
+             {true, false, "/jobs/selected_delete", Routes::JobSelectedDelete, {drogon::Post}},
+             {true, false, "/jobs/selected_restart", Routes::JobSelectedRestart, {drogon::Post}},
+             {true, false, "/jobs/selected_stop", Routes::JobSelectedStop, {drogon::Post}},
              {true, false, "/job/start", Routes::JobStart, {drogon::Post}},
              {true, false, "/job/status_database_update", Routes::JobStatusDatabaseUpdate, {drogon::Post}},
              {true, false, "/job/summary", Routes::JobSummary, {drogon::Get}},
@@ -94,7 +48,7 @@ namespace comet
              {true, false, "/servant/stop_processes", Routes::ServantStopProcesses, {drogon::Post}},
              {true, false, "/servant/status", Routes::ServantStatus, {drogon::Post}},
              {true, false, "/servant/summary", Routes::ServantSummary, {drogon::Get}},
-             {true, false, "/servant_settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
+             {true, false, "/servant/settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
              {true, false, "/updateAliveServants", Routes::UpdateAliveServants, {drogon::Post, drogon::Get}},
              {true, false, "/upload/job", Routes::UploadJob, {drogon::Post}},
         };
@@ -118,15 +72,35 @@ namespace comet
                                               r.handler(req, std::move(callback));
                                             }, r.methods);
 
-            COMETLOG(std::string("Registering route: ") + r.path , LoggerLevel::INFO);
+            COMETLOG(std::string("Registering route: ") + r.path , LoggerLevel::DEBUGGING);
           }
           else {
-            COMETLOG(std::string("IGNORED route: ") + r.path , LoggerLevel::CRITICAL);
+            COMETLOG(std::string("IGNORED route: ") + r.path , LoggerLevel::DEBUGGING);
           }
         }
 
 
         //app().registerHandler("/alive", &Routes::Alive, {Get, Post});
+      }
+    
+    void Routes::handleInvalidMethod(const HttpRequestPtr &request)
+      {
+        std::string upperMethod = to_string(request->method());
+        std::transform(upperMethod.begin(), upperMethod.end(), upperMethod.begin(), ::toupper);
+        // Get the request body
+        //std::string body = std::string(request->getBody());
+
+        COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::DEBUGGING);
+      }
+
+    Routes::Routes(Authenticator &anAuth, Servant &servant, Database &database, bool &running)
+      {
+        auth = anAuth;
+        aServant = servant;
+        db = database;
+        m_running = running;
+
+        registerAllHandlers();
       }
 
     void Routes::Alive(
@@ -193,7 +167,7 @@ namespace comet
 
         auto resp = HttpResponse::newHttpResponse();
         resp->setStatusCode(k302Found);
-        resp->addHeader("Location", "/servant_settings");
+        resp->addHeader("Location", "/servant/settings");
         COMETLOG(
           std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " +
           aServant
@@ -362,7 +336,7 @@ namespace comet
         //aServant.setIpAddress(request->getHeader("Host"));
         auto responseBody = aServant.htmlServantSettingsForm();
         auto resp = HttpResponse::newHttpResponse();
-        resp->setBody(htmlSetBody(responseBody, "/servant_settings",
+        resp->setBody(htmlSetBody(responseBody, "/servant/settings",
                                   "Servant Settings: " + aServant.getIpAddress()));
         COMETLOG("Servant settings page served", LoggerLevel::INFO);
         callback(resp);
@@ -505,7 +479,7 @@ namespace comet
 
         auto resp = drogon::HttpResponse::newHttpResponse();
         resp->setStatusCode(k302Found);
-        resp->addHeader("Location", "/servant_settings");
+        resp->addHeader("Location", "/servant/settings");
         COMETLOG("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
         callback(resp);
       }
@@ -1040,7 +1014,7 @@ namespace comet
         std::vector<Link> links = {
 
           {"Authentication", "/authentication", true, true, true},
-          {"Servant Settings", "/servant_settings", false, true, true},
+          {"Servant Settings", "/servant/settings", false, true, true},
           {"Servant Summary", "/servant/summary", false, false, true},
           {"Job Summary", "/job/summary", false, false, true},
           {"Reset Running Jobs (Dev only)", "/resetrunningjobs/", false, false, false},

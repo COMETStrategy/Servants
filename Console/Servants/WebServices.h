@@ -63,14 +63,13 @@ namespace comet
         std::string configurationFilePath; // Default database path
         static comet::Servant aServant;
         Scheduler scheduler;
-        bool autoStartJobs; // Automatically start jobs on best servants
         
       public:
 
         void initializeHandlers();
         static void handleInvalidMethod(const drogon::HttpRequestPtr &request);
       private:
-        void registerRootAuthenticationHandler();
+        //void registerRootAuthenticationHandler();
         void registerConfigurationHandler();
         void registerUploadJobHandler();
 
@@ -97,16 +96,16 @@ namespace comet
 
         void registerServantSelectedDeleteHandler();
 
-        void registerServantSettingsHandler();
+        //void registerServantSettingsHandler();
 
         void registerServantStatusHandler();
         void registerStatusHandler();
         void registerStatusJobsHandler();
         void registerServantUpdateRemoteServantHandler();
 
-        void registerAllHandlers();
+        //void registerAllHandlers();
 
-        void registerQuitHandler();
+        //void registerQuitHandler();
         
 
         const std::string ciphering = "aes-256-cbc"; // Cipher method

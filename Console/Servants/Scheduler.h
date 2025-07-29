@@ -16,10 +16,13 @@ namespace comet
       {
       private:
         std::vector<Job *> jobs;
+        static bool autoStartJobs; // Automatically start jobs on best servants
 
       public:
         Scheduler();
         void initialise();
+        static bool getAutoStartJobs() { return autoStartJobs; }
+        static void setAutoStartJobs(bool autoStart) { autoStartJobs = autoStart; }
 
         ~Scheduler();
 

@@ -30,7 +30,7 @@ namespace comet
     WebServices::WebServices(const std::string &dbFilename)
       : db(dbFilename)
       {
-        autoStartJobs = true;
+                Scheduler::setAutoStartJobs(true);
         configurationFilePath = getFullFilenameAndDirectory(dbFilename);
 
         createNewDatabase();
@@ -132,67 +132,7 @@ namespace comet
       }
 
 
-    void WebServices::registerConfigurationHandler()
-      {
-        app().registerHandler(
-          "/configuration",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              auto totalCores = request->getParameter("totalCores");
-              auto unusedCores = request->getParameter("unusedCores");
-              if (unusedCores.empty()) unusedCores = "0";
-              auto activeCores = request->getParameter("activeCores");
-              if (activeCores.empty()) activeCores = "0";
-              auto priority = request->getParameter("priority");
-              if (priority.empty()) priority = "0";
-              auto managerIpAddress = request->getParameter("managerIpAddress");
-              auto engineFolder = request->getParameter("engineFolder");
-              auto centralDataFolder = request->getParameter("centralDataFolder");
-              auto alive = request->getParameter("alive");
-              if (alive.empty()) alive = "0";
-
-              aServant.setTotalCores(std::stoi(totalCores));
-              aServant.setUnusedCores(std::stoi(unusedCores));
-              aServant.setActiveCores(std::stoi(activeCores));
-              aServant.setPriority(std::stod(priority));
-              aServant.setManagerIpAddress(managerIpAddress);
-              aServant.setEngineFolder(engineFolder);
-              aServant.setCentralDataFolder(centralDataFolder);
-              aServant.setAlive(std::stoi(alive));
-
-              if (!db.insertRecord(
-                "UPDATE servants SET totalCores = '" + totalCores + "' "
-                ", unusedCores = '" + unusedCores + +"' "
-                ", activeCores = '" + activeCores + +"' "
-                ", managerIpAddress = '" + managerIpAddress + "' "
-                ", engineFolder = '" + engineFolder + "' "
-                ", centralDataFolder = '" + centralDataFolder + "' "
-                ", lastUpdateTime = DATETIME('now') "
-                "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
-                COMETLOG("Failed to update Settings table with configuration information: ",
-                         LoggerLevel::CRITICAL);
-
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->addHeader("Location", "/servant_summary");
-                resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
-                callback(resp);
-                return;
-              }
-
-              aServant.updateDatabase(db);
-              aServant.updateManagerDatabase();
-
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k302Found);
-              resp->addHeader("Location", "/servant_settings");
-              COMETLOG("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
-              callback(resp);
-            },
-          {Post});
-      }
+    
 
     void WebServices::registerMockRunJobsHandler()
       {
@@ -333,7 +273,7 @@ namespace comet
               }
 
               if (uploadJob(request)) {
-                autoStartJobs = true;
+                Scheduler::setAutoStartJobs(true);
                 auto newJobsStarted = Scheduler::startJobsOnBestServants(db);
                 auto resp = HttpResponse::newHttpResponse();
                 // Start the job if possible
@@ -474,7 +414,7 @@ namespace comet
               }
 
               try {
-                autoStartJobs = false;
+                Scheduler::setAutoStartJobs(false);
                 auto jobs = (*json)["rows"];
                 Servant::stopSelectedProcesses(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
@@ -511,7 +451,7 @@ namespace comet
               }
 
               try {
-                autoStartJobs = false;
+                Scheduler::setAutoStartJobs(false);
                 auto jobs = (*json)["rows"];
                 Job::deleteJobs(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
@@ -549,13 +489,13 @@ namespace comet
               auto jobs = (*json)["rows"];
 
               try {
-                autoStartJobs = false;
+                Scheduler::setAutoStartJobs(false);
                 Servant::stopSelectedProcesses(db, jobs);
                 Job::restartJobs(db, jobs);
                 Servant::initialiseAllServantActiveCores(db);
                 // Wait 1 second to allow all old cases to complete
                 std::this_thread::sleep_for(std::chrono::seconds(1));
-                autoStartJobs = true;
+                Scheduler::setAutoStartJobs(true);
                 int jobsStarted = Scheduler::startJobsOnBestServants(db);
 
                 auto resp = HttpResponse::newHttpResponse();
@@ -603,7 +543,7 @@ namespace comet
               }
 
               try {
-                autoStartJobs = true;
+                Scheduler::setAutoStartJobs(true);
                 auto jobsStarted = Scheduler::startJobsOnBestServants(db);
 
 
@@ -768,7 +708,7 @@ namespace comet
                   db);
                 if (status == JobStatus::Failed || status == JobStatus::Completed) {
                   Servant::initialiseAllServantActiveCores(db);
-                  if (autoStartJobs) Scheduler::startJobsOnBestServants(db);
+                  if (Scheduler::getAutoStartJobs()) Scheduler::startJobsOnBestServants(db);
                 }
 
                 if (updateSuccess) {
@@ -811,461 +751,51 @@ namespace comet
           {Post});
       }
 
-    void WebServices::registerServantStopProcessesHandler()
-      {
-        app().registerHandler(
-          "/servant/stop_processes",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
 
-              auto json = request->getJsonObject();
-              if (!json || !json->isMember("processIds")) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing processIds in JSON payload"})");
-                callback(resp);
-                return;
-              }
-
-              try {
-                auto processIds = (*json)["processIds"].asString();
-                Job::stopProcessesLocally(db, processIds);
-
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setBody(R"({"Status":"Processes stopped successfully"})");
-                callback(resp);
-              } catch (const std::exception &e) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
-                callback(resp);
-              }
-            },
-          {Post});
-      }
-
-    void WebServices::registerServantSummaryHandler()
-      {
-        app().registerHandler(
-          "/servant_summary",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-              if (!auth.machineAuthenticationisValid()) {
-                COMETLOG("Unauthorized access to /servant_summary", LoggerLevel::WARNING);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k401Unauthorized);
-                resp->setBody("Unauthorized");
-                callback(resp);
-                return;
-              }
-
-
-              std::string report = Servant::htmlServantSummary(db);
-
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(htmlSetBody(report, "/servant_summary", "Servant Summary"));
-              callback(resp);
-            },
-          {Get});
-      }
-
-    void WebServices::registerRunQueuedHandler()
-      {
-        app().registerHandler(
-          "/run_queued/",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              if (aServant.isManager()) {
-                COMETLOG(
-                  "This Servant does not run queued jobs since it is not the managing Servant, submit to " + aServant.
-                  getManagerIpAddress(),
-                  LoggerLevel::DEBUGGING);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k403Forbidden);
-                resp->setBody(R"({"ErrorMessage":"This servant is not authorized to run queued jobs"})");
-                callback(resp);
-                return;
-              }
-
-              try {
-                autoStartJobs = true;
-                int jobsStarted = Scheduler::startJobsOnBestServants(db);
-
-                if (jobsStarted > 0) {
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k302Found); // Redirect status code
-                  resp->addHeader("Location", "/?filter=active"); // Redirect to the desired page
-                  COMETLOG(
-                    "🏃 " + std::to_string(jobsStarted) + " queued jobs started. Redirecting to /?filter=active",
-                    LoggerLevel::INFO);
-                  callback(resp);
-                } else {
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k200OK);
-                  resp->setBody(htmlSetBody("No jobs available to start or cores available to run.", "/run_queued/",
-                                            "Run Queued Jobs"));
-                  COMETLOG("No queued jobs available to start", LoggerLevel::INFO);
-                  callback(resp);
-                }
-              } catch (const std::exception &e) {
-                COMETLOG(std::string("Error starting queued jobs: ") + e.what(), LoggerLevel::CRITICAL);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->setBody(R"({"ErrorMessage":"Internal server error"})");
-                callback(resp);
-              }
-            },
-          {Post, Get}
-        );
-      }
-
-
-    void WebServices::registerServantSelectedDeleteHandler()
-      {
-        app().registerHandler(
-          "/servant/selected_delete",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              auto json = request->getJsonObject();
-              if (!json) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
-                callback(resp);
-                return;
-              }
-
-              try {
-                autoStartJobs = false;
-                auto rows = (*json)["rows"];
-                Servant::deleteServants(db, rows);
-
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setBody(R"({"Status":"Servants deleted successfully"})");
-                callback(resp);
-              } catch (const std::exception &e) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
-                callback(resp);
-              }
-            },
-          {Post});
-      }
-
-
-    void WebServices::registerServantSettingsHandler()
-      {
-        app().registerHandler(
-          "/servant_settings",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-
-              if (!auth.machineAuthenticationisValid()) {
-                COMETLOG("Unauthorized access to /", LoggerLevel::WARNING);
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k302Found);
-                resp->addHeader("Location", "/authentication");
-                callback(resp);
-                return;
-              }
-
-              if (request->method() == drogon::Post) {
-                // Handle POST request
-                auto json = request->getJsonObject();
-                if (!json) {
-                  COMETLOG("Invalid JSON payload", LoggerLevel::WARNING);
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k400BadRequest);
-                  resp->setBody(R"({"ErrorMessage":"Invalid JSON payload"})");
-                  callback(resp);
-                  return;
-                }
-
-                try {
-                  //aServant.setIpAddress(request->getHeader("Host"));
-                  aServant.setTotalCores((*json)["totalCores"].asInt());
-                  aServant.setUnusedCores((*json)["unusedCores"].asInt());
-                  aServant.setActiveCores((*json)["activeCores"].asInt());
-                  aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
-                  aServant.setEngineFolder((*json)["engineFolder"].asString());
-                  aServant.setCentralDataFolder((*json)["centralDataFolder"].asString());
-                  aServant.setPriority((*json)["priority"].asDouble());
-                  aServant.updateServantSettings(db);
-
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k200OK);
-                  resp->setBody(R"({"status":"Servant settings updated successfully"})");
-                  COMETLOG("Servant settings updated successfully", LoggerLevel::INFO);
-                  callback(resp);
-                } catch (const std::exception &e) {
-                  COMETLOG(std::string("Error updating servant settings: ") + e.what(), LoggerLevel::CRITICAL);
-                  auto resp = HttpResponse::newHttpResponse();
-                  resp->setStatusCode(k500InternalServerError);
-                  resp->setBody(R"({"ErrorMessage":"Failed to update servant settings"})");
-                  callback(resp);
-                }
-                return;
-              }
-
-              // Handle GET request
-              //aServant.setIpAddress(request->getHeader("Host"));
-              auto responseBody = aServant.htmlServantSettingsForm();
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(htmlSetBody(responseBody, "/servant_settings",
-                                        "Servant Settings: " + aServant.getIpAddress()));
-              COMETLOG("Servant settings page served", LoggerLevel::INFO);
-              callback(resp);
-            },
-          {Get, Post});
-      }
-
-    void WebServices::registerServantStatusHandler()
-      {
-        app().registerHandler(
-          "/servant/status",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              auto json = request->getJsonObject();
-              if (!json) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody("Invalid JSON properties");
-                callback(resp);
-                return;
-              }
-
-              try {
-                aServant.setTotalCores((*json)["totalCores"].asInt());
-                aServant.setUnusedCores((*json)["unusedCores"].asInt());
-                aServant.setActiveCores((*json)["activeCores"].asInt());
-                aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
-                aServant.setEngineFolder((*json)["engineFolder"].asString());
-                aServant.setCentralDataFolder((*json)["centralDataFolder"].asString());
-                aServant.setVersion((*json)["ServantVersion"].asString());
-                aServant.setEmail((*json)["email"].asString());
-                aServant.setCode((*json)["code"].asString());
-                aServant.setPort((*json)["port"].asInt());
-                aServant.setProjectId((*json)["projectId"].asInt());
-                aServant.updateServantSettings(db);
-
-                auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
-                auto resp = drogon::HttpResponse::newHttpJsonResponse(postData.dump());
-                callback(resp);
-              } catch (const std::exception &e) {
-                auto resp = drogon::HttpResponse::newHttpResponse();
-                resp->setStatusCode(drogon::k400BadRequest);
-                resp->setBody("Error processing JSON: " + std::string(e.what()));
-                callback(resp);
-              }
-            },
-          {Post});
-      }
-
-    void WebServices::registerServantUpdateRemoteServantHandler()
-      {
-        app().registerHandler(
-          "/servant/update_remote_servant",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              auto json = request->getJsonObject();
-              if (!json) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
-                callback(resp);
-                return;
-              }
-
-              try {
-                // Extract all required fields from JSON
-                std::string ipAddress = (*json)["ipAddress"].asString();
-                int projectId = (*json)["projectId"].asInt();
-                std::string version = (*json)["version"].asString();
-                std::string email = (*json)["email"].asString();
-                std::string code = (*json)["code"].asString();
-                int port = (*json)["port"].asInt();
-                int totalCores = (*json)["totalCores"].asInt();
-                int unusedCores = (*json)["unusedCores"].asInt();
-                int activeCores = (*json)["activeCores"].asInt();
-                std::string managerIpAddress = (*json)["managerIpAddress"].asString();
-                std::string engineFolder = (*json)["engineFolder"].asString();
-                std::string centralDataFolder = (*json)["centralDataFolder"].asString();
-                double priority = (*json)["priority"].asDouble();
-                int alive = (*json)["alive"].asInt();
-
-                // Upsert servant info in the manager's database
-                std::string queryFound = "SELECT * FROM servants WHERE ipAddress = '" + ipAddress + "';";
-                auto found = db.getQueryResults(queryFound);
-                if (!found.empty()) {
-                  std::string query = "UPDATE servants SET "
-                                      "projectId = " + std::to_string(projectId) + ", "
-                                      "lastUpdateTime = DATETIME('now'), "
-                                      "version = '" + version + "', "
-                                      "email = '" + email + "', "
-                                      "code = '" + code + "', "
-                                      "port = " + std::to_string(port) + ", "
-                                      "totalCores = " + std::to_string(totalCores) + ", "
-                                      "unusedCores = " + std::to_string(unusedCores) + ", "
-                                      "activeCores = " + std::to_string(activeCores) + ", "
-                                      "managerIpAddress = '" + managerIpAddress + "', "
-                                      "engineFolder = '" + engineFolder + "', "
-                                      "centralDataFolder = '" + centralDataFolder + "', "
-                                      "priority = " + std::to_string(priority) + ", "
-                                      "alive = " + std::to_string(alive) + " "
-                                      "WHERE ipAddress = '" + ipAddress + "';";
-                  db.updateQuery("Update Remote Servant", query, false);
-                } else {
-                  std::string query = "INSERT INTO servants (ipAddress, projectId, registrationTime, lastUpdateTime, "
-                                      "version, email, code, port, totalCores, unusedCores, activeCores, managerIpAddress, engineFolder, centralDataFolder, priority, alive) "
-                                      "VALUES ('" + ipAddress + "', " + std::to_string(projectId) +
-                                      ", DATETIME('now'), DATETIME('now'), '" +
-                                      version + "', '" + email + "', '" + code + "', " + std::to_string(port) + ", " +
-                                      std::to_string(totalCores) + ", " + std::to_string(unusedCores) + ", " +
-                                      std::to_string(activeCores) + ", '" + managerIpAddress + "', '" + engineFolder +
-                                      "', '" +
-                                      centralDataFolder + "', " + std::to_string(priority) + ", " + std::to_string(
-                                        alive) + ");";
-                  db.insertRecord(query, true);
-                }
-
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setBody(R"({"status":"Remote servant updated successfully"})");
-                COMETLOG("Remote servant updated successfully: " + ipAddress, LoggerLevel::INFO);
-                callback(resp);
-              } catch (const std::exception &e) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k500InternalServerError);
-                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
-                COMETLOG(std::string("Exception in /servant/update_remote_servant: ") + e.what(),
-                         LoggerLevel::CRITICAL);
-                callback(resp);
-              }
-            },
-          {Post, Get});
-      }
-
-    void WebServices::registerStatusHandler()
-      {
-        app().registerHandler(
-          "/status/",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              auto email = request->getHeader("X-Email");
-              auto code = request->getHeader("X-Code");
-
-              if (email.empty() || code.empty()) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Missing required headers"})");
-                callback(resp);
-                return;
-              }
-
-              auto json = request->getJsonObject();
-              if (!json || !json->isMember("CloudDataConnection")) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
-                callback(resp);
-                return;
-              }
-
-              std::string cloudDataConnection = (*json)["CloudDataConnection"].asString();
-              COMETLOG("Received CloudDataConnection: " + cloudDataConnection, LoggerLevel::INFO);
-
-              nlohmann::json responseJson = {
-                {"Status", "success..."},
-                {"message", "Status updated successfully"},
-                {"errorMessage", ""}
-              };
-
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k200OK);
-              resp->setContentTypeCode(CT_APPLICATION_JSON);
-              resp->setBody(responseJson.dump());
-              callback(resp);
-            },
-          {Post});
-      }
-
-    void WebServices::registerStatusJobsHandler()
-      {
-        app().registerHandler(
-          "/status/jobs/",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-
-              // Get GroupName from Posted data
-              auto json = request->getJsonObject();
-              if (!json || !json->isMember("GroupName")) {
-                auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k400BadRequest);
-                resp->setBody(R"({"ErrorMessage":"Invalid or missing GroupName in JSON payload"})");
-                callback(resp);
-                return;
-              }
-              std::string GroupName = (*json)["GroupName"].asString();
-              std::string jobStatuses = Job::getAllJobStatuses(db, GroupName);
-
-              jobStatuses = R"({"ErrorMessage": "", "Status": ")" + jobStatuses + R"("})";
-              auto resp = HttpResponse::newHttpResponse();
-              resp->addHeader("Access-Control-Allow-Headers", "Content-type");
-              resp->setContentTypeCode(CT_TEXT_HTML);
-              resp->setBody(jobStatuses);
-              callback(resp);
-            },
-          {Get, Post});
-      }
-
-
-
-    void WebServices::registerQuitHandler()
-      {
-        app().registerHandler(
-          "/quit",
-          [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
-            {
-              handleInvalidMethod(request);
-              m_running = false;
-
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(htmlSetBody("COMET Server shut down.", "/quit", "Servant Shutdown"));
-              callback(resp);
-
-              // Wait 5 seconds and then quit the application  on a separate thread
-              std::thread([this]()
+        void WebServices::registerServantSelectedDeleteHandler()
+          {
+            app().registerHandler(
+              "/servant/selected_delete",
+              [this](const HttpRequestPtr &request, std::function<void(const HttpResponsePtr &)> &&callback)
                 {
-                  std::this_thread::sleep_for(std::chrono::seconds(1));
-                  COMETLOG("WebServices::quit() - Shutting down server now.", LoggerLevel::INFO);
-                  app().quit();
-                }).detach();
+                  handleInvalidMethod(request);
 
-              COMETLOG(
-                "WebServices::quit() - Shutting down server in 1s to allow serving the images in the callback page.",
-                LoggerLevel::INFO);
-            },
-          {Get});
-      }
+                  auto json = request->getJsonObject();
+                  if (!json) {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k400BadRequest);
+                    resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+                    callback(resp);
+                    return;
+                  }
 
+                  try {
+                    Scheduler::setAutoStartJobs(false);
+                    auto rows = (*json)["rows"];
+                    Servant::deleteServants(db, rows);
+
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k200OK);
+                    resp->setBody(R"({"Status":"Servants deleted successfully"})");
+                    callback(resp);
+                  } catch (const std::exception &e) {
+                    auto resp = HttpResponse::newHttpResponse();
+                    resp->setStatusCode(k500InternalServerError);
+                    resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                    callback(resp);
+                  }
+                },
+              {Post});
+          }
+      
+
+
+    
+    
+
+    
+
+    
 
     void WebServices::shutdown()
       {

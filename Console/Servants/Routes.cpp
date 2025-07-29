@@ -3,10 +3,16 @@
 //
 
 
+#include <nlohmann/json.hpp>
+#include <cstdlib>
+#include <string>
+#include <stdexcept>
+
 #include "Routes.h"
 
 #include "../Utilities//Logger.h"
-#include <nlohmann/json.hpp>
+#include "Job.h"
+#include "Scheduler.h"
 
 using namespace drogon;
 
@@ -18,7 +24,7 @@ namespace comet
     Database Routes::db;
     bool Routes::m_running = true;
 
-    
+
     void Routes::handleInvalidMethod(const HttpRequestPtr &request)
       {
         std::string upperMethod = to_string(request->method());
@@ -29,16 +35,16 @@ namespace comet
         COMETLOG("Handling " + upperMethod + " request to " + request->path(), LoggerLevel::DEBUGGING);
       }
 
-    Routes::Routes(Authenticator &anAuth, Servant & servant, Database &database, bool &running)
+    Routes::Routes(Authenticator &anAuth, Servant &servant, Database &database, bool &running)
       {
         auth = anAuth;
         aServant = servant;
         db = database;
         m_running = running;
-       
-        registerAllHandlers(); 
+
+        registerAllHandlers();
       }
-   
+
 
     using vHandler = std::function<void(const drogon::HttpRequestPtr &,
                                         std::function<void(const drogon::HttpResponsePtr &)> &&)>;
@@ -65,14 +71,32 @@ namespace comet
 
     void Routes::registerAllHandlers()
       {
-
         std::vector<PossibleRoutes> allPossibleRoutes = {
           {true, true, "/", Routes::Alive, {drogon::Get, drogon::Post}},
           {true, true, "/alive", Routes::Alive, {drogon::Get, drogon::Post}},
-          {true, true, "/quit", Routes::Quit, {drogon::Get, drogon::Post}},
           {true, true, "/authenticate", Routes::Authenticate, {drogon::Get, drogon::Post}},
-          {false, false, "/authentication", Routes::Authentication, {drogon::Get, drogon::Post}},
-          // If you want to register both, add them separately without random
+          {true, true, "/authentication", Routes::Authentication, {drogon::Get, drogon::Post}},
+          {true, true, "/configuration", Routes::Configuration, {drogon::Post}},
+          {true, true, "/mockrunjobs", Routes::MockRunJobs, {drogon::Post, drogon::Get}},
+          {true, true, "/resetrunningjobs", Routes::ResetRunningJobs, {drogon::Post, drogon::Get}},
+          {true, true, "/run_queued", Routes::RunQueued, {drogon::Post, drogon::Get}},
+          {true, true, "/servant/selected_delete", Routes::ServantSelectedDelete, {drogon::Post}},
+          {true, true, "/servant/stop_processes", Routes::ServantStopProcesses, {drogon::Post}},
+          {true, true, "/servant_settings", Routes::ServantSettings, {drogon::Get, drogon::Post}},
+          {true, true, "/servant_status", Routes::ServantStatus, {drogon::Post}},
+          {true, true, "/servant_summary", Routes::ServantSummary, {drogon::Get}},
+          {true, true, "/quit", Routes::Quit, {drogon::Get, drogon::Post}},
+          {true, true, "/updateAliveServants", Routes::UpdateAliveServants, {drogon::Post, drogon::Get}},
+          {true, true, "/upload/job", Routes::UploadJob, {drogon::Post}},
+          {false, false, "/execute_command", Routes::ExecuteCommand, {drogon::Post}},
+          {false, false, "/job/process_update", Routes::JobProcessUpdate, {drogon::Post}},
+          {false, false, "/job/selected_stop", Routes::JobSelectedStop, {drogon::Post}},
+          {false, false, "/job/selected_delete", Routes::JobSelectedDelete, {drogon::Post}},
+          {false, false, "/job/selected_restart", Routes::JobSelectedRestart, {drogon::Post}},
+          {false, false, "/job/start", Routes::JobStart, {drogon::Post}},
+          {false, false, "/job/status_database_update", Routes::JobStatusDatabaseUpdate, {drogon::Post}},
+          {false, false, "/job/summary", Routes::JobSummary, {drogon::Get}},
+          {false, false, "/job/progress", Routes::JobProgress, {drogon::Get}},
         };
 
         for (const auto &r: allPossibleRoutes) {
@@ -94,119 +118,869 @@ namespace comet
       }
 
     void Routes::Alive(
-        const drogon::HttpRequestPtr& request,
-        std::function<void(const drogon::HttpResponsePtr&)>&& callback)
+      const drogon::HttpRequestPtr &request,
+      std::function<void(const drogon::HttpResponsePtr &)> &&callback)
       {
-              handleInvalidMethod(request);
-              if (request->method() == drogon::Post) {
-              auto host = request->getHeader("Host");
-              std::string hubAddress = "http://" + aServant.getIpAddress() + ":" + std::to_string(aServant.getPort()) + "/";
-              nlohmann::json jsonResponse = {
-                {"company", "COMET Strategy - Australia"},
-                {"HubName", "COMET Servant (" + aServant.getIpAddress()  + "):LOCAL"},
-                {"HubAddress", hubAddress},
-                {"CloudDataConnection", "notused"},
-                {"ErrorMessage", ""}
-              };
+        handleInvalidMethod(request);
+        if (request->method() == drogon::Post) {
+          auto host = request->getHeader("Host");
+          std::string hubAddress = "http://" + aServant.getIpAddress() + ":" + std::to_string(aServant.getPort()) + "/";
+          nlohmann::json jsonResponse = {
+            {"company", "COMET Strategy - Australia"},
+            {"HubName", "COMET Servant (" + aServant.getIpAddress() + "):LOCAL"},
+            {"HubAddress", hubAddress},
+            {"CloudDataConnection", "notused"},
+            {"ErrorMessage", ""}
+          };
 
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setContentTypeCode(CT_APPLICATION_JSON);
+          resp->setBody(jsonResponse.dump());
+          callback(resp);
+          return;
+        }
+
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setBody(
+          htmlSetBody(
+            "Alive"
+            , ""
+            , "Test COMET Servant Alive")
+        );
+        COMETLOG("Proof of life: " + request->getHeader("Host") + " is Alive", LoggerLevel::DEBUGGING);
+        callback(resp);
+      }
+
+    void Routes::Authenticate(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        aServant.setEmail(request->getParameter("email"));
+        aServant.setCode(request->getParameter("code"));
+        //aServant.setIpAddress(request->getParameter("ipAddress"));
+
+        const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
+        if (!isAuthenticated) {
+          COMETLOG("Invalid authentication parameters", LoggerLevel::CRITICAL);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/authentication");
+          COMETLOG(
+            std::string("Authentication ") + ((isAuthenticated) ? "successful ✅" : "failed ❌") + " for email: " +
+            aServant
+            .getEmail() +
+            ". Redirecting to /",
+            LoggerLevel::INFO);
+          callback(resp);
+          return;
+        }
+
+        aServant.updateServantSettings(db);
+
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setStatusCode(k302Found);
+        resp->addHeader("Location", "/servant_settings");
+        COMETLOG(
+          std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " +
+          aServant
+          .getEmail() +
+          ". Redirecting to /",
+          LoggerLevel::INFO);
+        callback(resp);
+      }
+
+
+    void Routes::Authentication(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+        if (request->method() == drogon::Post) {
+          auto host = request->getHeader("Host");
+          std::string hubAddress = "http://" + host + "/";
+
+          nlohmann::json jsonResponse = {
+            {"company", "COMET Strategy - Australia"},
+            {"HubName", "COMET Servant (" + aServant.getIpAddress() + "):LOCAL"},
+            {"HubAddress", hubAddress},
+            {"CloudDataConnection", "notused"},
+            {"ErrorMessage", ""}
+          };
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setContentTypeCode(CT_APPLICATION_JSON);
+          resp->setBody(jsonResponse.dump());
+          callback(resp);
+          return;
+        }
+
+        // GET response
+        auto resp = HttpResponse::newHttpResponse();
+        std::string responseBody = aServant.htmlAuthenticationSettingsForm(auth);
+
+        resp->setBody(htmlSetBody(responseBody, "/authentication", "Servant Authentication"));
+        COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
+        callback(resp);
+      }
+
+    void Routes::RunQueued(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        if (aServant.isManager()) {
+          COMETLOG(
+            "This Servant does not run queued jobs since it is not the managing Servant, submit to " + aServant.getManagerIpAddress(),
+            LoggerLevel::DEBUGGING);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k403Forbidden);
+          resp->setBody(R"({"ErrorMessage":"This servant is not authorized to run queued jobs"})");
+          callback(resp);
+          return;
+        }
+
+        try {
+          Scheduler::setAutoStartJobs(true);
+          int jobsStarted = Scheduler::startJobsOnBestServants(db);
+
+          if (jobsStarted > 0) {
+            auto resp = drogon::HttpResponse::newHttpResponse();
+            resp->setStatusCode(k302Found);
+            resp->addHeader("Location", "/?filter=active");
+            COMETLOG("🏃 " + std::to_string(jobsStarted) + " queued jobs started. Redirecting to /?filter=active", LoggerLevel::INFO);
+            callback(resp);
+          } else {
+            auto resp = drogon::HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            resp->setBody(htmlSetBody("No jobs available to start or cores available to run.", "/run_queued/", "Run Queued Jobs"));
+            COMETLOG("No queued jobs available to start", LoggerLevel::INFO);
+            callback(resp);
+          }
+        } catch (const std::exception &e) {
+          COMETLOG(std::string("Error starting queued jobs: ") + e.what(), LoggerLevel::CRITICAL);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(R"({"ErrorMessage":"Internal server error"})");
+          callback(resp);
+        }
+      }
+
+    void Routes::ServantSelectedDelete(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        try {
+          auto rows = (*json)["rows"];
+          Servant::deleteServants(db, rows);
+
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setBody(R"({"Status":"Servants deleted successfully"})");
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+      }
+
+    void Routes::ServantSettings(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+
+        if (!auth.machineAuthenticationisValid()) {
+          COMETLOG("Unauthorized access to /", LoggerLevel::WARNING);
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/authentication");
+          callback(resp);
+          return;
+        }
+
+        if (request->method() == drogon::Post) {
+          // Handle POST request
+          auto json = request->getJsonObject();
+          if (!json) {
+            COMETLOG("Invalid JSON payload", LoggerLevel::WARNING);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k400BadRequest);
+            resp->setBody(R"({"ErrorMessage":"Invalid JSON payload"})");
+            callback(resp);
+            return;
+          }
+
+          try {
+            //aServant.setIpAddress(request->getHeader("Host"));
+            aServant.setTotalCores((*json)["totalCores"].asInt());
+            aServant.setUnusedCores((*json)["unusedCores"].asInt());
+            aServant.setActiveCores((*json)["activeCores"].asInt());
+            aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
+            aServant.setEngineFolder((*json)["engineFolder"].asString());
+            aServant.setCentralDataFolder((*json)["centralDataFolder"].asString());
+            aServant.setPriority((*json)["priority"].asDouble());
+            aServant.updateServantSettings(db);
+
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            resp->setBody(R"({"status":"Servant settings updated successfully"})");
+            COMETLOG("Servant settings updated successfully", LoggerLevel::INFO);
+            callback(resp);
+          } catch (const std::exception &e) {
+            COMETLOG(std::string("Error updating servant settings: ") + e.what(), LoggerLevel::CRITICAL);
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(R"({"ErrorMessage":"Failed to update servant settings"})");
+            callback(resp);
+          }
+          return;
+        }
+
+        // Handle GET request
+        //aServant.setIpAddress(request->getHeader("Host"));
+        auto responseBody = aServant.htmlServantSettingsForm();
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setBody(htmlSetBody(responseBody, "/servant_settings",
+                                  "Servant Settings: " + aServant.getIpAddress()));
+        COMETLOG("Servant settings page served", LoggerLevel::INFO);
+        callback(resp);
+      }
+
+    void Routes::ServantStatus(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody("Invalid JSON properties");
+          callback(resp);
+          return;
+        }
+
+        try {
+          aServant.setTotalCores((*json)["totalCores"].asInt());
+          aServant.setUnusedCores((*json)["unusedCores"].asInt());
+          aServant.setActiveCores((*json)["activeCores"].asInt());
+          aServant.setManagerIpAddress((*json)["managerIpAddress"].asString());
+          aServant.setEngineFolder((*json)["engineFolder"].asString());
+          aServant.setCentralDataFolder((*json)["centralDataFolder"].asString());
+          aServant.setVersion((*json)["ServantVersion"].asString());
+          aServant.setEmail((*json)["email"].asString());
+          aServant.setCode((*json)["code"].asString());
+          aServant.setPort((*json)["port"].asInt());
+          aServant.setProjectId((*json)["projectId"].asInt());
+          aServant.updateServantSettings(db);
+
+          auto postData = nlohmann::json{{"status", "success"}, {"message", "Status updated successfully"}};
+          auto resp = drogon::HttpResponse::newHttpJsonResponse(postData.dump());
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(drogon::k400BadRequest);
+          resp->setBody("Error processing JSON: " + std::string(e.what()));
+          callback(resp);
+        }
+      }
+
+    void Routes::ServantStopProcesses(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json || !json->isMember("processIds")) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing processIds in JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        try {
+          auto processIds = (*json)["processIds"].asString();
+          Job::stopProcessesLocally(db, processIds);
+
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setBody(R"({"Status":"Processes stopped successfully"})");
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+      }
+
+    void Routes::ServantSummary(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+        if (!auth.machineAuthenticationisValid()) {
+          COMETLOG("Unauthorized access to /servant_summary", LoggerLevel::WARNING);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k401Unauthorized);
+          resp->setBody("Unauthorized");
+          callback(resp);
+          return;
+        }
+
+        std::string report = Servant::htmlServantSummary(db);
+
+        auto resp = drogon::HttpResponse::newHttpResponse();
+        resp->setBody(htmlSetBody(report, "/servant_summary", "Servant Summary"));
+        callback(resp);
+      }
+
+    void Routes::Configuration(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto totalCores = request->getParameter("totalCores");
+        auto unusedCores = request->getParameter("unusedCores");
+        if (unusedCores.empty()) unusedCores = "0";
+        auto activeCores = request->getParameter("activeCores");
+        if (activeCores.empty()) activeCores = "0";
+        auto priority = request->getParameter("priority");
+        if (priority.empty()) priority = "0";
+        auto managerIpAddress = request->getParameter("managerIpAddress");
+        auto engineFolder = request->getParameter("engineFolder");
+        auto centralDataFolder = request->getParameter("centralDataFolder");
+        auto alive = request->getParameter("alive");
+        if (alive.empty()) alive = "0";
+
+        aServant.setTotalCores(std::stoi(totalCores));
+        aServant.setUnusedCores(std::stoi(unusedCores));
+        aServant.setActiveCores(std::stoi(activeCores));
+        aServant.setPriority(std::stod(priority));
+        aServant.setManagerIpAddress(managerIpAddress);
+        aServant.setEngineFolder(engineFolder);
+        aServant.setCentralDataFolder(centralDataFolder);
+        aServant.setAlive(std::stoi(alive));
+
+        if (!db.insertRecord(
+          "UPDATE servants SET totalCores = '" + totalCores + "' "
+          ", unusedCores = '" + unusedCores + +"' "
+          ", activeCores = '" + activeCores + +"' "
+          ", managerIpAddress = '" + managerIpAddress + "' "
+          ", engineFolder = '" + engineFolder + "' "
+          ", centralDataFolder = '" + centralDataFolder + "' "
+          ", lastUpdateTime = DATETIME('now') "
+          "WHERE ipAddress = '" + aServant.getIpAddress() + "';")) {
+          COMETLOG("Failed to update Settings table with configuration information: ",
+                   LoggerLevel::CRITICAL);
+
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->addHeader("Location", "/servant_summary");
+          resp->setBody(R"({"error":"Failed to update Settings table with configuration information"})");
+          callback(resp);
+          return;
+        }
+
+        aServant.updateDatabase(db);
+        aServant.updateManagerDatabase();
+
+        auto resp = drogon::HttpResponse::newHttpResponse();
+        resp->setStatusCode(k302Found);
+        resp->addHeader("Location", "/servant_settings");
+        COMETLOG("Configuration successfully saved. Redirecting to /", LoggerLevel::INFO);
+        callback(resp);
+      }
+
+    void Routes::ExecuteCommand(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json || !json->isMember("command")) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing command in JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        std::string command = (*json)["command"].asString();
+        try {
+          int result = system(command.c_str());
+          if (result == 0) {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k200OK);
+            resp->setBody(R"({"Status":"Command executed successfully"})");
+            callback(resp);
+          } else {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(R"({"ErrorMessage":"Failed to execute command"})");
+            callback(resp);
+          }
+        } catch (const std::exception &e) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+      }
+
+    void Routes::JobProcessUpdate(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json ||
+            !json->isMember("GroupName") ||
+            !json->isMember("CaseNumber") ||
+            !json->isMember("Status") ||
+            !json->isMember("Servant") ||
+            !json->isMember("RunProgress") ||
+            !json->isMember("ProcessId")) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        try {
+          JobStatus status = static_cast<JobStatus>(json->get("Status", 0).asInt());
+          std::string servant = json->get("Servant", "").asString();
+          std::string processId = json->get("ProcessId", "").asString();
+          std::string runProgress = json->get("RunProgress", "").asString();
+          std::string caseNumber = json->get("CaseNumber", "").asString();
+          std::string groupName = json->get("GroupName", "").asString();
+
+          bool updateSuccess = Job::processUpdateRunning(db, status, servant, processId, runProgress, caseNumber,
+                                                         groupName);
+
+          if (updateSuccess) {
+            Json::Value responseJson;
+            responseJson["ErrorMessage"] = "";
+            responseJson["Status"] = "Job process updated successfully";
+            responseJson["CaseNumber"] = caseNumber;
+
+            auto resp = HttpResponse::newHttpJsonResponse(responseJson);
+            callback(resp);
+            COMETLOG("Job process updated successfully for CaseNumber: " + caseNumber, LoggerLevel::INFO);
+          } else {
+            auto resp = HttpResponse::newHttpResponse();
+            resp->setStatusCode(k500InternalServerError);
+            resp->setBody(R"({"ErrorMessage":"Failed to update job process in database"})");
+            callback(resp);
+            COMETLOG("Failed to update job process for CaseNumber: " + caseNumber, LoggerLevel::CRITICAL);
+          }
+        } catch (const std::exception &e) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+          COMETLOG(std::string("Exception occurred while updating job process: ") + e.what(),
+                   LoggerLevel::CRITICAL);
+        }
+      }
+
+
+    void Routes::JobSelectedStop(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json || !json->isMember("rows")) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        try {
+          Scheduler::setAutoStartJobs(false);
+          auto jobs = (*json)["rows"];
+          Servant::stopSelectedProcesses(db, jobs);
+          Servant::initialiseAllServantActiveCores(db);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setBody(R"({"Status":"Jobs stopped successfully"})");
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+      }
+
+    void Routes::JobSelectedDelete(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        try {
+          Scheduler::setAutoStartJobs(false);
+          auto jobs = (*json)["rows"];
+          Job::deleteJobs(db, jobs);
+          Servant::initialiseAllServantActiveCores(db);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setBody(R"({"Status":"Jobs deleted successfully"})");
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+      }
+
+    void Routes::JobSelectedRestart(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        auto json = request->getJsonObject();
+        if (!json) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"ErrorMessage":"Invalid or missing JSON payload"})");
+          callback(resp);
+          return;
+        }
+        auto jobs = (*json)["rows"];
+
+        try {
+          Scheduler::setAutoStartJobs(false);
+          Servant::stopSelectedProcesses(db, jobs);
+          Job::restartJobs(db, jobs);
+          Servant::initialiseAllServantActiveCores(db);
+          // Wait 1 second to allow all old cases to complete
+          std::this_thread::sleep_for(std::chrono::seconds(1));
+          Scheduler::setAutoStartJobs(true);
+          int jobsStarted = Scheduler::startJobsOnBestServants(db);
+
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setBody(R"({"Status":"Jobs reset successfully"})");
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+        
+      }
+
+    void Routes::JobStart(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        try {
+          int jobsStarted = Scheduler::startJobsOnBestServants(db);
+
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k200OK);
+          resp->setBody(R"({"Status":"Jobs started successfully", "JobsStarted":)" + std::to_string(jobsStarted) + R"(})");
+          callback(resp);
+        } catch (const std::exception &e) {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+          callback(resp);
+        }
+      }
+
+    void Routes::JobStatusDatabaseUpdate(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+                handleInvalidMethod(request);
+
+              auto json = request->getJsonObject();
+              if (!json || !json->isMember("JobId") || !json->isMember("Status")) {
                 auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setContentTypeCode(CT_APPLICATION_JSON);
-                resp->setBody(jsonResponse.dump());
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing JobId/Status in JSON payload"})");
                 callback(resp);
                 return;
               }
 
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setBody(
-                htmlSetBody(
-                "Alive"
-                ,""
-                ,"Test COMET Servant Alive" )
-                );
-              COMETLOG("Proof of life: " + request->getHeader("Host") + " is Alive", LoggerLevel::DEBUGGING);
-              callback(resp);
+              try {
+                auto Id = (*json)["Id"].asString();
+                std::string status = (*json)["Status"].asString();
+
+                bool updateSuccess = true; //Job::updateJobStatusInDatabase(db, jobId, status);
+                if (updateSuccess) {
+                  Json::Value responseJson;
+                  responseJson["ErrorMessage"] = "";
+                  responseJson["Status"] = "Job status updated successfully";
+                  responseJson["Id"] = Id;
+
+                  auto resp = HttpResponse::newHttpJsonResponse(responseJson);
+                  callback(resp);
+                  COMETLOG("Job status updated successfully for JobId: " + Id, LoggerLevel::INFO);
+                } else {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody(R"({"ErrorMessage":"Failed to update job status in database"})");
+                  callback(resp);
+                  COMETLOG("Failed to update job status for JobId: " + Id, LoggerLevel::CRITICAL);
+                }
+              } catch (const std::exception &e) {
+                auto resp = HttpResponse::newHttpResponse();
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
+                callback(resp);
+                COMETLOG(std::string("Exception occurred while updating job status: ") + e.what(),
+                         LoggerLevel::CRITICAL);
+              }
       }
 
-    void Routes::Authenticate(const drogon::HttpRequestPtr& request, std::function<void(const drogon::HttpResponsePtr&)>&& callback)
+    void Routes::JobSummary(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
       {
-               handleInvalidMethod(request);
+        handleInvalidMethod(request);
+        if (!auth.machineAuthenticationisValid()) {
+          COMETLOG("Unauthorized access to /", LoggerLevel::WARNING);
+          auto resp = HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/authentication");
+          callback(resp);
+          return;
+        }
 
-              aServant.setEmail(request->getParameter("email"));
-              aServant.setCode(request->getParameter("code"));
-              //aServant.setIpAddress(request->getParameter("ipAddress"));
+        auto sort = request->getParameter("sort");
+        auto filter = request->getParameter("filter");
 
-              const bool isAuthenticated = auth.valid(aServant.getEmail(), aServant.getCode(), aServant.getIpAddress());
-              if (!isAuthenticated) {
-                COMETLOG("Invalid authentication parameters", LoggerLevel::CRITICAL);
+        std::string report = Job::htmlJobSummaryReport(db, sort, filter);
 
+        auto resp = HttpResponse::newHttpResponse();
+        resp->setBody(htmlSetBody(report, request->path() + "?" + request->query(), "Job Summary"));
+        callback(resp);
+
+      }
+
+    void Routes::JobProgress(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+  handleInvalidMethod(request);
+              std::string body = std::string(request->body());
+              //COMETLOG("Job progress: " + body, LoggerLevel::INFO);
+
+              auto json = nlohmann::json::parse(body, nullptr, false);
+              if (!json.is_object()
+                  || !json.contains("CaseNumber")
+                  || !json.contains("GroupName")
+                  || !json.contains("RunProgress")
+                  || !json.contains("Ranking")
+                  || !json.contains("Life")
+                  || !json.contains("IterationsComplete")
+                  || !json.contains("UpdateAt")
+                  || !json.contains("Status")
+              ) {
                 auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k302Found);
-                resp->addHeader("Location", "/authentication");
-                COMETLOG(
-                  std::string("Authentication ") + ((isAuthenticated) ? "successful ✅" : "failed ❌") + " for email: " +
-                  aServant
-                  .getEmail() +
-                  ". Redirecting to /",
-                  LoggerLevel::INFO);
+                resp->setStatusCode(k400BadRequest);
+                resp->setBody(R"({"ErrorMessage":"Invalid or missing fields in JSON payload"})");
                 callback(resp);
                 return;
               }
 
-              aServant.updateServantSettings(db);
+              try {
+                double caseN = json["CaseNumber"].get<double>();
+                // Convert to a 6 decimal string
+                std::string caseNumber = std::to_string(caseN);
+                caseNumber = caseNumber.substr(0, caseNumber.find('.') + 7); // Keep 6 decimal places
+                if (caseNumber.length() < 6) {
+                  caseNumber.insert(0, 6 - caseNumber.length(), '0'); // Pad with zeros if less than 6 characters
+                }
 
-              auto resp = HttpResponse::newHttpResponse();
-              resp->setStatusCode(k302Found);
-              resp->addHeader("Location", "/servant_settings");
-              COMETLOG(
-                std::string("✅ Authentication ") + ((isAuthenticated) ? "successful" : "failed") + " for email: " +
-                aServant
-                .getEmail() +
-                ". Redirecting to /",
-                LoggerLevel::INFO);
-              callback(resp);
-            
-      }
+                std::string groupName = json["GroupName"].get<std::string>();
+                std::string runProgress = json["RunProgress"].get<std::string>();
+                double ranking = json["Ranking"].get<double>();
+                double life = json["Life"].get<double>();
+                int iterationsComplete = json["IterationsComplete"].get<int>();
+                std::string updateAt = json["UpdateAt"].get<std::string>();
+                int status = json["Status"].get<int>();
 
-    
-    void Routes::Authentication(const drogon::HttpRequestPtr &request,std::function<void(const drogon::HttpResponsePtr &)> &&callback)
-      {
-              handleInvalidMethod(request);
-              if (request->method() == drogon::Post) {
-                auto host = request->getHeader("Host");
-                std::string hubAddress = "http://" + host + "/";
+                // Update the job progress in the database
+                bool updateSuccess = Job::updateJobProgress(
+                  caseNumber,
+                  groupName,
+                  runProgress,
+                  ranking,
+                  life,
+                  iterationsComplete,
+                  updateAt,
+                  status,
+                  db);
+                if (status == JobStatus::Failed || status == JobStatus::Completed) {
+                  Servant::initialiseAllServantActiveCores(db);
+                  if (Scheduler::getAutoStartJobs()) Scheduler::startJobsOnBestServants(db);
+                }
 
-                nlohmann::json jsonResponse = {
-                  {"company", "COMET Strategy - Australia"},
-                  {"HubName", "COMET Servant (" + aServant.getIpAddress() + "):LOCAL"},
-                  {"HubAddress", hubAddress},
-                  {"CloudDataConnection", "notused"},
-                  {"ErrorMessage", ""}
-                };
+                if (updateSuccess) {
+                  nlohmann::json responseJson = {
+                    {"ErrorMessage", ""},
+                    {"Status", "Job progress updated successfully"},
+                    {"CaseNumber", caseNumber}
+                  };
 
+                  // Json::Value jsonResponse;
+                  // for (auto &[key, value]: responseJson.items()) {
+                  //   jsonResponse[key] = value.dump();
+                  // }
+
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k200OK);
+                  resp->setContentTypeCode(CT_APPLICATION_JSON);
+                  resp->setBody(responseJson.dump());
+                  callback(resp);
+
+                  COMETLOG(
+                    "Job progress updated successfully for CaseNumber: " + caseNumber + ", " + Job::jobStatusDescription
+                    (convertJobStatus(status)) + ": "+ runProgress, LoggerLevel::INFO);
+                } else {
+                  auto resp = HttpResponse::newHttpResponse();
+                  resp->setStatusCode(k500InternalServerError);
+                  resp->setBody(R"({"ErrorMessage":"Failed to update job progress in database"})");
+                  callback(resp);
+                  COMETLOG("Failed to update job progress for CaseNumber: " + caseNumber, LoggerLevel::CRITICAL);
+                }
+              } catch (const std::exception &e) {
                 auto resp = HttpResponse::newHttpResponse();
-                resp->setStatusCode(k200OK);
-                resp->setContentTypeCode(CT_APPLICATION_JSON);
-                resp->setBody(jsonResponse.dump());
+                resp->setStatusCode(k500InternalServerError);
+                resp->setBody(std::string(R"({"ErrorMessage":"Exception occurred: )") + e.what() + R"("})");
                 callback(resp);
-                return;
+                COMETLOG(std::string("Exception occurred while updating job progress: ") + e.what(),
+                         LoggerLevel::CRITICAL);
               }
-
-              // GET response
-              auto resp = HttpResponse::newHttpResponse();
-              std::string responseBody = aServant.htmlAuthenticationSettingsForm(auth);
-
-              resp->setBody(htmlSetBody(responseBody, "/authentication", "Servant Authentication"));
-              COMETLOG("Servant Home: alive!", LoggerLevel::INFO);
-              callback(resp);
-            
-    
       }
 
-    
-    
+    void Routes::MockRunJobs(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
 
-    void Routes::Quit(const drogon::HttpRequestPtr &request,                      std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+        try {
+          int updatedRows = Job::mockRunJobs(db);
+
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/");
+          callback(resp);
+
+          COMETLOG("Successfully executed mock run jobs", LoggerLevel::INFO);
+        } catch (const std::exception &e) {
+          COMETLOG(std::string("Error executing mock run jobs: ") + e.what(), LoggerLevel::CRITICAL);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(R"({"ErrorMessage":"Failed to execute mock run jobs"})");
+          callback(resp);
+        }
+      }
+
+    void Routes::ResetRunningJobs(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        try {
+          int updatedRows = Job::resetRunningJobs(db);
+
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k302Found);
+          resp->addHeader("Location", "/");
+          callback(resp);
+
+          COMETLOG("Successfully reset running jobs to queued", LoggerLevel::INFO);
+        } catch (const std::exception &e) {
+          COMETLOG(std::string("Error resetting running jobs: ") + e.what(), LoggerLevel::CRITICAL);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k500InternalServerError);
+          resp->setBody(R"({"ErrorMessage":"Failed to reset running jobs"})");
+          callback(resp);
+        }
+      }
+
+    void Routes::UpdateAliveServants(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        if (!auth.machineAuthenticationisValid()) {
+          COMETLOG("Unauthorized access to /updateAliveServants", LoggerLevel::WARNING);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k401Unauthorized);
+          resp->setBody("Unauthorized");
+          callback(resp);
+          return;
+        }
+
+        auto resp = drogon::HttpResponse::newHttpResponse();
+        resp->setStatusCode(k302Found);
+        resp->addHeader("Location", "/authentication");
+        resp->setBody("Checking status of Servants and then will redirect to Servant summary...");
+        callback(resp);
+
+        Servant::checkAllServantsAlive(db);
+      }
+
+    void Routes::UploadJob(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
+      {
+        handleInvalidMethod(request);
+
+        if (!aServant.isManager()) {
+          COMETLOG("This Servant does not accept jobs since it is not the managing Servant, submit to " + aServant.getManagerIpAddress(), LoggerLevel::DEBUGGING);
+        }
+
+        if (!db.isConnected()) {
+          COMETLOG("Database connection failed", LoggerLevel::CRITICAL);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k406NotAcceptable);
+          resp->setBody(R"({"ErrorMessage":"Error mySQL database connection"})");
+          callback(resp);
+          return;
+        }
+
+        auto json = request->getJsonObject();
+        if (!json) {
+          COMETLOG("Invalid JSON payload", LoggerLevel::WARNING);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"error":"Invalid JSON payload"})");
+          callback(resp);
+          return;
+        }
+
+        Job aJob(request, JobStatus::Queued, db);
+        if (aJob.validJobStatus()) {
+          Scheduler::setAutoStartJobs(true);
+          Scheduler::startJobsOnBestServants(db);
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k201Created);
+          resp->setBody(R"({"status":"Job uploaded successfully"})");
+          callback(resp);
+        } else {
+          auto resp = drogon::HttpResponse::newHttpResponse();
+          resp->setStatusCode(k400BadRequest);
+          resp->setBody(R"({"error":"Failed to upload job"})");
+          callback(resp);
+        }
+      }
+
+
+    void Routes::Quit(const drogon::HttpRequestPtr &request, std::function<void(const drogon::HttpResponsePtr &)> &&callback)
       {
         handleInvalidMethod(request);
         m_running = false;
@@ -229,19 +1003,18 @@ namespace comet
       }
 
     std::string Routes::htmlSetBody(const std::string &body, const std::string &targetPath,
-                                     const std::string &title)
+                                    const std::string &title)
       {
-        
         return "<!DOCTYPE html>"
-          "<html>"
-          + htmlHeader(targetPath, title)
-          + "<body>" + body + "</body>"
-          + htmlFooter()
-          + "</html>";
+               "<html>"
+               + htmlHeader(targetPath, title)
+               + "<body>" + body + "</body>"
+               + htmlFooter()
+               + "</html>";
       }
 
-    
-    std::string Routes::htmlHeader(const std::string &fullTargetPath, const std::string &title) 
+
+    std::string Routes::htmlHeader(const std::string &fullTargetPath, const std::string &title)
       {
         struct Link
           {
@@ -324,7 +1097,7 @@ namespace comet
         )";
       }
 
-    std::string Routes::htmlFooter() 
+    std::string Routes::htmlFooter()
       {
         auto now = std::chrono::system_clock::now();
         std::time_t now_c = std::chrono::system_clock::to_time_t(now);
@@ -342,5 +1115,4 @@ namespace comet
         </footer>
     )";
       }
-
   }

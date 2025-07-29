@@ -13,6 +13,7 @@
 namespace comet
   {
     Database *Scheduler::db = nullptr;
+    bool Scheduler::autoStartJobs = true; // Automatically start jobs on best servants
 
     Scheduler::Scheduler()
       {
